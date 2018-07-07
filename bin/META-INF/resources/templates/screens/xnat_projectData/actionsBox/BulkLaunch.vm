@@ -1,0 +1,30 @@
+#* @vtlvariable name="dataType" type="java.lang.String" *#
+#* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
+#* @vtlvariable name="exptCounts" type="java.util.Hashtable" *#
+#* @vtlvariable name="link" type="org.apache.turbine.services.pull.tools.TemplateLink" *#
+#* @vtlvariable name="project" type="org.nrg.xdat.om.XnatProjectdata" *#
+#* @vtlvariable name="popup" type="java.lang.Boolean" *#
+#* @vtlvariable name="userHelper" type="org.nrg.xdat.security.services.UserHelperServiceI" *#
+
+<!-- Sequence: 100 -->
+	#if ($item.canEdit($user))
+      <li class="yuimenuitem lockable">
+    <a class="yuimenuitemlabel" href="#insertbox">Bulk Action</a>
+    <div id="insertbox" class="yuimenu">
+        <div class="bd">
+            <ul class="first-of-type" style="width: 170px;">
+                <li class="yuimenuitem">
+                    <a class="yuimenuitemlabel" href="$link.setPage("XDATScreen_select_bulk_action_step1.vm").addPathInfo(
+                        'project',$project.getId())">Run Existing Action</a>
+                </li>
+                <li class="yuimenuitem">
+                    <a class="yuimenuitemlabel" href="$link.setPage("XDATScreen_define_bulk_action_step1.vm").addPathInfo(
+                        'project',$project.getId())">View Action Status</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</li>
+	#end
+
+
