@@ -25,8 +25,8 @@ var dataType;
 		           </select>
 
             </span>
-            <button class="btn btn-sm data-table-action disabled" onclick="javascript:launchAction()">
-                Launch
+            <button class="btn btn-sm data-table-action disabled" onclick="javascript:launchContainer()">
+                Launch container
             </button>
         </div>
         <span class="clear clearfix"></span>
@@ -72,11 +72,13 @@ $( document ).ready(function() {
 	    success: function(responseData) {
 	    	dataType = responseData.ResultSet.rootElementName;
 	       	var opts = responseData.ResultSet.Columns;
-	       	$.each(opts, function(i, d) {
+	       	$.each(opts, function(i, d) {	
 		    var header = d.header;
 		    if (header) {
 		        if ( header != "Scans") {
 		           if (d.key.indexOf('identifier') > 0) {
+		    	      identifierKey = d.key;
+		    	   }else if (d.key.indexOf('label') > 0) {
 		    	      identifierKey = d.key;
 		    	   }
 			    	 keyAndHeaderMap[header] = d.key;
@@ -104,9 +106,12 @@ $( document ).ready(function() {
 		        if (keyAndHeaderMap.hasOwnProperty(hdr)) {
 		            var key = keyAndHeaderMap[hdr]; 
 		            rowDataWithColumns += '<td class="session-' + session_id +'-'+ d[key] +'" style="width: 120px;">';
-                           // rowDataWithColumns += '<a href="#!" onclick="displaySessionDetails("MOhana","Arjun")">'+d[key]+'</a>';
-                           rowDataWithColumns += '<span  title="'+ hdr +'">' + d[key]+'</span>';
-                           rowDataWithColumns += '</td>';
+                           // if (key == identifierKey) {
+	                   //         rowDataWithColumns += '<a href="'+url+'"><span  title="'+ hdr +'">' + d[key]+'</span></a>';
+                           // }else {
+	                            rowDataWithColumns += '<span  title="'+ hdr +'">' + d[key]+'</span>';
+                           // }
+                            rowDataWithColumns += '</td>';
 		        }
 		    }
 		    rowDataWithColumns += '<td style="position: relative; width: 24px;">';
@@ -120,74 +125,12 @@ $( document ).ready(function() {
 	        $('#searchRootElement').val(dataType);
 		//Now get the actions associated with the datatype
 		renderActionOptions();
-		//renderRunContainerMenu();
 	    },
 	    error : function(o) {
 		alert('Could not GET the search results encounetered ' + o.responseText);
 	    }
 	});
 });
-
-    this.renderRunContainerMenu = function(obj1, obj2){
-        this.rcMenu = null;
-        this.rcMenu = new YAHOO.widget.MenuBar("runContainerDiv", {
-            hidedelay: 300,
-            maxheight: 200,
-            submenualignment: ["tr", "br"]
-        });
-        this.rcMenu.en = dataType
-        
-        // otherwise, get the list of available commands and populate the menu
-        var that = this;
-
-        XNAT.xhr.getJSON({
-            url: XNAT.url.rootUrl('/xapi/commands/available?project='+projectId+'&xsiType='+this.rcMenu.en),
-            success: function(data){
-                var submenuitems = [];
-
-                that.rcMenu.subscribe("beforeRender", function(){
-//                    if (this.getRoot() == this) {
-                        try {
-                            data.forEach(function(availableCommand){
-                                if (availableCommand.enabled) {
-                                    submenuitems.push({
-                                        text: availableCommand['wrapper-description'],
-                                        classname: 'projectContainerLauncher',
-                                        onclick: {
-                                            fn: alert("Hello"),
-                                            obj: {
-                                                'root-element-name': availableCommand['root-element-name'],
-                                                'wrapper-id': availableCommand['wrapper-id']
-                                              //  'search-id': that.initResults.ResultSet.ID
-                                            },
-                                            scope: this.search
-                                        }
-                                    });
-                                }
-                            });
-
-                            var submenu = {
-                                id:  "runContainerDiv_rc",
-                                itemdata: submenuitems
-                            };
-                            //this.getItem(0).cfg.setProperty("submenu", submenu);
-                        }
-                        catch(e) {
-                            showMessage("page_body", "Exception", e.message);
-                        }
-//                    }
-                });
-                that.rcMenu.render();
-	        alert("Render"); 
-                if (submenuitems.length) {
-                    var rcMenu = document.getElementById('runContainerDiv');
-                    $(rcMenu).parents('td').removeClass('hidden');
-                }
-            }
-        })
-
-
-    };
 
 
 function renderActionOptions() {
@@ -201,7 +144,7 @@ function renderActionOptions() {
 	            url: XNAT.url.rootUrl('/xapi/commands/available?project='+projectId+'&xsiType='+data_type_val),
 		    success: function(responseData) {
 			responseData.forEach(function(availableCommand) {
-	                    $('#actionsDropdown').append('<option value="' +  availableCommand['wrapper-id'] + '">' + availableCommand['wrapper-description'] + '</option>');
+	                    $('#actionsDropdown').append('<option value="{&quot;root-element-name&quot;:&quot;'+availableCommand['root-element-name'] + '&quot;,&quot;wrapper-id&quot;:&quot;'+ availableCommand['wrapper-id'] + '&quot;}">' + availableCommand['wrapper-description'] + '</option>');
 	                });
 	                $("#availableActions").show() ;
 		    },
@@ -222,12 +165,12 @@ function renderActionOptions() {
         }
  });
 
-function launchAction() {
-     var actionSelected =  $('#actionsDropdown').find(":selected").val();
-     if (actionSelected == "Select") {
+function launchContainer() {
+     var commandDetails =  $('#actionsDropdown').find(":selected").val();
+     if (commandDetails == "Select") {
      	 XNAT.dialog.open({
-		    title: 'Please select an action to launch!',
-		    content: 'Please select an action to launch first',
+		    title: 'Please select a container to launch!',
+		    content: 'Please select a container to launch first',
 		    width: 400,
 		    buttons: [
 			{
@@ -240,84 +183,38 @@ function launchAction() {
 	  $(this).addClass('disabled'); 	    	
 	return false;
      } else{
-       //Pick up list of selected ids
-       //Get the action info
-       getAction(actionSelected);       
+	      var targets = [];
+	      $('input.selectable-select-one:checkbox').each(function(){
+		  if ($(this).is(':checked')) {
+			//Get the JSON
+			var jsonData = JSON.parse($(this).val());
+			targets.push(jsonData['accession-id']);
+		  }
+	       });
+	       var commandDetailsJsonObj = JSON.parse(commandDetails);
+	       var rootElementName = commandDetailsJsonObj['root-element-name'];
+	       var wrapperId =  commandDetailsJsonObj['wrapper-id'];	
+               XNAT.plugin.containerService.launcher.bulkLaunchDialog(wrapperId,rootElementName,targets);
+	      
      }
 }
 
-
-function getAction(actionUrl) {
-		XNAT.xhr.getJSON({
-		    url: XNAT.url.restUrl(actionUrl),
-		    success: function(responseData) {
-			var responseResult = responseData.ResultSet;
-			var zeroIndexElement = responseResult.Result[0];
-			var actionDetails = JSON.parse(zeroIndexElement.contents);
-			var firstStep = actionDetails.Action.Steps[0];
-			if (firstStep) {
-			  var containerInfo = firstStep.containerInfo;	
-			  var pipelineInfo = firstStep.pipelineInfo;
-			  //If this is a container launch
-			  launchContainer(containerInfo);
-			  //If this is a pipeline launch
-			  //launchPipeline(pipelineInfo);
-			}else {
-			  alert("Not found");	
-			}
-			
-		    },
-		    error : function(o) {
-			alert('Could not get actions associated with  encounetered ' + o);
-		    }
-		 });
-
-}
-
-function launchContainer(containerInfo) {
-   // check for checked boxes. If any found, unchecked = false
-      var jsSelectedSessions = [];		
-      $('input.selectable-select-one:checkbox').each(function(){
-          if ($(this).is(':checked')) {
-          	//Get the JSON
-		jsSelectedSessions.push($(this).val());                                                                                  
-          }
-       });
-  //For all sessions in jsSelectedSessions, launch the container
-  
-}
+    
 
 </script>
 
 <script>
-    (function(){
-        /* inline session table functions */
-        window.displaySessionDetails = function (sessionId, url) {
-        	alert("Came here")
-                if (!sessionId) return false;
-		alert(url)
+    function getLauncherUI(wrapperId,rootElementName,rootElementValue){
+        return rootUrl('/xapi/wrappers/'+wrapperId+'/launch?'+rootElementName+'='+rootElementValue);
+    }
+    function getProjectLauncherUI(wrapperId,rootElementName,rootElementValue){
+        return rootUrl('/xapi/projects/'+projectId+'/wrappers/'+wrapperId+'/launch?'+rootElementName+'='+rootElementValue);
+    }
 
-		XNAT.ui.dialog.open({
-		    title: 'Session ' + sessionId,
-		    width: 480,
-		    content: '<div class="panel"></div>',
-		    beforeShow: function (obj) {
-			var container = obj.$modal.find('.panel');
-			container.append(url);
-		    },
-		    isDraggable: true,
-		    mask: false,
-		    footer: {
-			content: 'Click in the header to move this dialog around the page'
-		    }
-		});
-	};
-
-     })();
- 
 </script>
 <script src="$content.getURI("scripts/xnat/plugin/containerui/selectableTableBehavior.js")"></script>
-<script src="$content.getURI("scripts/xnat/plugin/containerui/commandUiLauncher.js")"></script>
+<script src="$content.getURI("scripts/xnat/plugin/containerui/commandUiLauncher-mr.js")"></script>
+<script src="$content.getURI("scripts/xnat/plugin/containerService/projectSearchLauncher.js")"></script>
 
 <link rel="stylesheet" href="$content.getURI("scripts/xnat/plugin/scanTable/scanTable.css")"></link>
 

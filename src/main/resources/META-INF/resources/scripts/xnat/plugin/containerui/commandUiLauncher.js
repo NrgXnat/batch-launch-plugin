@@ -11,7 +11,7 @@
  * Flexible script to be used in the UI to launch
  */
 
-console.log('commandUiLauncher.js');
+console.log('commandUiLauncher-mr.js');
 
 var XNAT = getObject(XNAT || {});
 
@@ -33,8 +33,8 @@ var XNAT = getObject(XNAT || {});
         rootUrl = XNAT.url.rootUrl,
         csrfUrl = XNAT.url.csrfUrl,
         projectId = XNAT.data.context.projectID,
-        xsiType = XNAT.data.context.xsiType,
-        containerMenuItems;
+        xsiType = XNAT.data.context.xsiType;
+       // containerMenuItems;
 
     XNAT.plugin =
         getObject(XNAT.plugin || {});
@@ -545,11 +545,16 @@ var XNAT = getObject(XNAT || {});
                                     data: JSON.stringify(dataToPost),
                                     success: function(data){
                                         xmodal.loading.close();
-
-                                        var messageContent = (data.status === 'success') ?
-                                            spawn('p',{ style: { 'word-wrap': 'break-word'}}, 'Container ID: '+data['container-id'] ) :
-                                            spawn('p', data.message);
-
+										var messageContent;
+										if (data.status === 'success') {
+												if ( data['type'] === 'service') {
+													messageContent = spawn('p',{ style: { 'word-wrap': 'break-word'}}, 'Service ID: '+data['service-id']);
+												}else {
+													messageContent = spawn('p',{ style: { 'word-wrap': 'break-word'}}, 'Container ID: '+data['container-id']);
+											    }
+										}else {
+											messageContent = spawn('p', data.message);
+										}
                                         XNAT.ui.dialog.open({
                                             title: 'Container Launch <span style="text-transform: capitalize">'+data.status+'</span>',
                                             content: messageContent,
@@ -656,7 +661,7 @@ var XNAT = getObject(XNAT || {});
                         $targetListContainer = $panel.find('.target-list');
 
                     // display root elements first
-                    $targetListContainer.append(spawn('p',[ spawn('strong', targets.length + ' items selected to run in bulk.' )]));
+                    $targetListContainer.append(spawn('p',[ spawn('strong', targets.length + ' item(s) selected to run in bulk.' )]));
 
                     var targetList = launcher.formInputs({ name: rootElement, type: 'staticList', value: targets.toString() });
                     $targetListContainer.append(targetList);
@@ -902,10 +907,14 @@ var XNAT = getObject(XNAT || {});
                                             messageContent.push( spawn('h3',{'style': {'margin-top': '2em' }},'Successful Container Launches') );
 
                                             data.successes.forEach(function(success){
-                                                messageContent.push( spawn('p',[
-                                                    spawn('strong','Container ID: '),
-                                                    spawn('span',success['container-id'])
-                                                ]) );
+												if (success['type'] === 'service') {
+													messageContent.push( spawn('p',[spawn('strong','Service ID: '),spawn('span',success['service-id']) ]));
+												}else {
+													messageContent.push( spawn('p',[
+														spawn('strong','Container ID: '),
+														spawn('span',success['container-id'])
+													]) );
+												}
                                                 messageContent.push( spawn('div',prettifyJSON(success.params)) );
                                             });
                                         }
@@ -1374,7 +1383,8 @@ var XNAT = getObject(XNAT || {});
 
                             if (scanCommands.length > 0){
                                 var scanActionTarget = $('tr#scan-'+scan['id']).find('.single-scan-actions-menu');
-                                scanActionTarget.append(scanCommands).parents('td').find('.inline-actions-menu-toggle').removeClass('hidden');
+                                scanActionTarget.append(scanCommands)
+                                $('.run-menu').show();
                             }
                         });
 
