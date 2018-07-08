@@ -1,0 +1,328 @@
+#* @vtlvariable name="user" type="org.nrg.xdat.security.XDATUser" *#
+#* @vtlvariable name="siteConfig" type="org.nrg.xdat.preferences.SiteConfigPreferences" *#
+#* @vtlvariable name="turbineUtils" type="org.nrg.xdat.turbine.utils.TurbineUtils" *#
+#* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
+#set($SESSION_DISPLAY_NAME_PLURAL = $displayManager.getPluralDisplayNameForImageSession())
+
+<!--BEGIN /screens/XDATScreen_bulk_action.vm -->
+
+<script>
+var projectId;
+var dataType;
+</script>
+
+#if($xss)
+<textarea id="xss" style="display:none">$xss</textarea>
+#end
+
+
+<div class="data-table-container" style="width:  889px " id="selectable-table-bulk">
+    <div class="data-table-titlerow">
+        <h3 class="data-table-title">Select experiments to launch processing</h3>
+        <div class="data-table-actionsrow">
+            <span  class="textlink-sm data-table-action">
+		          <select id="actionsDropdown" class="data-table-action disabled"  disabled>
+		           </select>
+
+            </span>
+            <button class="btn btn-sm data-table-action disabled" onclick="javascript:launchAction()">
+                Launch
+            </button>
+        </div>
+        <span class="clear clearfix"></span>
+    </div>
+
+
+    <div class="data-table-wrapper no-body" style="padding-right: 0">
+        <table id="xnat-table-header" class="xnat-table clean fixed-header" style="border:none;">
+            <thead>
+            <tr id="xnat-table-header-row1">
+                <th class="toggle-all" style="width: 45px;">
+                    <input type="checkbox" class="selectable-select-all" id="toggle-all-sessions" title="Toggle All Sessions" />
+                </th>
+            </tr>
+            </thead>
+        </table>
+    </div>
+    <div class="data-table-wrapper no-header" style="/* max-height: 320px; overflow-y: auto */">
+        <table id="xnat-table-datarows" class="xnat-table clean selectable" style="border: none;">
+            <tbody id="xnat-table-datarows-tbody">
+
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<input id="searchRootElement" type="hidden" />
+
+
+<script type="text/javascript">
+
+  function findLabel(key){
+        return key.indexOf('identifier') > 0;
+    }
+
+
+$( document ).ready(function() {
+	var keyAndHeaderMap = [];
+	var xml = document.getElementById("xss").value ;
+	XNAT.xhr.post({
+	    url: XNAT.url.restUrl('REST/search?format=json&XNAT_CSRF=' + window.csrfToken),
+	    data:xml,
+	    success: function(responseData) {
+	    	dataType = responseData.ResultSet.rootElementName;
+	       	var opts = responseData.ResultSet.Columns;
+	       	$.each(opts, function(i, d) {
+		    var header = d.header;
+		    if (header) {
+		        if ( header != "Scans") {
+		           if (d.key.indexOf('identifier') > 0) {
+		    	      identifierKey = d.key;
+		    	   }
+			    	 keyAndHeaderMap[header] = d.key;
+			    	 $('tr#xnat-table-header-row1').append('<th class="left" style="width: 120px">'+ header +'</th>');
+   		    	}
+		     }	
+	        });
+	        //AddDataTableRows:
+	        var rows = responseData.ResultSet.Result;
+	       	$.each(rows, function(i, d) {
+	       	    var session_id = d.session_id;
+	       	    var session_project = d.project;
+	       	    if (!projectId) {
+	       	    	projectId =  d.project;
+		    }	
+	       	    var single_select_checkbox_id = "select-"+session_id;
+		    var id_json = '{&quot;accession-id&quot;:&quot;'+ session_id+ '&quot;,&quot;label&quot;:&quot;' + d[identifierKey] +'&quot;,&quot;project&quot;:&quot;'+session_project+'&quot;,&quot;xsiType&quot;:&quot;'+ dataType +'&quot;}';
+	       	    var url=serverRoot + '/DisplayItemAction/search_element/' + dataType +'/search_field/' + dataType+'.ID/search_value/'+ session_id+ '/popup/$popup';
+	   	    var rowDataWithColumns = '<tr valign="top" id="session-'+ session_id + '">';
+		        rowDataWithColumns +='<td class="session-actions-controls session-selector center" style="width: 45px;">';
+		        rowDataWithColumns +='<input type="checkbox" class="selectable-select-one" id="'+single_select_checkbox_id+'" value="'+id_json+'"/>';
+		        rowDataWithColumns +='</td>';
+		        
+	       	    for (var hdr in keyAndHeaderMap) {
+		        if (keyAndHeaderMap.hasOwnProperty(hdr)) {
+		            var key = keyAndHeaderMap[hdr]; 
+		            rowDataWithColumns += '<td class="session-' + session_id +'-'+ d[key] +'" style="width: 120px;">';
+                           // rowDataWithColumns += '<a href="#!" onclick="displaySessionDetails("MOhana","Arjun")">'+d[key]+'</a>';
+                           rowDataWithColumns += '<span  title="'+ hdr +'">' + d[key]+'</span>';
+                           rowDataWithColumns += '</td>';
+		        }
+		    }
+		    rowDataWithColumns += '<td style="position: relative; width: 24px;">';
+                    rowDataWithColumns += ' <div class="inline-actions-menu-toggle hidden"><i class="fa fa-caret-right"></i></div>';
+                    rowDataWithColumns += ' <ul class="inline-actions-menu single-scan-actions-menu" style="display:none;"></ul>';
+                    rowDataWithColumns += '</td>';
+		    rowDataWithColumns += '</tr>';
+		    $('tbody#xnat-table-datarows-tbody').append(rowDataWithColumns);
+
+	        });
+	        $('#searchRootElement').val(dataType);
+		//Now get the actions associated with the datatype
+		renderActionOptions();
+		//renderRunContainerMenu();
+	    },
+	    error : function(o) {
+		alert('Could not GET the search results encounetered ' + o.responseText);
+	    }
+	});
+});
+
+    this.renderRunContainerMenu = function(obj1, obj2){
+        this.rcMenu = null;
+        this.rcMenu = new YAHOO.widget.MenuBar("runContainerDiv", {
+            hidedelay: 300,
+            maxheight: 200,
+            submenualignment: ["tr", "br"]
+        });
+        this.rcMenu.en = dataType
+        
+        // otherwise, get the list of available commands and populate the menu
+        var that = this;
+
+        XNAT.xhr.getJSON({
+            url: XNAT.url.rootUrl('/xapi/commands/available?project='+projectId+'&xsiType='+this.rcMenu.en),
+            success: function(data){
+                var submenuitems = [];
+
+                that.rcMenu.subscribe("beforeRender", function(){
+//                    if (this.getRoot() == this) {
+                        try {
+                            data.forEach(function(availableCommand){
+                                if (availableCommand.enabled) {
+                                    submenuitems.push({
+                                        text: availableCommand['wrapper-description'],
+                                        classname: 'projectContainerLauncher',
+                                        onclick: {
+                                            fn: alert("Hello"),
+                                            obj: {
+                                                'root-element-name': availableCommand['root-element-name'],
+                                                'wrapper-id': availableCommand['wrapper-id']
+                                              //  'search-id': that.initResults.ResultSet.ID
+                                            },
+                                            scope: this.search
+                                        }
+                                    });
+                                }
+                            });
+
+                            var submenu = {
+                                id:  "runContainerDiv_rc",
+                                itemdata: submenuitems
+                            };
+                            //this.getItem(0).cfg.setProperty("submenu", submenu);
+                        }
+                        catch(e) {
+                            showMessage("page_body", "Exception", e.message);
+                        }
+//                    }
+                });
+                that.rcMenu.render();
+	        alert("Render"); 
+                if (submenuitems.length) {
+                    var rcMenu = document.getElementById('runContainerDiv');
+                    $(rcMenu).parents('td').removeClass('hidden');
+                }
+            }
+        })
+
+
+    };
+
+
+function renderActionOptions() {
+	        $('#actionsDropdown')
+		    .find('option')
+		    .remove()
+		    .end()
+		    .append('<option value="Select" selected="true">Select Container to Launch</option>');
+		var data_type_val = $('#searchRootElement').val();    
+		XNAT.xhr.getJSON({
+	            url: XNAT.url.rootUrl('/xapi/commands/available?project='+projectId+'&xsiType='+data_type_val),
+		    success: function(responseData) {
+			responseData.forEach(function(availableCommand) {
+	                    $('#actionsDropdown').append('<option value="' +  availableCommand['wrapper-id'] + '">' + availableCommand['wrapper-description'] + '</option>');
+	                });
+	                $("#availableActions").show() ;
+		    },
+		    error : function(o) {
+			alert('Could not get actions associated with ' + data_type_val + ' encounetered ' + o);
+		    }
+		});
+
+}
+
+ $( '#actionsDropdown' ).change(function() {
+        var selectedStr =  $(this).find(":selected").val();
+        if (selectedStr != "Select") {
+	  var action = selectedStr;
+	  $(this).parents('.data-table-container').find('button').find('.data-table-action').removeClass('disabled'); 	    	
+        }else {
+	  $(this).parents('.data-table-container').find('button').find('.data-table-action').addClass('disabled'); 	    	
+        }
+ });
+
+function launchAction() {
+     var actionSelected =  $('#actionsDropdown').find(":selected").val();
+     if (actionSelected == "Select") {
+     	 XNAT.dialog.open({
+		    title: 'Please select an action to launch!',
+		    content: 'Please select an action to launch first',
+		    width: 400,
+		    buttons: [
+			{
+			    label: 'OK',
+			    isDefault: true,
+			    close: true
+			}
+		    ]
+		});
+	  $(this).addClass('disabled'); 	    	
+	return false;
+     } else{
+       //Pick up list of selected ids
+       //Get the action info
+       getAction(actionSelected);       
+     }
+}
+
+
+function getAction(actionUrl) {
+		XNAT.xhr.getJSON({
+		    url: XNAT.url.restUrl(actionUrl),
+		    success: function(responseData) {
+			var responseResult = responseData.ResultSet;
+			var zeroIndexElement = responseResult.Result[0];
+			var actionDetails = JSON.parse(zeroIndexElement.contents);
+			var firstStep = actionDetails.Action.Steps[0];
+			if (firstStep) {
+			  var containerInfo = firstStep.containerInfo;	
+			  var pipelineInfo = firstStep.pipelineInfo;
+			  //If this is a container launch
+			  launchContainer(containerInfo);
+			  //If this is a pipeline launch
+			  //launchPipeline(pipelineInfo);
+			}else {
+			  alert("Not found");	
+			}
+			
+		    },
+		    error : function(o) {
+			alert('Could not get actions associated with  encounetered ' + o);
+		    }
+		 });
+
+}
+
+function launchContainer(containerInfo) {
+   // check for checked boxes. If any found, unchecked = false
+      var jsSelectedSessions = [];		
+      $('input.selectable-select-one:checkbox').each(function(){
+          if ($(this).is(':checked')) {
+          	//Get the JSON
+		jsSelectedSessions.push($(this).val());                                                                                  
+          }
+       });
+  //For all sessions in jsSelectedSessions, launch the container
+  
+}
+
+</script>
+
+<script>
+    (function(){
+        /* inline session table functions */
+        window.displaySessionDetails = function (sessionId, url) {
+        	alert("Came here")
+                if (!sessionId) return false;
+		alert(url)
+
+		XNAT.ui.dialog.open({
+		    title: 'Session ' + sessionId,
+		    width: 480,
+		    content: '<div class="panel"></div>',
+		    beforeShow: function (obj) {
+			var container = obj.$modal.find('.panel');
+			container.append(url);
+		    },
+		    isDraggable: true,
+		    mask: false,
+		    footer: {
+			content: 'Click in the header to move this dialog around the page'
+		    }
+		});
+	};
+
+     })();
+ 
+</script>
+<script src="$content.getURI("scripts/xnat/plugin/containerui/selectableTableBehavior.js")"></script>
+<script src="$content.getURI("scripts/xnat/plugin/containerui/commandUiLauncher.js")"></script>
+
+<link rel="stylesheet" href="$content.getURI("scripts/xnat/plugin/scanTable/scanTable.css")"></link>
+
+<BR/>
+<BR/>
+
+<!--END /screens/XDATScreen_bulk_action.vm -->
+
