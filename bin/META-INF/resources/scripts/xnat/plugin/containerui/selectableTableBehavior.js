@@ -17,9 +17,17 @@ $(document).on('click','.selectable-select-all',function(){
     });
 
     if (checkProp === 'checked') {
-        containingTable.find('.data-table-action').removeClass('disabled');
+        containingTable.find('.data-table-action').each(function(){
+			$(this).removeClass('disabled');
+			try {$(this).prop('disabled',false);}
+			catch{}
+			});
     } else {
-        containingTable.find('.data-table-action').addClass('disabled');
+        containingTable.find('.data-table-action').each(function(){
+			$(this).addClass('disabled');
+			try {$(this).prop('disabled',true);}
+			catch{}
+			});
     }
 });
 
@@ -51,9 +59,17 @@ $(document).on('click','.selectable-select-one',function(){
     selectAll.prop('checked',allChecked).prop('indeterminate',indeterminate);
 
     if (allUnchecked) {
-        containingTable.find('.data-table-action').addClass('disabled');
+        containingTable.find('.data-table-action').each(function(){
+			$(this).addClass('disabled');
+			try {$(this).prop('disabled',true);}
+			catch{}
+			});
     } else {
-        containingTable.find('.data-table-action').removeClass('disabled');
+        containingTable.find('.data-table-action').each(function(){
+			$(this).removeClass('disabled');
+			try {$(this).prop('disabled',false);}
+			catch{}
+			});
     }
 });
 

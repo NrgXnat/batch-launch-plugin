@@ -4,5 +4,6 @@
 	<classpathentry kind="src" path="src/main/resources"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7/"/>
 	<classpathentry kind="con" path="org.eclipse.buildship.core.gradleclasspathcontainer"/>
+	<classpathentry kind="lib" path="E:/BACKUP/WASHU/XNAT/XNAT_HOME/containers-2.0.0-rc3-DEMO-fat.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

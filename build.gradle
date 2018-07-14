@@ -77,6 +77,9 @@ repositories {
         url 'https://nrgxnat.jfrog.io/nrgxnat/ext-release'
         name 'XNAT External Release Repository'
     }
+     flatDir {
+       dirs 'libs'
+   }
 }
 
 // TODO: Keeping your versions as variables makes it easier to update versions when you have multiple libraries from the same framework that thus have the same version.
@@ -90,12 +93,13 @@ def vSwagger = '2.4.0'
 
 // TODO: This is a pretty minimal set of dependencies, so don't worry if you need to add more.
 dependencies {
+    compile name: 'containers-2.0.0-rc3-DEMO-fat'
     compile("org.nrg.xnat:web:${vXnatDev}") {
         exclude group: '*'
     }
-/*    compile("org.nrg.xnat:xnat-data-models:${vXnatDev}") {
+    compile("org.nrg.xnat:xnat-data-models:${vXnatDev}") {
         exclude group: '*'
-    } */
+    } 
     compile("org.nrg.xdat:core:${vXnatDev}") {
         exclude group: '*'
     }
