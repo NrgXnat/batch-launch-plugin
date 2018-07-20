@@ -25,6 +25,10 @@ public class  XDATScreen_bulk_action  extends SecureScreen {
 
 	    @Override
 	    protected void doBuildTemplate(RunData data, Context context) throws Exception {
+	    	System.out.println("XDATScreen_bulk_action called");
+	    	System.out.println("XSS:");
+	    	System.out.println(context.get("xss"));
+	    	
 
 	    }
 }

@@ -4,12 +4,42 @@
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
 #set($SESSION_DISPLAY_NAME_PLURAL = $displayManager.getPluralDisplayNameForImageSession())
 
+<style>
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f1f1f1;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+.dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+.dropdown-content a:hover {background-color: #ddd;}
+
+.dropdown:hover .dropdown-content {display: block;}
+</style>
+
 <!--BEGIN /screens/XDATScreen_bulk_action.vm -->
 
 <script>
 var projectId;
 var dataType;
 </script>
+
+<div id="breadcrumbs"></div>
+<script src="/scripts/xnat/ui/breadcrumbs.js"></script>
 
 #if($xss)
 <textarea id="xss" style="display:none">$xss</textarea>
@@ -28,6 +58,9 @@ var dataType;
             <button class="btn btn-sm data-table-action disabled" onclick="javascript:launchContainer()">
                 Launch container
             </button>
+            <button class="btn btn-sm" type="submit" onclick="javascript:reload()">
+                Reload
+            </button>
         </div>
         <span class="clear clearfix"></span>
     </div>
@@ -44,7 +77,7 @@ var dataType;
             </thead>
         </table>
     </div>
-    <div class="data-table-wrapper no-header" style="/* max-height: 320px; overflow-y: auto */">
+    <div class="data-table-wrapper no-header" style="/* max-height: 320px; overflow-y: auto  */">
         <table id="xnat-table-datarows" class="xnat-table clean selectable" style="border: none;">
             <tbody id="xnat-table-datarows-tbody">
 
@@ -54,6 +87,7 @@ var dataType;
 </div>
 
 <input id="searchRootElement" type="hidden" />
+<input type="hidden" id="search_xml" name="search_xml" value="$xss"/>
 
 
 <script type="text/javascript">
@@ -66,6 +100,11 @@ var dataType;
 $( document ).ready(function() {
 	var keyAndHeaderMap = [];
 	var xml = document.getElementById("xss").value ;
+	var identifierKey = "session_id";
+	var subjectIdentifierKey = "xnat_subjectdata_subjectid"; 
+	var subjectLabelKey = "";
+	var sessionLabelKey = "";
+
 	XNAT.xhr.post({
 	    url: XNAT.url.restUrl('REST/search?format=json&XNAT_CSRF=' + window.csrfToken),
 	    data:xml,
@@ -73,34 +112,37 @@ $( document ).ready(function() {
 	    	dataType = responseData.ResultSet.rootElementName;
 	       	var opts = responseData.ResultSet.Columns;
 	       	$.each(opts, function(i, d) {	
-		    var header = d.header;
-		    if (header) {
-		           var showColumn = true;
-		           if (d.key.indexOf('identifier') > 0) {
-		    	      identifierKey = d.key;
-		    	   }else if (d.key.indexOf('label') > 0) {
-		    	      identifierKey = d.key;
-		    	   }
-		    	   if (header=="Scans" || header=="Age" || header=="Date" || header=="Scanner") {
-		    	   	showColumn = false;
-		    	   }
-		    	   if (showColumn) {
-			    	 keyAndHeaderMap[header] = d.key;
-			    	 $('tr#xnat-table-header-row1').append('<th class="left" style="width: 120px">'+ header +'</th>');
-			   } 	 
-		     }
+	       		    var header = d.header;
+	       		    if (header) {
+	       		           var showColumn = true;
+	       		    	   if (header=="Scans" || header=="Age" || header=="Date" || header=="Scanner") {
+	       		    	   	showColumn = false;
+	       		    	   }
+	       		    	   if (d.key.startsWith('xnat_subjectdata_sub_project_identifier') > 0) {
+		    	               subjectLabelKey = d.key;
+		    	           }else if (d.key.indexOf('_project_identifier_') > 0) {
+					sessionLabelKey = d.key;
+		    	           }
+	       		    	   if (showColumn) {
+	       			    	 keyAndHeaderMap[header] = d.key;
+	       			    	 $('tr#xnat-table-header-row1').append('<th class="left" style="width: 120px">'+ header +'</th>');
+	       			   } 	 
+	       		     }
 	        });
 	        //AddDataTableRows:
 	        var rows = responseData.ResultSet.Result;
 	       	$.each(rows, function(i, d) {
 	       	    var session_id = d.session_id;
+	       	    var subject_id = d.xnat_subjectdata_subjectid;
 	       	    var session_project = d.project;
 	       	    if (!projectId) {
 	       	    	projectId =  d.project;
 		    }	
 	       	    var single_select_checkbox_id = "select-"+session_id;
-		    var id_json = '{&quot;accession-id&quot;:&quot;'+ session_id+ '&quot;,&quot;label&quot;:&quot;' + d[identifierKey] +'&quot;,&quot;project&quot;:&quot;'+session_project+'&quot;,&quot;xsiType&quot;:&quot;'+ dataType +'&quot;}';
-	       	    var url=serverRoot + '/DisplayItemAction/search_element/' + dataType +'/search_field/' + dataType+'.ID/search_value/'+ session_id+ '/popup/$popup';
+		    var id_json = '{&quot;accession-id&quot;:&quot;'+ session_id+ '&quot;,&quot;label&quot;:&quot;' + d[sessionLabelKey] +'&quot;,&quot;project&quot;:&quot;'+session_project+'&quot;,&quot;xsiType&quot;:&quot;'+ dataType +'&quot;}';
+	       	    var session_url= 'app/action/DisplayItemAction/search_element/' + dataType +'/search_field/' + dataType+'.ID/search_value/'+ session_id+ '/popup/$popup';
+	       	    var subject_url= 'app/action/DisplayItemAction/search_element/xnat:subjectData/search_field/xnat:subjectData.ID/search_value/'+ subject_id+ '/popup/$popup';
+
 	   	    var rowDataWithColumns = '<tr valign="top" id="session-'+ session_id + '">';
 		        rowDataWithColumns +='<td class="session-actions-controls session-selector center" style="width: 45px;">';
 		        rowDataWithColumns +='<input type="checkbox" class="selectable-select-one" id="'+single_select_checkbox_id+'" value="'+id_json+'"/>';
@@ -108,33 +150,108 @@ $( document ).ready(function() {
 		        
 	       	    for (var hdr in keyAndHeaderMap) {
 		        if (keyAndHeaderMap.hasOwnProperty(hdr)) {
-		            var key = keyAndHeaderMap[hdr]; 
-		            rowDataWithColumns += '<td class="session-' + session_id +'-'+ d[key] +'" style="width: 120px;">';
-                           // if (key == identifierKey) {
-	                   //         rowDataWithColumns += '<a href="'+url+'"><span  title="'+ hdr +'">' + d[key]+'</span></a>';
-                           // }else {
-	                            rowDataWithColumns += '<span  title="'+ hdr +'">' + d[key]+'</span>';
-                           // }
-                            rowDataWithColumns += '</td>';
+		            var key = keyAndHeaderMap[hdr];
+			    if (hdr == 'Project') {
+			            rowDataWithColumns += '<td class="session-' + session_id +'-'+ d[key] +'" style="width: 120px;"><span  title="'+ hdr +'">' + d[key]+'</span></td>';
+                            }else if (key == sessionLabelKey) {
+                            	    var url = XNAT.url.rootUrl(session_url);	
+          		            rowDataWithColumns += '<td style="width: 120px;"><a href="#!" onclick="displaySessionDetails(\''+d[key]+'\',\''+ XNAT.url.rootUrl(session_url) +'\')"><span  title="'+ hdr +'">' + d[key]+'</span></a></td>';
+                            }else if (key == subjectLabelKey) {
+			            rowDataWithColumns += '<td style="width: 120px;"><a href="#!" onclick="displaySubjectDetails(\''+d[key]+'\',\''+ XNAT.url.rootUrl(subject_url) +'\')"><span  title="'+ hdr +'">' + d[key]+'</span></a></td>';
+                            }else {
+                            	    //d.key contains  status#workflow id
+                            	    var workFlowStatusIndx = d[key].indexOf("#");
+                            	    var workFlowStatus = d[key].substring(0,workFlowStatusIndx);
+                            	    var workFlowId = d[key].substring(workFlowStatusIndx+1);
+                            	    var fontColor = "";
+                            	    if (workFlowStatus.startsWith("Failed") || workFlowStatus == "Failed" ||workFlowStatus.startsWith("Error") || workFlowStatus == "Error") {
+                            	      fontColor = 'color="red"';
+                            	    }else if (workFlowStatus == "Queued" || workFlowStatus == "Created") {
+                            	      fontColor = 'color="orange"';
+                            	    }else if (workFlowStatus == "Complete") {
+        	                      fontColor = 'color="green"';
+                            	    }
+                            	    rowDataWithColumns += '<td style="width: 120px;"><div class="dropdown"> ';		
+                            	    rowDataWithColumns += '<span  title="'+ hdr +'"><font '+ fontColor + '>' + workFlowStatus+'</font></span><div class="dropdown-content">';
+                            	    rowDataWithColumns += '<table><tr><td colspan="3">'+hdr +'[<font ' + fontColor + '>' +workFlowStatus +'</font>]' +'</td></tr><tr>';
+				    rowDataWithColumns +=  	'<td style="width: 20px;"><i class="fa fa-eye"  title="View Std Log" onclick="viewWorkflowFile('+workFlowId+',\'stdout\')"></i></td>';
+				    rowDataWithColumns +=	'<td style="width: 20px;"><i class="fa fa-eye"  title="View Std Error" onclick="viewWorkflowFile('+workFlowId+',\'stderr\')"></i></td>';
+				    rowDataWithColumns +=	'<td style="width: 20px;"><i class="fa fa-trash" title="Terminate Process" onclick="killProcess('+workFlowId+')"></i></td>';
+				    rowDataWithColumns += '</tr></table>';
+				    rowDataWithColumns += '</div></div>';
+				    rowDataWithColumns += '</td>';
+                            }
 		        }
 		    }
-		    rowDataWithColumns += '<td style="position: relative; width: 24px;">';
-                    rowDataWithColumns += ' <div class="inline-actions-menu-toggle hidden"><i class="fa fa-caret-right"></i></div>';
-                    rowDataWithColumns += ' <ul class="inline-actions-menu single-scan-actions-menu" style="display:none;"></ul>';
-                    rowDataWithColumns += '</td>';
 		    rowDataWithColumns += '</tr>';
 		    $('tbody#xnat-table-datarows-tbody').append(rowDataWithColumns);
 
 	        });
 	        $('#searchRootElement').val(dataType);
+		populateBreadCrumbs();
 		//Now get the actions associated with the datatype
 		renderActionOptions();
 	    },
 	    error : function(o) {
-		alert('Could not GET the search results encounetered ' + o.responseText);
+			    XNAT.dialog.open({
+		    		    title: 'Error!',
+		    		    content: 'Could not GET the search results encounetered ' + o.responseText,
+		    		    width: 400,
+		    		    buttons: [
+		    			{
+		    			    label: 'OK',
+		    			    isDefault: true,
+		    			    close: true
+		    			}
+		    		    ]
+			    });
+
 	    }
 	});
 });
+
+
+function populateBreadCrumbs() {
+    // wrap it up to keep things
+    // out of global scope
+    (function(){
+
+        var crumbs = [];
+                        crumbs.push({
+                            id:    projectId,
+                            type:  'PROJECT',
+                            link:  '/app/action/DisplayItemAction/search_element/xnat%3AprojectData/search_field/xnat%3AprojectData.ID/search_value/' + projectId,
+                            label: projectId
+                        });
+        XNAT.ui.breadcrumbs.render('#breadcrumbs', crumbs);
+    })();
+
+
+}
+
+function reload() {
+   window.location.reload();
+}
+
+function displaySessionDetails(sessionLabel,sessionUrl) {
+            if (!sessionLabel) return false;
+            if (!sessionUrl) return false;
+            XNAT.ui.dialog.iframe(sessionUrl,'Session: ' + sessionLabel,580,600);
+}; 
+
+function displaySubjectDetails(subjectLabel,subjectUrl) {
+            if (!subjectLabel) return false;
+            if (!subjectUrl) return false;
+            XNAT.ui.dialog.iframe(subjectUrl,'Subject: ' + subjectLabel,580,600);
+}; 
+
+function viewWorkflowFile(workFlowId, fileType) {
+  //FileType is stdout or stderr
+  var logFileUrl = XNAT.url.rootUrl('xapi/workflows/' + workFlowId + '/logs/' + fileType);
+  XNAT.ui.dialog.iframe(logFileUrl,'File: ' + fileType,580,600);
+};
+
+
 
 
 function renderActionOptions() {
@@ -153,7 +270,18 @@ function renderActionOptions() {
 	                $("#availableActions").show() ;
 		    },
 		    error : function(o) {
-			alert('Could not get actions associated with ' + data_type_val + ' encounetered ' + o);
+			    XNAT.dialog.open({
+		    		    title: 'Error!',
+		    		    content: 'Could not get actions associated with ' + data_type_val + ' encounetered ' + o,
+		    		    width: 400,
+		    		    buttons: [
+		    			{
+		    			    label: 'OK',
+		    			    isDefault: true,
+		    			    close: true
+		    			}
+		    		    ]
+			    });
 		    }
 		});
 
@@ -199,11 +327,18 @@ function launchContainer() {
 	       var rootElementName = commandDetailsJsonObj['root-element-name'];
 	       var wrapperId =  commandDetailsJsonObj['wrapper-id'];	
                XNAT.plugin.containerService.launcher.bulkLaunchDialog(wrapperId,rootElementName,targets);
-	      
      }
 }
 
-    
+function saveAsClick(){
+        dynamicJSLoad("SavePopupForm", "search/saveSearch.js");
+        var savePopup = new SavePopupForm('\'$xml\'', undefined, { "saveAs": true });
+        savePopup.init();
+        savePopup.render();
+        return true;
+    };
+
+
 
 </script>
 
@@ -219,6 +354,7 @@ function launchContainer() {
 <script src="$content.getURI("scripts/xnat/plugin/containerui/selectableTableBehavior.js")"></script>
 <script src="$content.getURI("scripts/xnat/plugin/containerui/commandUiLauncher-mr.js")"></script>
 <script src="$content.getURI("scripts/xnat/plugin/containerService/projectSearchLauncher.js")"></script>
+<script src="$content.getURI("scripts/xnat/plugin/workflowMgmt/workflowmgmt.js")"></script>
 
 <link rel="stylesheet" href="$content.getURI("scripts/xnat/plugin/scanTable/scanTable.css")"></link>
 
