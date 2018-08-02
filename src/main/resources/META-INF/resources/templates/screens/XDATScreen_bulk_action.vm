@@ -13,22 +13,16 @@
 .dropdown-content {
     display: none;
     position: absolute;
-    background-color: #f1f1f1;
+    background-color: #f9f9f9;
     min-width: 160px;
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    padding: 12px 16px;
     z-index: 1;
 }
 
-.dropdown-content a {
-    color: black;
-    padding: 12px 16px;
-    text-decoration: none;
+.dropdown:hover .dropdown-content {
     display: block;
 }
-
-.dropdown-content a:hover {background-color: #ddd;}
-
-.dropdown:hover .dropdown-content {display: block;}
 </style>
 
 <!--BEGIN /screens/XDATScreen_bulk_action.vm -->
@@ -46,7 +40,7 @@ var dataType;
 #end
 
 
-<div class="data-table-container" style="width:  889px " id="selectable-table-bulk">
+<div class="data-table-container" style="width:  100% " id="selectable-table-bulk">
     <div class="data-table-titlerow">
         <h3 class="data-table-title">Select experiments to launch processing</h3>
         <div class="data-table-actionsrow">
@@ -66,7 +60,7 @@ var dataType;
     </div>
 
 
-    <div class="data-table-wrapper no-body" style="padding-right: 0">
+    <div class="data-table-wrapper no-body" style=" padding-right: 0">
         <table id="xnat-table-header" class="xnat-table clean fixed-header" style="border:none;">
             <thead>
             <tr id="xnat-table-header-row1">
@@ -115,12 +109,14 @@ $( document ).ready(function() {
 	       		    var header = d.header;
 	       		    if (header) {
 	       		           var showColumn = true;
-	       		    	   if (header=="Scans" || header=="Age" || header=="Date" || header=="Scanner") {
+	       		    	   if (header=="Scans" || header=="Age" || header=="Date" || header=="Scanner" || header=="Type" || header=="M/F") {
 	       		    	   	showColumn = false;
 	       		    	   }
-	       		    	   if (d.key.startsWith('xnat_subjectdata_sub_project_identifier') > 0) {
+	       		    	   if (d.key.startsWith('xnat_subjectdata_sub_project_identifier') > 0 || d.key == "xnat_subjectdata_subjectid" || d.key=="xnat_subjectdata_subject_label") {
 		    	               subjectLabelKey = d.key;
-		    	           }else if (d.key.indexOf('_project_identifier_') > 0) {
+		    	           }else if (d.key.indexOf('_project_identifier_') > 0 || d.key=="session_id") {
+					sessionLabelKey = d.key;
+		    	           }else if (d.key == "label") {
 					sessionLabelKey = d.key;
 		    	           }
 	       		    	   if (showColumn) {
@@ -138,6 +134,7 @@ $( document ).ready(function() {
 	       	    if (!projectId) {
 	       	    	projectId =  d.project;
 		    }	
+
 	       	    var single_select_checkbox_id = "select-"+session_id;
 		    var id_json = '{&quot;accession-id&quot;:&quot;'+ session_id+ '&quot;,&quot;label&quot;:&quot;' + d[sessionLabelKey] +'&quot;,&quot;project&quot;:&quot;'+session_project+'&quot;,&quot;xsiType&quot;:&quot;'+ dataType +'&quot;}';
 	       	    var session_url= 'app/action/DisplayItemAction/search_element/' + dataType +'/search_field/' + dataType+'.ID/search_value/'+ session_id+ '/popup/$popup';
@@ -327,6 +324,7 @@ function launchContainer() {
 	       var rootElementName = commandDetailsJsonObj['root-element-name'];
 	       var wrapperId =  commandDetailsJsonObj['wrapper-id'];	
                XNAT.plugin.containerService.launcher.bulkLaunchDialog(wrapperId,rootElementName,targets);
+	       window.location.reload();	      
      }
 }
 
