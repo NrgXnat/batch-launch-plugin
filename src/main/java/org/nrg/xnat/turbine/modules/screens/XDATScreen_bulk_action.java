@@ -25,16 +25,11 @@ public class  XDATScreen_bulk_action  extends SecureScreen {
 
 	    @Override
 	    protected void doBuildTemplate(RunData data, Context context) throws Exception {
-	    	System.out.println("XDATScreen_bulk_action called");
-	    	System.out.println("XSS:");
-	    	System.out.println(context.get("xss"));
-	    	
-
 	    }
 }
 /*	@Override
     protected void doBuildTemplate(RunData data, Context context) throws Exception {
-        
+
         //retrieve passed search object
         DisplaySearch search = TurbineUtils.getSearch(data);
         search.setPagingOn(false);
@@ -42,14 +37,14 @@ public class  XDATScreen_bulk_action  extends SecureScreen {
         //Load search results into a table
         org.nrg.xft.XFTTable table = (org.nrg.xft.XFTTable)search.execute(null,TurbineUtils.getUser(data).getLogin());
         search.setPagingOn(true);
-        
+
         UserI user = TurbineUtils.getUser(data);
         if (user == null)
         {
             throw new Exception("Invalid User.");
         }
 
-        
+
         //The 'session_id' value is specified as the DisplayField ID for the xnat:mrSessionData/ID field in the Display docs.
         //This value should match the value at the header of the session id column in the previous ExampleListingActionScreen implementation.
         String sessionIDHeader ="session_id";
@@ -75,9 +70,9 @@ public class  XDATScreen_bulk_action  extends SecureScreen {
             session_ids.append( "'" + rowSessionId  + "'");
             idProjectHash.get(project).add(rowSessionId);
         }
-        
+
         session_ids.append(")");
-        
+
         List<Object> distinctProjectsInSearch = new ArrayList<Object>();
         Enumeration projectEnumeration = idProjectHash.keys();
         while(projectEnumeration.hasMoreElements()) {
@@ -113,26 +108,26 @@ public class  XDATScreen_bulk_action  extends SecureScreen {
     		configuredPipelinesOrContainers.addAll(cmmds);
         }
         String query = getWorkflowSearchQuery(rootElementName, session_ids.toString(), configuredPipelinesOrContainers);
-        
-        org.nrg.xft.XFTTable workFlowTable = org.nrg.xft.XFTTable.Execute(query,null,user.getLogin());    	
+
+        org.nrg.xft.XFTTable workFlowTable = org.nrg.xft.XFTTable.Execute(query,null,user.getLogin());
         context.put("workFlowTable", workFlowTable);
 	}
-   
+
 	private String getWorkflowSearchQuery(String rootElementName, String sessionIdsAsList, List<String> configuredPipelinesOrContainers) {
-	 String subQuery = "join xnat_experimentdata e on e.id = w.id ";	
+	 String subQuery = "join xnat_experimentdata e on e.id = w.id ";
 	 if (rootElementName.equals("xnat:subjectData")) {
 		 subQuery = "join xnat_subjectdata e on e.id = w.id ";
 	 }
 	 String query =	"SELECT * FROM crosstab(" +
-				       "$$select w.id::TEXT as session_id, w.externalid::TEXT as project, e.label::TEXT  w.pipeline_name::text , w.status::TEXT from wrk_workflowdata w " + 
+				       "$$select w.id::TEXT as session_id, w.externalid::TEXT as project, e.label::TEXT  w.pipeline_name::text , w.status::TEXT from wrk_workflowdata w " +
 				       "  inner join (select id, pipeline_name, max(launch_time) as latestDate from wrk_workflowdata"+
-				            "group by id, pipeline_name) wm "+ 
+				            "group by id, pipeline_name) wm "+
 				        " on w.id = wm.id and w.launch_time = wm.latestDate" +
-				         subQuery +    
+				         subQuery +
 				        "where w.id in "+sessionIdsAsList + "order by session_id,pipeline_name;" +
 				        "$$,$$select distinct pipeline_name from wrk_workflowdata$$" +
 				     ") AS t(session_id text, project text, label text, " ;
-	 
+
      //All these configuredPipelinesOrContainers would result in one column in the display
      int numberOfConfiguredPipelinesOrContainers = configuredPipelinesOrContainers.size();
      for (String pName:configuredPipelinesOrContainers) {
@@ -149,27 +144,27 @@ public class  XDATScreen_bulk_action  extends SecureScreen {
 
 
 /*public class  XDATScreen_bulk_action  extends SecureScreen {
-	
+
     @Override
     protected void doBuildTemplate(RunData data, Context context) throws Exception {
-        
+
         //retrieve passed search object
         DisplaySearch search = TurbineUtils.getSearch(data);
         search.setPagingOn(false);
         //Load search results into a table
-        
+
         org.nrg.xft.XFTTable table = (org.nrg.xft.XFTTable)search.execute(null,TurbineUtils.getUser(data).getLogin());
         search.setPagingOn(true);
-        
+
         UserI user = TurbineUtils.getUser(data);
         if (user == null)
         {
             throw new Exception("Invalid User.");
         }
-        
+
 
         context.put("table", table);
     }
 
 }
-*/ 
+*/

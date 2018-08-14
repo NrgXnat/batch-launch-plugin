@@ -4,26 +4,6 @@
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
 #set($SESSION_DISPLAY_NAME_PLURAL = $displayManager.getPluralDisplayNameForImageSession())
 
-<style>
-.dropdown {
-    position: relative;
-    display: inline-block;
-}
-
-.dropdown-content {
-    display: none;
-    position: absolute;
-    background-color: #f9f9f9;
-    min-width: 160px;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    padding: 12px 16px;
-    z-index: 1;
-}
-
-.dropdown:hover .dropdown-content {
-    display: block;
-}
-</style>
 
 <!--BEGIN /screens/XDATScreen_bulk_action.vm -->
 
@@ -39,8 +19,7 @@ var dataType;
 <textarea id="xss" style="display:none">$xss</textarea>
 #end
 
-
-<div class="data-table-container" style="width:  100% " id="selectable-table-bulk">
+<div class="data-table-container" style="display: inline-block;" id="selectable-table-bulk">
     <div class="data-table-titlerow">
         <h3 class="data-table-title">Select experiments to launch processing</h3>
         <div class="data-table-actionsrow">
@@ -51,6 +30,9 @@ var dataType;
             </span>
             <button class="btn btn-sm data-table-action disabled" onclick="javascript:launchContainer()">
                 Launch container
+            </button>
+            <button class="btn btn-sm data-table-action disabled" onclick="javascript:terminateContainers()">
+                Terminate containers
             </button>
             <button class="btn btn-sm" type="submit" onclick="javascript:reload()">
                 Reload
@@ -168,15 +150,19 @@ $( document ).ready(function() {
                             	    }else if (workFlowStatus == "Complete") {
         	                      fontColor = 'color="green"';
                             	    }
-                            	    rowDataWithColumns += '<td style="width: 120px;"><div class="dropdown"> ';		
-                            	    rowDataWithColumns += '<span  title="'+ hdr +'"><font '+ fontColor + '>' + workFlowStatus+'</font></span><div class="dropdown-content">';
-                            	    rowDataWithColumns += '<table><tr><td colspan="3">'+hdr +'[<font ' + fontColor + '>' +workFlowStatus +'</font>]' +'</td></tr><tr>';
-				    rowDataWithColumns +=  	'<td style="width: 20px;"><i class="fa fa-eye"  title="View Std Log" onclick="viewWorkflowFile('+workFlowId+',\'stdout\')"></i></td>';
-				    rowDataWithColumns +=	'<td style="width: 20px;"><i class="fa fa-eye"  title="View Std Error" onclick="viewWorkflowFile('+workFlowId+',\'stderr\')"></i></td>';
-				    rowDataWithColumns +=	'<td style="width: 20px;"><i class="fa fa-trash" title="Terminate Process" onclick="killProcess('+workFlowId+')"></i></td>';
-				    rowDataWithColumns += '</tr></table>';
-				    rowDataWithColumns += '</div></div>';
-				    rowDataWithColumns += '</td>';
+                            	    rowDataWithColumns += '<td style="width: 120px;">';	
+                            	    if (workFlowStatus) {
+	                        	    rowDataWithColumns += '<span  title="'+ hdr +'"><font '+ fontColor + '>' + workFlowStatus+'</font></span>';
+					    rowDataWithColumns += ' 	 <span class="inline-actions">';
+					    rowDataWithColumns += '          <i class="fa fa-eye"  title="View Std Log" onclick="viewWorkflowFile('+workFlowId+',\'stdout\')"></i>';
+					    rowDataWithColumns += '          <i class="fa fa-eye"  title="View Std Error" onclick="viewWorkflowFile('+workFlowId+',\'stderr\')"></i>';
+					    rowDataWithColumns += '          <i class="fa fa-trash" title="Terminate Process" onclick="killProcess('+workFlowId+')"></i>';
+					    rowDataWithColumns += '     </span>';
+                            	    }else {
+	                        	    rowDataWithColumns += '<span>--</span>';
+                            	    }
+                                    rowDataWithColumns += '</td>';
+
                             }
 		        }
 		    }
@@ -185,7 +171,6 @@ $( document ).ready(function() {
 
 	        });
 	        $('#searchRootElement').val(dataType);
-		populateBreadCrumbs();
 		//Now get the actions associated with the datatype
 		renderActionOptions();
 	    },
@@ -244,8 +229,37 @@ function displaySubjectDetails(subjectLabel,subjectUrl) {
 
 function viewWorkflowFile(workFlowId, fileType) {
   //FileType is stdout or stderr
-  var logFileUrl = XNAT.url.rootUrl('xapi/workflows/' + workFlowId + '/logs/' + fileType);
-  XNAT.ui.dialog.iframe(logFileUrl,'File: ' + fileType,580,600);
+//  var logFileUrl = XNAT.url.rootUrl('xapi/workflows/' + workFlowId + '/logs/' + fileType);
+//  XNAT.ui.dialog.iframe(logFileUrl,'File: ' + fileType,580,600);
+        XNAT.xhr.get ({
+            url: rootUrl('xapi/workflows/' + workFlowId + '/logs/' + fileType),
+            success: function(data){
+                // split the output into lines
+                data = data.split('\n');
+
+                XNAT.dialog.open({
+                    title: 'View '+logFile,
+                    width: 500,
+                    content: null,
+                    beforeShow: function(obj){
+                        data.forEach(function(newLine){
+                            obj.$modal.find('.xnat-dialog-content').append(spawn('code',{ 'style': { 'display': 'block' }}, newLine));
+                        });
+                    },
+                    buttons: [
+                        {
+                            label: 'OK',
+                            isDefault: true,
+                            close: true
+                        }
+                    ]
+                })
+            },
+            fail: function(e){
+                errorHandler(e, 'Cannot retrieve '+logFile);
+            }
+        })
+
 };
 
 
@@ -328,6 +342,43 @@ function launchContainer() {
 	       //window.location.reload();	      
      }
 }
+
+
+function terminateContainers() {
+     var commandDetails =  $('#actionsDropdown').find(":selected").val();
+     if (commandDetails == "Select") {
+     	 XNAT.dialog.open({
+		    title: 'Please select a container to launch!',
+		    content: 'Please select a container to launch first',
+		    width: 400,
+		    buttons: [
+			{
+			    label: 'OK',
+			    isDefault: true,
+			    close: true
+			}
+		    ]
+		});
+	  $(this).addClass('disabled'); 	    	
+	return false;
+     } else{
+	      var targets = [];
+	      $('input.selectable-select-one:checkbox').each(function(){
+		  if ($(this).is(':checked')) {
+			//Get the JSON
+			var jsonData = JSON.parse($(this).val());
+			targets.push(jsonData['accession-id']);
+		  }
+	       });
+	       var commandDetailsJsonObj = JSON.parse(commandDetails);
+	       var rootElementName = commandDetailsJsonObj['root-element-name'];
+	       var wrapperId =  commandDetailsJsonObj['wrapper-id'];	
+               XNAT.plugin.containerService.launcher.bulkLaunchDialog(wrapperId,rootElementName,targets);
+               
+	       //window.location.reload();	      
+     }
+}
+
 
 function saveAsClick(){
         dynamicJSLoad("SavePopupForm", "search/saveSearch.js");

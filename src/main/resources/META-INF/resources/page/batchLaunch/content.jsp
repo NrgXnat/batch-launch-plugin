@@ -13,7 +13,8 @@
 
 
 <div id="page-wrapper">
-    <div class="pad">
+    <div >
+
 
 
         <div id="project-not-specified" class="error hidden">Project not specified.</div>
@@ -22,7 +23,7 @@
         <div id="project-data-error" class="error hidden">Data for "<span class="project-id"></span>" project not found.</div>
 
         <%-- if an 'id' param is passed, use its value to edit specified project data --%>
-        <h3 id="project-settings-header">Processing History for <span class="project-id"></span></h3>
+        <h3 id="project-settings-header" class="hidden">Processing History for <span class="project-id"></span></h3>
 
 	
           <div id="batch-history-container" class="panel panel-default">
@@ -40,7 +41,7 @@
 
         <script type="text/javascript">
         	var displayContainer = $('#batch-history-container').find('div.panel-body');
-
+	        XNAT.plugin.batchLaunch.historyTable.init(PROJECT_ID,displayContainer); 
         </script>
 	
         
@@ -48,4 +49,5 @@
 
     </div>
 </div>
+
 

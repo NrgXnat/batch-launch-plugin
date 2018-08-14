@@ -53,7 +53,33 @@ var XNAT = getObject(XNAT || {});
         XNAT.plugin.batchLaunch.historyTable.viewHistory(historyId);
     }
 
-    function sortHistoryData(callback){
+   function errorHandler(e, title, closeAll){
+        console.log(e);
+        title = (title) ? 'Error Found: '+ title : 'Error';
+        closeAll = (closeAll === undefined) ? true : closeAll;
+        var errormsg = (e.statusText) ? '<p><strong>Error ' + e.status + ': '+ e.statusText+'</strong></p><p>' + e.responseText + '</p>' : e;
+        XNAT.dialog.open({
+            width: 450,
+            title: title,
+            content: errormsg,
+            buttons: [
+                {
+                    label: 'OK',
+                    isDefault: true,
+                    close: true,
+                    action: function(){
+                        if (closeAll) {
+                            xmodal.closeAll();
+
+                        }
+                    }
+                }
+            ]
+        });
+    }
+
+
+    function sortHistoryData(myProject,callback){
         callback = isFunction(callback) ? callback : function(){};
 
         var URL = getCommandHistoryUrl();
@@ -67,20 +93,18 @@ var XNAT = getObject(XNAT || {});
                     var setupContainers = data.filter(function(a) { return (a.subtype) ? a.subtype.toLowerCase() === 'setup' : false });
                     setupContainers.forEach(function(entry){
                         var projectId = getProjectIdFromMounts(entry);
-                        data[entry.id - 1].project = projectId;
+						data[entry.id - 1].project = projectId;
 
-                        if (entry['parent-database-id']) {
-                            data[entry['parent-database-id']-1].project = projectId;
-                            data[entry['parent-database-id']-1]['setup-container-id'] = entry.id;
-                        }
+						if (entry['parent-database-id']) {
+							data[entry['parent-database-id']-1].project = projectId;
+							data[entry['parent-database-id']-1]['setup-container-id'] = entry.id;
+						}
                     });
 
                     // copy the history listing into an object for individual reference
                     data.forEach(function(historyEntry){
                         containerHistory[historyEntry.id] = historyEntry;
                     });
-
-                    return data;
                 }
                 callback.apply(this, arguments);
             })
@@ -114,7 +138,6 @@ var XNAT = getObject(XNAT || {});
             command: (200-24) + 'px',
             user: (120-24) + 'px',
             date: (100-24) + 'px',
-            project: (100-24) +'px'
         };
         // var altStyles = {};
         // forOwn(styles, function(name, val){
@@ -133,7 +156,7 @@ var XNAT = getObject(XNAT || {});
                     '#command-history-container td.history-id { width: ' + styles.id + '; } \n' +
                     '#command-history-container td.user .truncate { width: ' + styles.user + '; } \n' +
                     '#command-history-container td.date { width: ' + styles.date + '; } \n' +
-                        '#command-history-container tr.filter-timestamp { display: none } \n'
+                    '#command-history-container tr.filter-timestamp { display: none } \n'
                 }
             },
             table: {
@@ -146,8 +169,8 @@ var XNAT = getObject(XNAT || {});
                 tr.id = data.id;
                 addDataAttrs(tr, { filter: '0' });
             },
-            sortable: 'id, image, command, user, DATE, PROJECT',
-            filter: 'image, command, user, DATE, PROJECT',
+            sortable: 'image, command, user, DATE',
+            filter: 'image, command, user, DATE',
             items: {
                 // by convention, name 'custom' columns with ALL CAPS
                 // 'custom' columns do not correspond directly with
@@ -200,6 +223,7 @@ var XNAT = getObject(XNAT || {});
                                         var selectedValue = parseInt(this.value, 10);
                                         var currentTime = Date.now();
                                         $dataRows = $dataRows.length ? $dataRows : $$(table).find('tbody').find('tr');
+
                                         if (selectedValue === 0) {
                                             $dataRows.removeClass(FILTERCLASS);
                                         }
@@ -264,18 +288,6 @@ var XNAT = getObject(XNAT || {});
                     filter: true,
                     apply: function(){
                         return this['user-id']
-                    }
-                },
-                PROJECT: {
-                    label: 'Project',
-                    filter: true,
-                    apply: function(){
-                        var projectId = (this.project) ? this.project : getProjectIdFromMounts(this);
-                        if (projectId) {
-                            return spawn('a',{ href: rootUrl('/data/projects/'+ projectId + '?format=html'), html: projectId });
-                        } else {
-                            return 'Unknown';
-                        }
                     }
                 }
             }
@@ -363,27 +375,21 @@ var XNAT = getObject(XNAT || {});
 
                 // check logs and populate buttons at bottom of modal
                 if (key === 'log-paths') {
-                    // returns an array of log paths
-                    historyEntry[key].forEach(function(logPath){
-                        if (logPath.indexOf('stdout.log') > 0) {
-                            historyDialogButtons.push({
-                                label: 'View StdOut.log',
-                                close: false,
-                                action: function(){
-                                    historyTable.viewLog(historyEntry['container-id'],'stdout')
-                                }
-                            });
-                        }
-                        if (logPath.indexOf('stderr.log') > 0) {
-                            historyDialogButtons.push({
-                                label: 'View StdErr.log',
-                                close: false,
-                                action: function(){
-                                    historyTable.viewLog(historyEntry['container-id'],'stderr')
-                                }
-                            })
-                        }
-                    });
+					historyDialogButtons.push({
+						label: 'View StdOut.log',
+						close: false,
+						action: function(){
+							historyTable.viewLog(historyEntry['container-id'],'stdout')
+						}
+					});
+
+					historyDialogButtons.push({
+						label: 'View StdErr.log',
+						close: false,
+						action: function(){
+							historyTable.viewLog(historyEntry['container-id'],'stderr')
+						}
+					})
                 }
                 if (key === 'setup-container-id') {
                     historyDialogButtons.push({
@@ -430,12 +436,27 @@ var XNAT = getObject(XNAT || {});
         }
     };
 
-    historyTable.init = historyTable.refresh = function(container){
+    historyTable.init = historyTable.refresh = function(myProject, container){
         var $manager = $$(container || '#command-history-container'),
             _historyTable;
 
-        sortHistoryData().done(function(data){
+        sortHistoryData(myProject).done(function(data){
             if (data.length) {
+				if (myProject) {
+					data = data.filter(function(a) {
+										    if (a.project) {
+												   return a.project === myProject;
+											}else {
+											   var  proj = getProjectIdFromMounts(a);
+											   if (proj) {
+												  return proj === myProject;
+											   }else {
+												   return false;
+											   }
+											}
+										});
+				}
+
                 // sort list of container launches by execution time, descending
                 data = data.sort(function(a,b){
                     return (a.history[0]['time-recorded'] < b.history[0]['time-recorded']) ? 1 : -1
@@ -450,7 +471,9 @@ var XNAT = getObject(XNAT || {});
                     });
                     _historyTable.done(function(){
                         $manager.empty().append(
-                            spawn('h3', { style: { 'margin-bottom': '1em' }}, data.length + ' Containers Launched On This Site')
+                            spawn('h3', { style: { 'margin-bottom': '1em' }}, data.length + ' Containers Launched On Project <a href="' + rootUrl('/data/projects/'+ myProject + '?format=html">' + myProject + '</a>')),
+
+
                         );
                         this.render($manager, 20);
                     });
@@ -464,3 +487,4 @@ var XNAT = getObject(XNAT || {});
     // Don't call this until the command list has been populated.
     // historyTable.init();
 }));
+

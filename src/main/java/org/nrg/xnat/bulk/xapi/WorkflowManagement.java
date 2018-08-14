@@ -42,7 +42,7 @@ import org.nrg.xdat.om.*;
 @RequestMapping(value = "/workflows")
 @Api(description = "Workflow Management API")
 public class WorkflowManagement extends AbstractXapiProjectRestController {
-	
+
 		@Autowired
 		public WorkflowManagement(final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final ContainerService containerService) {
 			super(userManagementService, roleHolder);
@@ -50,7 +50,7 @@ public class WorkflowManagement extends AbstractXapiProjectRestController {
 		}
 
 
-		
+
 		@ApiOperation(value = "Gets the log file for a given workflow" )
 		@ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
 	    @XapiRequestMapping(value = "/{workflowid}/logs/{file}", method = RequestMethod.GET, produces = {MediaType.TEXT_PLAIN_VALUE})
@@ -63,11 +63,12 @@ public class WorkflowManagement extends AbstractXapiProjectRestController {
 					String justification = wrkFlow.getJustification();
 					InputStream logStream = null;
 					if (WORKFLOW_JUSTIFICATION.equals(justification)) {
-						//Is a container launch
-						final String _containerId = wrkFlow.getComments();
+						//Is a container launch - could be service or containter id
+						final String _containerId = wrkFlow.getComments().trim();
 						logStream = _containerService.getLogStream(_containerId, file);
 					}
 					if (logStream != null) {
+						System.out.println("LogStream exists");
 						final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 				        byte[] buffer = new byte[1024];
 				        int length;
@@ -93,7 +94,7 @@ public class WorkflowManagement extends AbstractXapiProjectRestController {
 	            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 		}
-		
+
 		@XapiRequestMapping(value = "/{id}/kill", method = POST)
 	    @ApiOperation(value = "Kill Process (those users who have delete permissions on associated project, can terminate)")
 	    @ResponseBody
@@ -119,13 +120,13 @@ public class WorkflowManagement extends AbstractXapiProjectRestController {
 			}
 			return rtn;
 		}
-	    
-		
+
+
 		private static String getAttachmentDisposition(final String name, final String extension) {
 	        return String.format(ATTACHMENT_DISPOSITION, name, extension);
 	    }
 
-		
+
 		private final String WORKFLOW_JUSTIFICATION = "Container launch";
 		private final ContainerService 				_containerService;
 		private static final String ATTACHMENT_DISPOSITION = "attachment; filename=\"%s.%s\"";

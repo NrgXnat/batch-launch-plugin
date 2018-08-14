@@ -44,7 +44,7 @@ import org.nrg.xdat.model.*;
 public class BulkLaunchAction extends DisplaySearchAction {
 	   static Logger logger = Logger.getLogger(BulkLaunchAction.class);
 
-	
+
 	public void doPerform(RunData data, Context context)
 	{
 		try {
@@ -54,7 +54,7 @@ public class BulkLaunchAction extends DisplaySearchAction {
 		    search_xml = search_xml.replaceAll("%", "%25");
 		    search_xml = URLDecoder.decode(search_xml, "UTF-8");
 		    search_xml = StringUtils.replace(search_xml, ".close.", "/");
-		
+
 		    final StringReader sr = new StringReader(search_xml);
 		    final InputSource is = new InputSource(sr);
 		    final SAXReader reader = new SAXReader(user);
@@ -94,25 +94,21 @@ public class BulkLaunchAction extends DisplaySearchAction {
 	}
 	 public void doPreliminaryProcessing(RunData data, Context context) throws Exception{
 
-		 //Inject the Project field into the search (even if it already exists). 
+		 //Inject the Project field into the search (even if it already exists).
 	     if (((String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("search_xml",data))!=null){
 				 String search_xml = data.getParameters().getString("search_xml");
 				 String replaced_search_xml = appendProjectSearchField(search_xml);
 			     //Add the workflow columns per pipeline/container configured for the project
 			     String appended_search_xml = appendWorkflowDisplaySearchFields(replaced_search_xml, data);
-			     System.out.println("******************************");
-			     System.out.println(appended_search_xml);
-			     System.out.println("******************************");
 			     data.getParameters().remove("search_xml");
-			     System.out.println("Removing " + data.getParameters().get("search_xml"));
 				 data.getParameters().add("search_xml", appended_search_xml);
 	     }
 	     //super.doPreliminaryProcessing(data, context);
 	 }
-	 
-	 
-	 
-	 
+
+
+
+
 	 private String appendProjectSearchField(String search_xml) {
 		 String replaced_search_xml = null;
 		 Pattern MY_PATTERN = Pattern.compile("<xdat:root_element_name>(.*?)</xdat:root_element_name>");
@@ -130,9 +126,9 @@ public class BulkLaunchAction extends DisplaySearchAction {
 				    replaced_search_xml = builder.toString();
 			    }
 			}
-		return replaced_search_xml;	
+		return replaced_search_xml;
 	 }
-    
+
 	 private String appendWorkflowDisplaySearchFields(final String xml, RunData data) throws Exception{
          String appended_search_xml = xml;
          String search_xml = xml;
@@ -152,14 +148,14 @@ public class BulkLaunchAction extends DisplaySearchAction {
          final XFTItem item = reader.parse(is);
          final XdatStoredSearch search = new XdatStoredSearch(item);
          final DisplaySearch ds = search.getCSVDisplaySearch(user);
-         
+
             if (ds==null) {
                 throw new SearchTimeoutException("BuldLaunchAction Session Expired: The previously performed search has timed out.");
             }
             String rootElementName = ds.getRootElement().getFullXMLName();
             //Load search results into a table
             org.nrg.xft.XFTTable table = (org.nrg.xft.XFTTable)ds.execute(null,TurbineUtils.getUser(data).getLogin());
-            
+
 
             //The 'session_id' value is specified as the DisplayField ID for the xnat:mrSessionData/ID field in the Display docs.
             //This value should match the value at the header of the session id column in the previous ExampleListingActionScreen implementation.
@@ -208,13 +204,11 @@ public class BulkLaunchAction extends DisplaySearchAction {
             		List<String> cmmds = containerWrappersForDataType((String)proj,rootElementName,user);
             		configuredPipelinesOrContainers.addAll(cmmds);
         		}catch(NoSuchBeanDefinitionException nsbe) {
-        			
+
         		}
             }
-            for (String p:configuredPipelinesOrContainers) {
-            	System.out.println("PIPELINE CONFIGURED: " + p);
-            }
-            
+           
+
 		    StringBuilder builder = new StringBuilder();
             Pattern MY_PATTERN = Pattern.compile("<xdat:root_element_name>(.*?)</xdat:root_element_name>");
 			Matcher m = MY_PATTERN.matcher(xml);
@@ -250,7 +244,7 @@ public class BulkLaunchAction extends DisplaySearchAction {
 							"</xdat:search_field>";
 							//Add the xdat field which contains the project field
 					builder.append(pipelineDisplay);
-					sequence++;	    
+					sequence++;
 				}
 			}
 			String wrkSearch = builder.toString();
@@ -261,15 +255,15 @@ public class BulkLaunchAction extends DisplaySearchAction {
 			    builder.append(wrkSearch);
 			    builder.append(xml.substring(location));
 		    }
-			appended_search_xml = (sequence==100?xml:builder.toString());	
-		return appended_search_xml;	
+			appended_search_xml = (sequence==100?xml:builder.toString());
+		return appended_search_xml;
 	 }
-	 
-	 
+
+
 	public String getScreenTemplate(RunData data){
 		return "XDATScreen_bulk_action.vm";
 	}
-	
+
 	private List<String> containerWrappersForDataType(String project, String xsiType, UserI user) throws Exception {
 		List<String> wrapperNames = new ArrayList<String>();
 		CommandService cmdService = XDAT.getContextService().getBean(CommandService.class);
@@ -280,7 +274,7 @@ public class BulkLaunchAction extends DisplaySearchAction {
 		return wrapperNames;
 	}
 
-	
+
 }
 
 

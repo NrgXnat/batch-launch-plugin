@@ -1,27 +1,88 @@
 var XNAT = getObject(XNAT || {});
 
-var ProcessingHistory = {
+(function(factory){
+    if (typeof define === 'function' && define.amd) {
+        define(factory);
+    }
+    else if (typeof exports === 'object') {
+        module.exports = factory();
+    }
+    else {
+        return factory();
+    }
+}(function(){
+
 
 /* =============== *
  * Command History *
  * =============== */
-	project: '',
-    getCommandHistoryUrl: function(appended){
- 		var  rootUrl = XNAT.url.rootUrl;
- 		appended = (appended) ? '?'+appended : '';
-        return rootUrl('/xapi/projects/'+this.project+'/containers' + appended);
-    },
 
-    viewHistoryDialog: function(e, onclose){
+    console.log('commandHistory.js');
+
+    var wrapperList,
+    	rootUrl = XNAT.url.rootUrl,
+        restUrl = XNAT.url.restUrl,
+        csrfUrl = XNAT.url.csrfUrl;
+
+    XNAT.plugin =
+        getObject(XNAT.plugin || {});
+
+    XNAT.plugin.batchLaunch =
+        getObject(XNAT.plugin.batchLaunch || {});
+
+    var historyTable, containerHistory;
+
+
+    XNAT.plugin.batchLaunch.historyTable = historyTable =
+        getObject(XNAT.plugin.batchLaunch.historyTable || {});
+
+    XNAT.plugin.batchLaunch.containerHistory = containerHistory =
+        getObject(XNAT.plugin.batchLaunch.containerHistory || {});
+
+    XNAT.plugin.batchLaunch.wrapperList = wrapperList = {};
+
+
+    function getCommandHistoryUrl(appended){
+        appended = (appended) ? '?'+appended : '';
+        return restUrl('/xapi/containers' + appended);
+    }
+
+    function viewHistoryDialog(e, onclose){
         e.preventDefault();
         var historyId = $(this).data('id') || $(this).closest('tr').prop('title');
-        this.viewHistory(historyId);
-    },
+        XNAT.plugin.batchLaunch.historyTable.viewHistory(historyId);
+    }
 
-    sortHistoryData: function(callback){
+   function errorHandler(e, title, closeAll){
+        console.log(e);
+        title = (title) ? 'Error Found: '+ title : 'Error';
+        closeAll = (closeAll === undefined) ? true : closeAll;
+        var errormsg = (e.statusText) ? '<p><strong>Error ' + e.status + ': '+ e.statusText+'</strong></p><p>' + e.responseText + '</p>' : e;
+        XNAT.dialog.open({
+            width: 450,
+            title: title,
+            content: errormsg,
+            buttons: [
+                {
+                    label: 'OK',
+                    isDefault: true,
+                    close: true,
+                    action: function(){
+                        if (closeAll) {
+                            xmodal.closeAll();
+
+                        }
+                    }
+                }
+            ]
+        });
+    }
+
+
+    function sortHistoryData(myProject,callback){
         callback = isFunction(callback) ? callback : function(){};
 
-        var URL = this.getCommandHistoryUrl();
+        var URL = getCommandHistoryUrl();
         return XNAT.xhr.getJSON(URL)
             .success(function(data){
                 if (data.length){
@@ -32,46 +93,43 @@ var ProcessingHistory = {
                     var setupContainers = data.filter(function(a) { return (a.subtype) ? a.subtype.toLowerCase() === 'setup' : false });
                     setupContainers.forEach(function(entry){
                         var projectId = getProjectIdFromMounts(entry);
-                        data[entry.id - 1].project = projectId;
+						data[entry.id - 1].project = projectId;
 
-                        if (entry['parent-database-id']) {
-                            data[entry['parent-database-id']-1].project = projectId;
-                            data[entry['parent-database-id']-1]['setup-container-id'] = entry.id;
-                        }
+						if (entry['parent-database-id']) {
+							data[entry['parent-database-id']-1].project = projectId;
+							data[entry['parent-database-id']-1]['setup-container-id'] = entry.id;
+						}
                     });
 
                     // copy the history listing into an object for individual reference
                     data.forEach(function(historyEntry){
                         containerHistory[historyEntry.id] = historyEntry;
                     });
-
-                    return data;
                 }
                 callback.apply(this, arguments);
             })
-    },
+    }
 
-    getProjectIdFromMounts: function(entry){
+    function getProjectIdFromMounts(entry){
         var mounts = entry.mounts;
-        // assume that the first mount of a container is an input from a project. Parse the URI for that mount and return the project ID.
-        if (mounts.length) {
-            var inputMount = mounts[0]['xnat-host-path'];
-            if (inputMount === undefined) return false;
-
-            var i = inputMount.indexOf("/data/archive/");
-            if (i == -1) {
-				return false;
+	    // assume that the first mount of a container is an input from a project. Parse the URI for that mount and return the project ID.
+	    if (mounts.length) {
+	       var inputMount = mounts[0]['xnat-host-path'];
+	       if (inputMount === undefined) return false;
+           var i = inputMount.indexOf("/data/archive/");
+           if (i == -1) {
+   				return false;
 			}else {
-              inputMount = inputMount.substr(i+13);
-			}
+                 inputMount = inputMount.substr(i+14);
+   			}
             var inputMountEls = inputMount.split('/');
-            return inputMountEls[0];
+               return inputMountEls[0];
         } else {
-            return false;
+	        return false;
         }
-    },
+    }
 
-    spawnHistoryTable: function(sortedHistoryObj){
+    function spawnHistoryTable(sortedHistoryObj){
 
         var $dataRows = [];
 
@@ -80,9 +138,6 @@ var ProcessingHistory = {
             command: (200-24) + 'px',
             user: (120-24) + 'px',
             date: (100-24) + 'px',
-            project: (100-24) +'px',
-            status: (100-24) +'px',
-            uptime: (100-24) +'px'
         };
         // var altStyles = {};
         // forOwn(styles, function(name, val){
@@ -101,7 +156,7 @@ var ProcessingHistory = {
                     '#command-history-container td.history-id { width: ' + styles.id + '; } \n' +
                     '#command-history-container td.user .truncate { width: ' + styles.user + '; } \n' +
                     '#command-history-container td.date { width: ' + styles.date + '; } \n' +
-                        '#command-history-container tr.filter-timestamp { display: none } \n'
+                    '#command-history-container tr.filter-timestamp { display: none } \n'
                 }
             },
             table: {
@@ -114,8 +169,8 @@ var ProcessingHistory = {
                 tr.id = data.id;
                 addDataAttrs(tr, { filter: '0' });
             },
-            sortable: 'id, image, command, user, DATE, PROJECT, Status, Uptime',
-            filter: 'image, command, user, DATE, PROJECT, Status, Uptime',
+            sortable: 'image, command, user, DATE',
+            filter: 'image, command, user, DATE',
             items: {
                 // by convention, name 'custom' columns with ALL CAPS
                 // 'custom' columns do not correspond directly with
@@ -168,6 +223,7 @@ var ProcessingHistory = {
                                         var selectedValue = parseInt(this.value, 10);
                                         var currentTime = Date.now();
                                         $dataRows = $dataRows.length ? $dataRows : $$(table).find('tbody').find('tr');
+
                                         if (selectedValue === 0) {
                                             $dataRows.removeClass(FILTERCLASS);
                                         }
@@ -233,50 +289,13 @@ var ProcessingHistory = {
                     apply: function(){
                         return this['user-id']
                     }
-                },
-                PROJECT: {
-                    label: 'Project',
-                    filter: true,
-                    apply: function(){
-                        var projectId = (this.project) ? this.project : getProjectIdFromMounts(this);
-                        if (projectId) {
-                            return spawn('a',{ href: '/data/projects/'+ projectId + '?format=html', html: projectId });
-                        } else {
-                            return 'Unknown';
-                        }
-                    }
-                },
-				Uptime: {
-					label: 'Uptime',
-					filter: true,
-					apply: function(){
-                        var timestamp = 0, dateString;
-                        var currentTime = Date.now();
-                        if (this.history.length > 0){
-                            this.history.forEach(function(h){
-                                if(h['status'] === 'Created') {
-                                    timestamp = h['time-recorded'];
-                                    launchDate = new Date(timestamp);
-                                    var diffMs = (launchDate - currentTime); // milliseconds between now & container launch date
-									timestamp = Math.floor((diffMs % 86400000) / 3600000); // hours
-                                    dateString = diffHrs;
-                                }
-                            });
-                        } else {
-                            dateString = 'N/A';
-                        }
-                        return spawn('!',[
-                            spawn('span', dateString ),
-                            spawn('input.hidden.container-uptime.filtering|type=hidden', { value: timestamp } )
-                        ])
-					}
-				}
+                }
             }
         }
-    },
+    }
 
 
-    viewLog : function(containerId,logFile){
+    historyTable.viewLog = viewLog = function(containerId,logFile){
         XNAT.xhr.get ({
             url: rootUrl('/xapi/containers/'+containerId+'/logs/'+logFile),
             success: function(data){
@@ -305,11 +324,11 @@ var ProcessingHistory = {
                 errorHandler(e, 'Cannot retrieve '+logFile);
             }
         })
-    },
+    };
 
-    viewHistory: function(id){
-        if (this.containerHistory[id]) {
-            var historyEntry = this.containerHistory[id];
+    historyTable.viewHistory = function(id){
+        if (containerHistory[id]) {
+            var historyEntry = XNAT.plugin.batchLaunch.containerHistory[id];
             var historyDialogButtons = [
                 {
                     label: 'OK',
@@ -356,34 +375,28 @@ var ProcessingHistory = {
 
                 // check logs and populate buttons at bottom of modal
                 if (key === 'log-paths') {
-                    // returns an array of log paths
-                    historyEntry[key].forEach(function(logPath){
-                        if (logPath.indexOf('stdout.log') > 0) {
-                            historyDialogButtons.push({
-                                label: 'View StdOut.log',
-                                close: false,
-                                action: function(){
-                                    this.viewLog(historyEntry['container-id'],'stdout')
-                                }
-                            });
-                        }
-                        if (logPath.indexOf('stderr.log') > 0) {
-                            historyDialogButtons.push({
-                                label: 'View StdErr.log',
-                                close: false,
-                                action: function(){
-                                    this.viewLog(historyEntry['container-id'],'stderr')
-                                }
-                            })
-                        }
-                    });
+					historyDialogButtons.push({
+						label: 'View StdOut.log',
+						close: false,
+						action: function(){
+							historyTable.viewLog(historyEntry['container-id'],'stdout')
+						}
+					});
+
+					historyDialogButtons.push({
+						label: 'View StdErr.log',
+						close: false,
+						action: function(){
+							historyTable.viewLog(historyEntry['container-id'],'stderr')
+						}
+					})
                 }
                 if (key === 'setup-container-id') {
                     historyDialogButtons.push({
                         label: 'View Setup Container',
                         close: true,
                         action: function(){
-                            this.viewHistory(historyEntry[key]);
+                            historyTable.viewHistory(historyEntry[key]);
                         }
                     })
                 }
@@ -393,7 +406,7 @@ var ProcessingHistory = {
                         label: 'View Parent Container',
                         close: true,
                         action: function(){
-                            this.viewHistory(parentId);
+                            historyTable.viewHistory(parentId);
                         }
                     })
                 }
@@ -421,15 +434,29 @@ var ProcessingHistory = {
                 ]
             });
         }
-    },
+    };
 
-    showTable : function(container){
-		console.log('Container is ' + container);
-        var $manager = $$(container || '#batch-history-container'),
+    historyTable.init = historyTable.refresh = function(myProject, container){
+        var $manager = $$(container || '#command-history-container'),
             _historyTable;
 
-        this.sortHistoryData().done(function(data){
+        sortHistoryData(myProject).done(function(data){
             if (data.length) {
+				if (myProject) {
+					data = data.filter(function(a) {
+										    if (a.project) {
+												   return a.project === myProject;
+											}else {
+											   var  proj = getProjectIdFromMounts(a);
+											   if (proj) {
+												  return proj === myProject;
+											   }else {
+												   return false;
+											   }
+											}
+										});
+				}
+
                 // sort list of container launches by execution time, descending
                 data = data.sort(function(a,b){
                     return (a.history[0]['time-recorded'] < b.history[0]['time-recorded']) ? 1 : -1
@@ -444,7 +471,9 @@ var ProcessingHistory = {
                     });
                     _historyTable.done(function(){
                         $manager.empty().append(
-                            spawn('h3', { style: { 'margin-bottom': '1em' }}, data.length + ' procesing launched for  this project')
+                            spawn('h3', { style: { 'margin-bottom': '1em' }}, data.length + ' Containers Launched On Project <a href="' + rootUrl('/data/projects/'+ myProject + '?format=html">' + myProject + '</a>')),
+
+
                         );
                         this.render($manager, 20);
                     });
@@ -452,7 +481,10 @@ var ProcessingHistory = {
                 // return _usersTable;
             }
         });
-    }
-};
 
-console.log('commandHistory.js');
+    };
+
+    // Don't call this until the command list has been populated.
+    // historyTable.init();
+}));
+

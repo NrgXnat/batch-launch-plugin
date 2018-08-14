@@ -13,7 +13,8 @@
 
 
 <div id="page-wrapper">
-    <div class="pad">
+    <div >
+
 
 
         <div id="project-not-specified" class="error hidden">Project not specified.</div>
@@ -33,19 +34,14 @@
         <script type="text/javascript">
         	var PROJECT_ID = '${id}' || getQueryStringValue('id') || getUrlHashValue('#id=');
         	$('span.project-id').text(PROJECT_ID);
-        	alert(PROJECT_ID);
         </script>
 
 	<script type="text/javascript" src="${pageContext.request.contextPath}/scripts/xnat/plugin/batchLaunch/commandHistory.js"></script> 
 
 
         <script type="text/javascript">
-        	var procHistory = Object.create(ProcessingHistory);
-        	procHistory.project = PROJECT_ID;
-        	var displayContainer = $('#batch-history-container').find('div.panel').find('div.panel-body');
-
-        	procHistory.showTable(displayContainer);
-        	alert("AGAIN" + PROJECT_ID);
+        	var displayContainer = $('#batch-history-container').find('div.panel-body');
+	        XNAT.plugin.batchLaunch.historyTable.init(PROJECT_ID,displayContainer); 
         </script>
 	
         
@@ -53,4 +49,5 @@
 
     </div>
 </div>
+
 
