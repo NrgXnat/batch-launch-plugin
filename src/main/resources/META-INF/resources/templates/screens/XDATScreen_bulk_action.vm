@@ -229,37 +229,8 @@ function displaySubjectDetails(subjectLabel,subjectUrl) {
 
 function viewWorkflowFile(workFlowId, fileType) {
   //FileType is stdout or stderr
-//  var logFileUrl = XNAT.url.rootUrl('xapi/workflows/' + workFlowId + '/logs/' + fileType);
-//  XNAT.ui.dialog.iframe(logFileUrl,'File: ' + fileType,580,600);
-        XNAT.xhr.get ({
-            url: rootUrl('xapi/workflows/' + workFlowId + '/logs/' + fileType),
-            success: function(data){
-                // split the output into lines
-                data = data.split('\n');
-
-                XNAT.dialog.open({
-                    title: 'View '+logFile,
-                    width: 500,
-                    content: null,
-                    beforeShow: function(obj){
-                        data.forEach(function(newLine){
-                            obj.$modal.find('.xnat-dialog-content').append(spawn('code',{ 'style': { 'display': 'block' }}, newLine));
-                        });
-                    },
-                    buttons: [
-                        {
-                            label: 'OK',
-                            isDefault: true,
-                            close: true
-                        }
-                    ]
-                })
-            },
-            fail: function(e){
-                errorHandler(e, 'Cannot retrieve '+logFile);
-            }
-        })
-
+  var logFileUrl = XNAT.url.rootUrl('xapi/workflows/' + workFlowId + '/logs/' + fileType);
+  XNAT.ui.dialog.iframe(logFileUrl,'File: ' + fileType,580,600);
 };
 
 
