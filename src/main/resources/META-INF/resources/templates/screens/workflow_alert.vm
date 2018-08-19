@@ -20,7 +20,7 @@
 							#set($stderrUrl="/xapi/containers/${cmts}/logs/stderr")
 							<td style="border-left: solid 1px black" valign="middle"><a href="$content.getURI($stdoutUrl)"><b> View Std out</b>  </a></td>
 							<td style="border-left: solid 1px black" valign="middle"><a href="$content.getURI($stderrUrl)"><b> View Std err</b>  </a></td>
-							<td style="border-left: solid 1px black" valign="middle"><a onclick="killContainer('$!workflow.getComments()')"><b>Terminate process</b></a></td>
+							<td style="border-left: solid 1px black" valign="middle"><a onclick="killProcess('$!workflow.getWorkflowId()')"><b>Terminate process</b></a></td>
 						#end
 						#if($turbineUtils.isSiteAdmin($user))
 							<td valign="middle">

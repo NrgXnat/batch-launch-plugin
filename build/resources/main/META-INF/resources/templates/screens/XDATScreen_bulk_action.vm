@@ -4,8 +4,20 @@
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
 #set($SESSION_DISPLAY_NAME_PLURAL = $displayManager.getPluralDisplayNameForImageSession())
 
+<style>
+.active-processes-class{
+   width:100%;
+   height:100%;
+  overflow:auto;
+}
+</style>
+
 
 <!--BEGIN /screens/XDATScreen_bulk_action.vm -->
+<script type="text/javascript" src="$content.getURI("/scripts/xnat/ui/breadcrumbs.js")"></script>
+<script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/batchLaunch/commandHistory.js")"></script> 
+<script src="$content.getURI("scripts/xnat/plugin/workflowMgmt/workflowmgmt.js")"></script>
+
 
 <script>
 var projectId;
@@ -13,56 +25,69 @@ var dataType;
 </script>
 
 <div id="breadcrumbs"></div>
-<script src="/scripts/xnat/ui/breadcrumbs.js"></script>
+
 
 #if($xss)
 <textarea id="xss" style="display:none">$xss</textarea>
 #end
 
-<div class="data-table-container" style="display: inline-block;" id="selectable-table-bulk">
-    <div class="data-table-titlerow">
-        <h3 class="data-table-title">Select experiments to launch processing</h3>
-        <div class="data-table-actionsrow">
-            <span  class="textlink-sm data-table-action">
-		          <select id="actionsDropdown" class="data-table-action disabled"  disabled>
-		           </select>
+<div id="processing_tabs" class="yui-navset"></div>
 
-            </span>
-            <button class="btn btn-sm data-table-action disabled" onclick="javascript:launchContainer()">
-                Launch container
-            </button>
-            <button class="btn btn-sm data-table-action disabled" onclick="javascript:terminateContainers()">
-                Terminate containers
-            </button>
-            <button class="btn btn-sm" type="submit" onclick="javascript:reload()">
-                Reload
-            </button>
-        </div>
-        <span class="clear clearfix"></span>
-    </div>
+<script type="text/javascript">
 
+    var processingTabs = new YAHOO.widget.TabView('processing_tabs');
 
-    <div class="data-table-wrapper no-body" style=" padding-right: 0">
-        <table id="xnat-table-header" class="xnat-table clean fixed-header" style="border:none;">
-            <thead>
-            <tr id="xnat-table-header-row1">
-                <th class="toggle-all" style="width: 45px;">
-                    <input type="checkbox" class="selectable-select-all" id="toggle-all-sessions" title="Toggle All Sessions" />
-                </th>
-            </tr>
-            </thead>
-        </table>
-    </div>
-    <div class="data-table-wrapper no-header" style="/* max-height: 320px; overflow-y: auto  */">
-        <table id="xnat-table-datarows" class="xnat-table clean selectable" style="border: none;">
-            <tbody id="xnat-table-datarows-tbody">
+    var divContent =  '<div class="data-table-container"  id="selectable-table-bulk">  ';
+    divContent +=     '	<div class="data-table-titlerow" id="data-table-titlerow">							';
+    divContent +=     '	    <h3 class="data-table-title">Select experiments to launch processing</h3>		';
+    divContent +=     '	    <div class="data-table-actionsrow" id="data-table-actionsrow">							';
+    divContent +=     '	        <span  class="textlink-sm data-table-action">					';
+    divContent +=     '	          <select id="actionsDropdown" class="data-table-action disabled"  disabled>	';
+    divContent +=     '	          </select>									';
+    divContent +=     '	        </span>										';
+    divContent +=     ' 	<button class="btn btn-sm data-table-action disabled" onclick="javascript:launchContainer()">Launch container</button>	';
+ //   divContent +=     '		<button class="btn btn-sm data-table-action disabled" onclick="javascript:terminateContainers()">Terminate Containers</button>	';
+    divContent +=     '		<button class="btn btn-sm" type="submit" onclick="javascript:reload()">Relaod</button>				';
+    divContent +=     '	    </div>													';
+    divContent +=     '    <span class="clear clearfix"></span>									';
+    divContent +=     '	</div>														';
+    divContent +=     '	<div class="data-table-wrapper no-body" id="div-xnat-table-header" style="padding-right:0">						';
+    divContent +=     '	       <table id="xnat-table-header" class="xnat-table clean fixed-header" style="border:none;">		';	
+    divContent +=     '	            <thead>												';
+    divContent +=     '		            <tr id="xnat-table-header-row1">								';
+    divContent +=     '		                <th class="toggle-all" style="width: 45px;">						';
+    divContent +=     '		                    <input type="checkbox" class="selectable-select-all" id="toggle-all-sessions" title="Toggle All Sessions" />	';
+    divContent +=     '		                </th>															';
+    divContent +=     '		            </tr>															';
+    divContent +=     '	            </thead>																';	
+    divContent +=     '	        </table>																';
+    divContent +=     '	</div>																		';
+    divContent +=     '	<div class="data-table-wrapper no-header" id="div-xnat-table-datarows" >							';
+    divContent +=     '	        <table id="xnat-table-datarows" class="xnat-table clean selectable" style="border: none;">						';
+    divContent +=     '		            <tbody id="xnat-table-datarows-tbody">												';	
+    divContent +=     '		            </tbody>																';
+    divContent +=     '	        </table>																';
+    divContent +=     ' </div>																	';
+    divContent +=     '</div>																		';
+		
+    
 
-            </tbody>
-        </table>
-    </div>
-</div>
+    processingTabs.addTab(new YAHOO.widget.Tab({
+        active: true,
+        label: 'Launch Processes',
+        content : divContent
+    }));
+
+    processingTabs.addTab(new YAHOO.widget.Tab({
+        label: 'Processing History',
+        content: '<div class="active-processes-class" id="active-processes"></div>'
+    }));
+
+</script>
 
 <input id="searchRootElement" type="hidden" />
+<input id="searchProjectId" type="hidden" />
+
 <input type="hidden" id="search_xml" name="search_xml" value="$xss"/>
 
 
@@ -171,8 +196,13 @@ $( document ).ready(function() {
 
 	        });
 	        $('#searchRootElement').val(dataType);
+	        $('#searchProjectId').val(projectId);
+	        //adjustTableSizes();
+		populateBreadCrumbs();
 		//Now get the actions associated with the datatype
 		renderActionOptions();
+		var displayContainer = $("#active-processes");
+		XNAT.plugin.batchLaunch.historyTable.init(projectId,displayContainer); 
 	    },
 	    error : function(o) {
 			    XNAT.dialog.open({
@@ -192,23 +222,23 @@ $( document ).ready(function() {
 	});
 });
 
+function adjustTableSizes() {
+    var windowWidth = $(window).innerWidth();
+    var divWidth = $('#selectable-table-bulk').width();
+    var rowTableWidth = $('#xnat-table-datarows').width();
+    var tabsWidth = $('#processing_tabs').width();
+    if ((rowTableWidth + 18) < tabsWidth) {//if table + scrollbar doesn't take up the whole tab
+      setItemWidth("div-xnat-table-datarows", (rowTableWidth + 18));//set table overflow container to barely contain table, so the scrollbar isn't way off to the right.
+    }   
+    setItemWidth("div-xnat-table-header", rowTableWidth);
+}
 
-function populateBreadCrumbs() {
-    // wrap it up to keep things
-    // out of global scope
-    (function(){
-
-        var crumbs = [];
-                        crumbs.push({
-                            id:    projectId,
-                            type:  'PROJECT',
-                            link:  '/app/action/DisplayItemAction/search_element/xnat%3AprojectData/search_field/xnat%3AprojectData.ID/search_value/' + projectId,
-                            label: projectId
-                        });
-        XNAT.ui.breadcrumbs.render('#breadcrumbs', crumbs);
-    })();
-
-
+function setItemWidth(div_id, width){
+    var d = YUIDOM.get(div_id);
+    if (d != null) {
+        var d2 = $(d);
+        d2.css('width', width);
+    }
 }
 
 function reload() {
@@ -234,7 +264,25 @@ function viewWorkflowFile(workFlowId, fileType) {
 };
 
 
+function populateBreadCrumbs() {
+    var projectId = $('#searchProjectId').val(); 
 
+    // wrap it up to keep things
+    // out of global scope
+    (function(){
+
+        var crumbs = [];
+                        crumbs.push({
+                            id:    projectId,
+                            type:  'PROJECT',
+                            link:  '/app/action/DisplayItemAction/search_element/xnat%3AprojectData/search_field/xnat%3AprojectData.ID/search_value/' + projectId,
+                            label: projectId
+                        });
+        XNAT.ui.breadcrumbs.render('#breadcrumbs', crumbs);
+    })();
+
+
+}
 
 function renderActionOptions() {
 	        $('#actionsDropdown')
@@ -242,14 +290,16 @@ function renderActionOptions() {
 		    .remove()
 		    .end()
 		    .append('<option value="Select" selected="true">Select Container to Launch</option>');
-		var data_type_val = $('#searchRootElement').val();    
+		var data_type_val = $('#searchRootElement').val();  
+		var projectId = $('#searchProjectId').val(); 
 		XNAT.xhr.getJSON({
 	            url: XNAT.url.rootUrl('/xapi/commands/available?project='+projectId+'&xsiType='+data_type_val),
 		    success: function(responseData) {
 			responseData.forEach(function(availableCommand) {
 	                    $('#actionsDropdown').append('<option value="{&quot;root-element-name&quot;:&quot;'+availableCommand['root-element-name'] + '&quot;,&quot;wrapper-id&quot;:&quot;'+ availableCommand['wrapper-id'] + '&quot;}">' + availableCommand['wrapper-description'] + '</option>');
 	                });
-	                $("#availableActions").show() ;
+	                 $('#actionsDropdown').removeClass('disabled');  
+	                 $('#actionsDropdown').prop("disabled",false);
 		    },
 		    error : function(o) {
 			    XNAT.dialog.open({
@@ -316,11 +366,9 @@ function launchContainer() {
 
 
 function terminateContainers() {
-     var commandDetails =  $('#actionsDropdown').find(":selected").val();
-     if (commandDetails == "Select") {
      	 XNAT.dialog.open({
-		    title: 'Please select a container to launch!',
-		    content: 'Please select a container to launch first',
+		    title: 'Terminate multiple jobs?',
+		    content: 'Are you sure you want to terminate multiple jobs?',
 		    width: 400,
 		    buttons: [
 			{
@@ -330,9 +378,6 @@ function terminateContainers() {
 			}
 		    ]
 		});
-	  $(this).addClass('disabled'); 	    	
-	return false;
-     } else{
 	      var targets = [];
 	      $('input.selectable-select-one:checkbox').each(function(){
 		  if ($(this).is(':checked')) {
@@ -341,39 +386,16 @@ function terminateContainers() {
 			targets.push(jsonData['accession-id']);
 		  }
 	       });
-	       var commandDetailsJsonObj = JSON.parse(commandDetails);
-	       var rootElementName = commandDetailsJsonObj['root-element-name'];
-	       var wrapperId =  commandDetailsJsonObj['wrapper-id'];	
-               XNAT.plugin.containerService.launcher.bulkLaunchDialog(wrapperId,rootElementName,targets);
-               
-	       //window.location.reload();	      
-     }
+               XNAT.plugin.containerService.launcher.terminateDialog(targets);
 }
 
 
-function saveAsClick(){
-        dynamicJSLoad("SavePopupForm", "search/saveSearch.js");
-        var savePopup = new SavePopupForm('\'$xml\'', undefined, { "saveAs": true });
-        savePopup.init();
-        savePopup.render();
-        return true;
-    };
-
-
 
 </script>
 
-<script>
-    function getLauncherUI(wrapperId,rootElementName,rootElementValue){
-        return rootUrl('/xapi/wrappers/'+wrapperId+'/launch?'+rootElementName+'='+rootElementValue);
-    }
-    function getProjectLauncherUI(wrapperId,rootElementName,rootElementValue){
-        return rootUrl('/xapi/projects/'+projectId+'/wrappers/'+wrapperId+'/launch?'+rootElementName+'='+rootElementValue);
-    }
 
-</script>
-<script src="$content.getURI("scripts/xnat/plugin/containerui/selectableTableBehavior.js")"></script>
-<script src="$content.getURI("scripts/xnat/plugin/containerui/commandUiLauncher-mr.js")"></script>
+<script src="$content.getURI("scripts/xnat/plugin/scanTable/selectableTableBehavior.js")"></script>
+<script src="$content.getURI("scripts/xnat/plugin/containerui/commandUiLauncher.js")"></script>
 <script src="$content.getURI("scripts/xnat/plugin/containerService/projectSearchLauncher.js")"></script>
 <script src="$content.getURI("scripts/xnat/plugin/workflowMgmt/workflowmgmt.js")"></script>
 

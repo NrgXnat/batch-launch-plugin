@@ -1236,6 +1236,50 @@ var XNAT = getObject(XNAT || {});
         });
     };
 
+    launcher.terminateDialog = function(targets){
+        // 'targets' should be formatted as a one-dimensional array of XNAT data values (i.e. scan IDs) that a container will run on in series.
+
+        if (!targets || targets.length === 0) return false;
+        var terminateUrl = rootUrl('/xapi/workflows/killrunning'+'?accessionid='+targets.toString());
+
+        xmodal.loading.open({ title: 'Preparing to terminate running jobs' });
+		XNAT.xhr.postJSON({
+			url: terminateUrl,
+			success: function(data){
+				xmodal.loading.close();
+			   XNAT.ui.dialog.open({
+					title: 'Container Termination Success',
+					content: spawn('div', data ),
+					buttons: [
+						{
+							label: 'OK',
+							isDefault: true,
+							close: true,
+							action: XNAT.ui.dialog.closeAll()
+						}
+					]
+				});
+             },
+             fail: function (e) {
+					xmodal.loading.close();
+					XNAT.ui.dialog.open({
+						title: 'Container Termination <span style="text-transform: capitalize">'+e.status+'</span>',
+						content: e.message,
+						buttons: [
+							{
+								label: 'OK',
+								isDefault: true,
+								close: true,
+								action: XNAT.ui.dialog.closeAll()
+							}
+						]
+					});
+             }
+		});
+
+    };
+
+
     launcher.noIllegalChars = function(input,exception){
         // examine the to-be-submitted value of an input against a list of disallowed characters and return false if any are found.
         // if an input needs to allow one of these strings, an exception can be passed to this function

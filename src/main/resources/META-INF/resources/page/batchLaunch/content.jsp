@@ -3,6 +3,8 @@
 <%@ taglib prefix="pg" tagdir="/WEB-INF/tags/page" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 
+
+
 <pg:init/>
 <pg:jsvars/>
 <c:set var="SITE_ROOT" value="${sessionScope.siteRoot}"/>

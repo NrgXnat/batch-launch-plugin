@@ -182,8 +182,8 @@ var XNAT = getObject(XNAT || {});
                 tr.id = data.id;
                 addDataAttrs(tr, { filter: '0' });
             },
-            sortable: 'image, command, user, DATE',
-            filter: 'image, command, user, DATE',
+            sortable: 'image, command, user, DATE, status',
+            filter: 'image, command, user, DATE, status',
             items: {
                 // by convention, name 'custom' columns with ALL CAPS
                 // 'custom' columns do not correspond directly with
@@ -271,11 +271,18 @@ var XNAT = getObject(XNAT || {});
                         ])
                     }
                 },
-                image: {
-                    label: 'Image',
-                    filter: true, // add filter: true to individual items to add a filter,
+                status: {
+                    label: 'Status',
+                    filter: true,
                     apply: function(){
-                        return this['docker-image'];
+                        return this['status']
+                    }
+                },
+                user: {
+                    label: 'User',
+                    filter: true,
+                    apply: function(){
+                        return this['user-id']
                     }
                 },
                 command: {
@@ -296,11 +303,11 @@ var XNAT = getObject(XNAT || {});
                         });
                     }
                 },
-                user: {
-                    label: 'User',
-                    filter: true,
+                image: {
+                    label: 'Image',
+                    filter: true, // add filter: true to individual items to add a filter,
                     apply: function(){
-                        return this['user-id']
+                        return this['docker-image'];
                     }
                 }
             }
@@ -392,7 +399,11 @@ var XNAT = getObject(XNAT || {});
 						label: 'View StdOut.log',
 						close: false,
 						action: function(){
-							historyTable.viewLog(historyEntry['container-id'],'stdout')
+							var jobid = historyEntry['container-id'];
+							if (!jobid || jobid === "") {
+								jobid = historyEntry['service-id'];
+							}
+							historyTable.viewLog(jobid,'stdout')
 						}
 					});
 
@@ -400,7 +411,11 @@ var XNAT = getObject(XNAT || {});
 						label: 'View StdErr.log',
 						close: false,
 						action: function(){
-							historyTable.viewLog(historyEntry['container-id'],'stderr')
+							var jobid = historyEntry['container-id'];
+							if (!jobid || jobid === "") {
+								jobid = historyEntry['service-id'];
+							}
+							historyTable.viewLog(jobid,'stderr')
 						}
 					})
                 }
@@ -474,6 +489,22 @@ var XNAT = getObject(XNAT || {});
                 data = data.sort(function(a,b){
                     return (a.history[0]['time-recorded'] < b.history[0]['time-recorded']) ? 1 : -1
                 });
+				var containerStatuses = {};
+				data.forEach(function(a){
+					if (a.status in containerStatuses) {
+						var cnt = containerStatuses[a.status];
+						containerStatuses[a.status] = ++cnt;
+					}else {
+						containerStatuses[a.status] = 1;
+					}
+				});
+
+				var statusCount = "";
+				for (var k in containerStatuses) {
+				    if( containerStatuses.hasOwnProperty(k) ) {
+				      statusCount += k + "[" + containerStatuses[k] + "]; ";
+				    }
+  				}
 
                 setTimeout(function(){
                     $manager.html('loading...');
@@ -484,9 +515,7 @@ var XNAT = getObject(XNAT || {});
                     });
                     _historyTable.done(function(){
                         $manager.empty().append(
-                            spawn('h3', { style: { 'margin-bottom': '1em' }}, data.length + ' Containers Launched On Project <a href="' + rootUrl('/data/projects/'+ myProject + '?format=html">' + myProject + '</a>')),
-
-
+                            spawn('h3', { style: { 'margin-bottom': '1em' }}, data.length + ' Containers Launched On Project <a href="' + rootUrl('/data/projects/'+ myProject + '?format=html">' + myProject + '</a> (' + statusCount + ')')),
                         );
                         this.render($manager, 20);
                     });

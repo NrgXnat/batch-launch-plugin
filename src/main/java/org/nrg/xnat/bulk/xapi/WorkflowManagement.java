@@ -6,16 +6,22 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.Map;
 
-import org.nrg.containers.services.ContainerService;
+import org.apache.commons.lang3.StringUtils;
+
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
+import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.utils.WorkflowUtils;
+import org.nrg.xdat.om.XnatProjectdata;
+import org.nrg.containers.services.ContainerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -24,6 +30,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.swagger.annotations.Api;
@@ -31,8 +38,6 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import org.nrg.xdat.security.helpers.Permissions;
-import org.nrg.xdat.om.*;
 
 /**
  * @author Mohana Ramaratnam
@@ -68,7 +73,6 @@ public class WorkflowManagement extends AbstractXapiProjectRestController {
 						logStream = _containerService.getLogStream(_containerId, file);
 					}
 					if (logStream != null) {
-						System.out.println("LogStream exists");
 						final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 				        byte[] buffer = new byte[1024];
 				        int length;
@@ -121,6 +125,47 @@ public class WorkflowManagement extends AbstractXapiProjectRestController {
 			return rtn;
 		}
 
+		@XapiRequestMapping(value = "/killrunning", method = POST)
+	    @ApiOperation(value = "Kill All Running Container Processes for a list of sessions passed as query parameter accessionid=CSV values")
+	    @ResponseBody
+	    public String killRunning(final @RequestParam Map<String, String> allRequestParams) {
+			//Get the workflow
+			final UserI user = getSessionUser();
+			String rtn = "";
+			try {
+				WorkflowUtils workflowUtils = new WorkflowUtils();
+				
+				String accessionIdCSV = allRequestParams.get(ACCESSION_ID);
+				if (accessionIdCSV != null) {
+					final String[] splitValue = StringUtils.split(accessionIdCSV, ",");
+					if (splitValue != null && splitValue.length > 0) {
+						for (String accessionId : splitValue) {
+							final Collection<? extends PersistentWorkflowI> workFlows = workflowUtils.getOpenWorkflows(user,accessionId);
+							if (workFlows != null) {
+								for (PersistentWorkflowI w: workFlows) {
+									String externalId = w.getExternalid();
+									XnatProjectdata proj = XnatProjectdata.getProjectByIDorAlias(externalId, user, false);
+									if (proj != null && Permissions.canEdit(user,proj)) {
+										String justification = w.getJustification();
+										if (WORKFLOW_JUSTIFICATION.equals(justification) && RUNNING.equals(w.getStatus().toUpperCase())) {
+											String containerId = w.getComments();
+											String killStatus = _containerService.kill(containerId, user);
+											rtn+= "Session: " + accessionId + " job " + w.getPipelineName() + " terminated: " + killStatus + "\n";
+										}
+									}else {
+										rtn +=  "Insufficient privilege to terminate workflow for " + accessionId + "\n";
+									}
+								}
+							}
+						}
+					}
+				}
+			}catch(Exception e) {
+	            return e.getMessage();
+			}
+			return rtn;
+		}
+
 
 		private static String getAttachmentDisposition(final String name, final String extension) {
 	        return String.format(ATTACHMENT_DISPOSITION, name, extension);
@@ -128,6 +173,8 @@ public class WorkflowManagement extends AbstractXapiProjectRestController {
 
 
 		private final String WORKFLOW_JUSTIFICATION = "Container launch";
+		private final String RUNNING 			    = "RUNNING";
+		private final String ACCESSION_ID           = "accessionid";
 		private final ContainerService 				_containerService;
 		private static final String ATTACHMENT_DISPOSITION = "attachment; filename=\"%s.%s\"";
 }
