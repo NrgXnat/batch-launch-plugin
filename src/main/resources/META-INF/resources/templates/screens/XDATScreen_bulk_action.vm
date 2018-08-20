@@ -3,14 +3,7 @@
 #* @vtlvariable name="turbineUtils" type="org.nrg.xdat.turbine.utils.TurbineUtils" *#
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
 #set($SESSION_DISPLAY_NAME_PLURAL = $displayManager.getPluralDisplayNameForImageSession())
-
-<style>
-.active-processes-class{
-   width:100%;
-   height:100%;
-  overflow:auto;
-}
-</style>
+<link rel="stylesheet" href="$content.getURI("scripts/xnat/plugin/scanTable/scanTable.css")"></link>
 
 
 <!--BEGIN /screens/XDATScreen_bulk_action.vm -->
@@ -47,12 +40,12 @@ var dataType;
     divContent +=     '	        </span>										';
     divContent +=     ' 	<button class="btn btn-sm data-table-action disabled" onclick="javascript:launchContainer()">Launch container</button>	';
  //   divContent +=     '		<button class="btn btn-sm data-table-action disabled" onclick="javascript:terminateContainers()">Terminate Containers</button>	';
-    divContent +=     '		<button class="btn btn-sm" type="submit" onclick="javascript:reload()">Relaod</button>				';
+    divContent +=     '		<button class="btn btn-sm" type="submit" onclick="javascript:reload()">Reload</button>				';
     divContent +=     '	    </div>													';
     divContent +=     '    <span class="clear clearfix"></span>									';
     divContent +=     '	</div>														';
-    divContent +=     '	<div class="data-table-wrapper no-body" id="div-xnat-table-header" style="padding-right:0">						';
-    divContent +=     '	       <table id="xnat-table-header" class="xnat-table clean fixed-header" style="border:none;">		';	
+    divContent +=     '	<div class="data-table-wrapper" id="div-xnat-table-header" style="overflow-x:scroll;overflow-y:scroll;padding-right:0">						';
+    divContent +=     '	       <table id="xnat-table" class="xnat-table clean fixed-header selectable" style="border:none;">		';	
     divContent +=     '	            <thead>												';
     divContent +=     '		            <tr id="xnat-table-header-row1">								';
     divContent +=     '		                <th class="toggle-all" style="width: 45px;">						';
@@ -60,14 +53,10 @@ var dataType;
     divContent +=     '		                </th>															';
     divContent +=     '		            </tr>															';
     divContent +=     '	            </thead>																';	
+    divContent +=     '	            <tbody id="xnat-table-datarows-tbody">												';	
+    divContent +=     '             </tbody>																';
     divContent +=     '	        </table>																';
     divContent +=     '	</div>																		';
-    divContent +=     '	<div class="data-table-wrapper no-header" id="div-xnat-table-datarows" >							';
-    divContent +=     '	        <table id="xnat-table-datarows" class="xnat-table clean selectable" style="border: none;">						';
-    divContent +=     '		            <tbody id="xnat-table-datarows-tbody">												';	
-    divContent +=     '		            </tbody>																';
-    divContent +=     '	        </table>																';
-    divContent +=     ' </div>																	';
     divContent +=     '</div>																		';
 		
     
@@ -93,13 +82,17 @@ var dataType;
 
 <script type="text/javascript">
 
+
   function findLabel(key){
         return key.indexOf('identifier') > 0;
     }
 
 
 $( document ).ready(function() {
+	xmodal.loading.open({ title: 'Loading information...' });
+
 	var keyAndHeaderMap = [];
+	var columnsToShow = {};
 	var xml = document.getElementById("xss").value ;
 	var identifierKey = "session_id";
 	var subjectIdentifierKey = "xnat_subjectdata_subjectid"; 
@@ -128,13 +121,44 @@ $( document ).ready(function() {
 		    	           }
 	       		    	   if (showColumn) {
 	       			    	 keyAndHeaderMap[header] = d.key;
-	       			    	 $('tr#xnat-table-header-row1').append('<th class="left" style="width: 120px">'+ header +'</th>');
+	       			    	 columnsToShow[header]=0;
 	       			   } 	 
 	       		     }
 	        });
-	        //AddDataTableRows:
+	        columnsToShow['Project']=1;
+	        columnsToShow['MR ID']=1;
+	        columnsToShow['Subject']=1;
 	        var rows = responseData.ResultSet.Result;
-	       	$.each(rows, function(i, d) {
+
+	        //Dont add columns for workflows which have not been executed for the project at all
+	       	     for (var wrk_col in columnsToShow) {
+	       	        if (columnsToShow[wrk_col] === 1) {
+	       	          continue;
+	       	        }
+		       	$.each(rows, function(i, d) {
+			       if (columnsToShow[wrk_col] === 0) {
+					if (keyAndHeaderMap.hasOwnProperty(wrk_col)) {
+					    var key = keyAndHeaderMap[wrk_col];
+					    if (wrk_col != 'Project' && key != sessionLabelKey && key != subjectLabelKey) {
+						    var workFlowStatusIndx = d[key].indexOf("#");
+						    var workFlowStatus = d[key].substring(0,workFlowStatusIndx);
+						    if (workFlowStatus) {
+							columnsToShow[wrk_col]=1;
+							return false;
+						    }	                            
+					     }
+					    }
+			        }
+			});	        
+	       	    }
+	       	for (var header_col in columnsToShow) {
+			if (columnsToShow[header_col] === 1) {
+			  $('tr#xnat-table-header-row1').append('<th class="left" style="width:120px">'+ header_col +'</th>');
+			}
+	        }
+
+	        //AddDataTableRows:
+  	      $.each(rows, function(i, d) {
 	       	    var session_id = d.session_id;
 	       	    var subject_id = d.xnat_subjectdata_subjectid;
 	       	    var session_project = d.project;
@@ -152,52 +176,56 @@ $( document ).ready(function() {
 		        rowDataWithColumns +='<input type="checkbox" class="selectable-select-one" id="'+single_select_checkbox_id+'" value="'+id_json+'"/>';
 		        rowDataWithColumns +='</td>';
 		        
-	       	    for (var hdr in keyAndHeaderMap) {
+	       	    for (var hdr in columnsToShow) {
 		        if (keyAndHeaderMap.hasOwnProperty(hdr)) {
 		            var key = keyAndHeaderMap[hdr];
 			    if (hdr == 'Project') {
-			            rowDataWithColumns += '<td class="session-' + session_id +'-'+ d[key] +'" style="width: 120px;"><span  title="'+ hdr +'">' + d[key]+'</span></td>';
+			            rowDataWithColumns += '<td class="session-' + session_id +'-'+ d[key] +'" style="width:120px;"><span  title="'+ hdr +'">' + d[key]+'</span></td>';
                             }else if (key == sessionLabelKey) {
                             	    var url = XNAT.url.rootUrl(session_url);	
-          		            rowDataWithColumns += '<td style="width: 120px;"><a href="#!" onclick="displaySessionDetails(\''+d[key]+'\',\''+ XNAT.url.rootUrl(session_url) +'\')"><span  title="'+ hdr +'">' + d[key]+'</span></a></td>';
+          		            rowDataWithColumns += '<td style="width:120px;"><a href="#!" onclick="displaySessionDetails(\''+d[key]+'\',\''+ XNAT.url.rootUrl(session_url) +'\')"><span  title="'+ hdr +'">' + d[key]+'</span></a></td>';
                             }else if (key == subjectLabelKey) {
-			            rowDataWithColumns += '<td style="width: 120px;"><a href="#!" onclick="displaySubjectDetails(\''+d[key]+'\',\''+ XNAT.url.rootUrl(subject_url) +'\')"><span  title="'+ hdr +'">' + d[key]+'</span></a></td>';
+			            rowDataWithColumns += '<td style="width:120px;"><a href="#!" onclick="displaySubjectDetails(\''+d[key]+'\',\''+ XNAT.url.rootUrl(subject_url) +'\')"><span  title="'+ hdr +'">' + d[key]+'</span></a></td>';
+				
                             }else {
+                               if (columnsToShow[hdr] === 1) {
                             	    //d.key contains  status#workflow id
-                            	    var workFlowStatusIndx = d[key].indexOf("#");
-                            	    var workFlowStatus = d[key].substring(0,workFlowStatusIndx);
-                            	    var workFlowId = d[key].substring(workFlowStatusIndx+1);
-                            	    var fontColor = "";
-                            	    if (workFlowStatus.startsWith("Failed") || workFlowStatus == "Failed" ||workFlowStatus.startsWith("Error") || workFlowStatus == "Error") {
-                            	      fontColor = 'color="red"';
-                            	    }else if (workFlowStatus == "Queued" || workFlowStatus == "Created") {
-                            	      fontColor = 'color="orange"';
-                            	    }else if (workFlowStatus == "Complete") {
-        	                      fontColor = 'color="green"';
-                            	    }
-                            	    rowDataWithColumns += '<td style="width: 120px;">';	
-                            	    if (workFlowStatus) {
-	                        	    rowDataWithColumns += '<span  title="'+ hdr +'"><font '+ fontColor + '>' + workFlowStatus+'</font></span>';
-					    rowDataWithColumns += ' 	 <span class="inline-actions">';
-					    rowDataWithColumns += '          <i class="fa fa-eye"  title="View Std Log" onclick="viewWorkflowFile('+workFlowId+',\'stdout\')"></i>';
-					    rowDataWithColumns += '          <i class="fa fa-eye"  title="View Std Error" onclick="viewWorkflowFile('+workFlowId+',\'stderr\')"></i>';
-					    rowDataWithColumns += '          <i class="fa fa-trash" title="Terminate Process" onclick="killProcess('+workFlowId+')"></i>';
-					    rowDataWithColumns += '     </span>';
-                            	    }else {
-	                        	    rowDataWithColumns += '<span>--</span>';
-                            	    }
-                                    rowDataWithColumns += '</td>';
-
-                            }
+                             	    var workFlowStatusIndx = d[key].indexOf("#");
+                             	    var workFlowStatus = d[key].substring(0,workFlowStatusIndx);
+                             	    var workFlowId = d[key].substring(workFlowStatusIndx+1);
+                             	    var fontColor = "";
+                             	    if (workFlowStatus.startsWith("Killed") || workFlowStatus.startsWith("Failed") || workFlowStatus == "Failed" ||workFlowStatus.startsWith("Error") || workFlowStatus == "Error") {
+                             	      fontColor = 'color="red"';
+                             	    }else if (workFlowStatus == "Queued" || workFlowStatus == "Created") {
+                             	      fontColor = 'color="orange"';
+                             	    }else if (workFlowStatus == "Complete") {
+         	                      fontColor = 'color="green"';
+                             	    }
+                             	    rowDataWithColumns += '<td style="width:120px;">';	
+                             	    if (workFlowStatus) {
+ 	                        	    rowDataWithColumns += '<span  title="'+ hdr +'"><font '+ fontColor + '>' + workFlowStatus+'</font></span>';
+ 					    rowDataWithColumns += ' 	 <span class="inline-actions">';
+ 					    rowDataWithColumns += '          <i class="fa fa-eye"  title="View Std Log" onclick="viewWorkflowFile('+workFlowId+',\'stdout\')"></i>';
+ 					    rowDataWithColumns += '          <i class="fa fa-eye"  title="View Std Error" onclick="viewWorkflowFile('+workFlowId+',\'stderr\')"></i>';
+ 					    rowDataWithColumns += '          <i class="fa fa-trash" title="Terminate Process" onclick="killProcess('+workFlowId+')"></i>';
+ 					    rowDataWithColumns += '     </span>';
+                             	    }else {
+ 	                        	    rowDataWithColumns += '<span>--</span>';
+                             	    }
+                                     rowDataWithColumns += '</td>';
+ 				}
+                             }
 		        }
 		    }
 		    rowDataWithColumns += '</tr>';
 		    $('tbody#xnat-table-datarows-tbody').append(rowDataWithColumns);
 
 	        });
+		xmodal.loading.close();
+		setTableWidth('div-xnat-table','data-table-titlerow');
+		setTableHeight('div-xnat-table');
 	        $('#searchRootElement').val(dataType);
 	        $('#searchProjectId').val(projectId);
-	        //adjustTableSizes();
 		populateBreadCrumbs();
 		//Now get the actions associated with the datatype
 		renderActionOptions();
@@ -222,24 +250,52 @@ $( document ).ready(function() {
 	});
 });
 
-function adjustTableSizes() {
-    var windowWidth = $(window).innerWidth();
-    var divWidth = $('#selectable-table-bulk').width();
-    var rowTableWidth = $('#xnat-table-datarows').width();
-    var tabsWidth = $('#processing_tabs').width();
-    if ((rowTableWidth + 18) < tabsWidth) {//if table + scrollbar doesn't take up the whole tab
-      setItemWidth("div-xnat-table-datarows", (rowTableWidth + 18));//set table overflow container to barely contain table, so the scrollbar isn't way off to the right.
-    }   
-    setItemWidth("div-xnat-table-header", rowTableWidth);
-}
 
 function setItemWidth(div_id, width){
     var d = YUIDOM.get(div_id);
+    console.log("Resetting " + div_id + " Width: " + width);
     if (d != null) {
         var d2 = $(d);
         d2.css('width', width);
+        console.log("Done");
     }
 }
+
+function setTableWidth(div_id, div_title_id){
+	var tableC = YUIDOM.get(div_id);//have to use YUI here because jquery fails to find it.  I think because it contains a period.  But, the YUI element can be passed into jquery.
+	    if (tableC != null) {
+		var tableWidth = $(YUIDOM.getFirstChild(tableC)).width();//need the width of the table within the container div.
+		var tabsWidth = $('#processing_tabs').width();
+		console.log("Table Width: " + tableWidth + " Tab Width:" + tabsWidth);
+		if ((tableWidth + 18) < tabsWidth) {//if table + scrollbar doesn't take up the whole tab
+		   setItemWidth(div_id, (tableWidth + 18));//set table overflow container to barely contain table, so the scrollbar isn't way off to the right.
+		   setItemWidth(div_title_id, (tableWidth + 18));
+		}
+	     }
+}
+
+function setTableHeight(div_id){
+    var container = document.getElementById(div_id);
+    container = $(container);
+    if ($(container) != null) {
+        var windowHeight = $(window).innerHeight();
+        var tableHeight = $('table.xnat-table').height();
+        var tablePosition = $(container).offset();
+
+        /* max height is total screen height minus space for table header & chrome */
+        var maxTableHeight = (tableHeight < windowHeight) ? tableHeight + 60 : windowHeight - 60;
+        var minTableHeight = 300;
+
+        /* available height is visible screen height below the starting Y point of the table, plus room for table header & chrome */
+        var availableTableHeight = windowHeight  - 30;
+        availableTableHeight = (availableTableHeight > maxTableHeight) ? maxTableHeight : availableTableHeight;
+        availableTableHeight = (availableTableHeight < minTableHeight) ? minTableHeight : availableTableHeight;
+
+        /* set dimensions of table containers */
+        $(container).css('height', availableTableHeight);
+    }
+}
+
 
 function reload() {
    window.location.reload();
@@ -296,7 +352,9 @@ function renderActionOptions() {
 	            url: XNAT.url.rootUrl('/xapi/commands/available?project='+projectId+'&xsiType='+data_type_val),
 		    success: function(responseData) {
 			responseData.forEach(function(availableCommand) {
-	                    $('#actionsDropdown').append('<option value="{&quot;root-element-name&quot;:&quot;'+availableCommand['root-element-name'] + '&quot;,&quot;wrapper-id&quot;:&quot;'+ availableCommand['wrapper-id'] + '&quot;}">' + availableCommand['wrapper-description'] + '</option>');
+			    if (availableCommand.enabled) {
+		               $('#actionsDropdown').append('<option value="{&quot;root-element-name&quot;:&quot;'+availableCommand['root-element-name'] + '&quot;,&quot;wrapper-id&quot;:&quot;'+ availableCommand['wrapper-id'] + '&quot;}">' + availableCommand['wrapper-description'] + '</option>');
+			    }
 	                });
 	                 $('#actionsDropdown').removeClass('disabled');  
 	                 $('#actionsDropdown').prop("disabled",false);
@@ -399,7 +457,6 @@ function terminateContainers() {
 <script src="$content.getURI("scripts/xnat/plugin/containerService/projectSearchLauncher.js")"></script>
 <script src="$content.getURI("scripts/xnat/plugin/workflowMgmt/workflowmgmt.js")"></script>
 
-<link rel="stylesheet" href="$content.getURI("scripts/xnat/plugin/scanTable/scanTable.css")"></link>
 
 <BR/>
 <BR/>

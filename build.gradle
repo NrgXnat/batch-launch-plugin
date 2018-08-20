@@ -11,7 +11,7 @@ import org.gradle.internal.jvm.Jvm
 
 // TODO: Change the group and version to values appropriate for your plugin project.
 group 'org.nrg.xnat.plugins'
-version '0.0.6'
+version '0.0.8'
 
 // TODO: This is the minimum set of Gradle plugins required to build most XNAT plugins. You may include many others, including plugins for testing and test coverage, IDE integration, and more.
 apply plugin: 'java'

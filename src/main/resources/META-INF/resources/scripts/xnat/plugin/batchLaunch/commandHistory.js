@@ -299,6 +299,7 @@ var XNAT = getObject(XNAT || {});
                             href: '#!',
                             title: 'View command history and logs',
                             data: {'id': this.id },
+                            style: { wordWrap: 'break-word' },
                             html: label
                         });
                     }
