@@ -173,7 +173,7 @@ var XNAT = getObject(XNAT || {});
                 }
             },
             table: {
-                classes: 'highlight hidden',
+                classes: 'highlight',
                 on: [
                     ['click', 'a.view-history', viewHistoryDialog]
                 ]
@@ -182,8 +182,10 @@ var XNAT = getObject(XNAT || {});
                 tr.id = data.id;
                 addDataAttrs(tr, { filter: '0' });
             },
-            sortable: 'image, command, user, DATE, status',
-            filter: 'image, command, user, DATE, status',
+            sortable: 'command, user, DATE, status',
+            filter: 'command, user, DATE, status',
+            overflowX: scroll,
+            overflowY:scroll,
             items: {
                 // by convention, name 'custom' columns with ALL CAPS
                 // 'custom' columns do not correspond directly with
@@ -302,13 +304,6 @@ var XNAT = getObject(XNAT || {});
                             style: { wordWrap: 'break-word' },
                             html: label
                         });
-                    }
-                },
-                image: {
-                    label: 'Image',
-                    filter: true, // add filter: true to individual items to add a filter,
-                    apply: function(){
-                        return this['docker-image'];
                     }
                 }
             }

@@ -66,12 +66,13 @@ public class BulkLaunchAction extends DisplaySearchAction {
 		    StringWriter sw = new StringWriter();
 			search.toXML(sw, false);
 			context.put("xss", StringEscapeUtils.escapeXml(sw.toString()));
-
 			super.doPreliminaryProcessing(data, context);
-			data.setScreenTemplate(getScreenTemplate(data));
+			data.setScreenTemplate(getScreenTemplate());
 
 			doFinalProcessing(data,context);
-	} catch (SearchTimeoutException e) {
+			//data.getParameters().add("xss", StringEscapeUtils.escapeXml(sw.toString()));
+			//data.setScreen(getScreen());
+		} catch (SearchTimeoutException e) {
         logger.error(e);
         data.setMessage(e.getMessage());
         data.setScreenTemplate("Index.vm");
@@ -89,6 +90,7 @@ public class BulkLaunchAction extends DisplaySearchAction {
         data.setMessage("You specified an invalid search condition: " + e.getMessage());
         data.setScreenTemplate("Error.vm");
 	} catch (Exception e) {
+		e.printStackTrace();
         this.error(e, data);
 	}
 	}
@@ -260,9 +262,15 @@ public class BulkLaunchAction extends DisplaySearchAction {
 	 }
 
 
-	public String getScreenTemplate(RunData data){
+	public String getScreenTemplate(){
 		return "XDATScreen_bulk_action.vm";
 	}
+
+	public String getScreen(){
+		return "XDATScreen_bulk_action";
+	}
+
+	
 
 	private List<String> containerWrappersForDataType(String project, String xsiType, UserI user) throws Exception {
 		List<String> wrapperNames = new ArrayList<String>();

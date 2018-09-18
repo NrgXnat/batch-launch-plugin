@@ -1,16 +1,24 @@
 package org.nrg.xnat.bulk.xapi;
 
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
-
+import org.nrg.xdat.om.WrkWorkflowdata;
+import org.nrg.xdat.om.XnatProjectdata;
+import org.nrg.containers.services.ContainerService;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Map;
+import org.nrg.xft.event.EventUtils;
+import org.nrg.xft.event.EventDetails;
+import org.nrg.xft.event.EventMetaI;
+import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 
+
+
+import org.nrg.xdat.om.WrkWorkflowdata;
 import org.apache.commons.lang3.StringUtils;
-
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
@@ -19,9 +27,8 @@ import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.security.UserI;
+import org.nrg.xft.utils.SaveItemHelper;
 import org.nrg.xnat.utils.WorkflowUtils;
-import org.nrg.xdat.om.XnatProjectdata;
-import org.nrg.containers.services.ContainerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -56,7 +63,8 @@ public class WorkflowManagement extends AbstractXapiProjectRestController {
 
 
 
-		@ApiOperation(value = "Gets the log file for a given workflow" )
+
+	   @ApiOperation(value = "Gets the log file for a given workflow" )
 		@ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
 	    @XapiRequestMapping(value = "/{workflowid}/logs/{file}", method = RequestMethod.GET, produces = {MediaType.TEXT_PLAIN_VALUE})
 		public ResponseEntity<String> getFile(@PathVariable("workflowid") final String workflowId, final @PathVariable("file") @ApiParam(allowableValues = "stdout, stderr")  String file) throws Exception{
@@ -103,25 +111,7 @@ public class WorkflowManagement extends AbstractXapiProjectRestController {
 	    @ApiOperation(value = "Kill Process (those users who have delete permissions on associated project, can terminate)")
 	    @ResponseBody
 	    public String kill(final @PathVariable String workflowId) {
-			//Get the workflow
-			final UserI user = getSessionUser();
-			String rtn = "Insufficient privelege";
-			try {
-				PersistentWorkflowI wrkFlow = WorkflowUtils.getUniqueWorkflow(user, workflowId);
-				if (wrkFlow != null) {
-					String externalId = wrkFlow.getExternalid();
-					XnatProjectdata proj = XnatProjectdata.getProjectByIDorAlias(externalId, user, false);
-					if (proj != null && Permissions.canEdit(user,proj)) {
-						String justification = wrkFlow.getJustification();
-						if (WORKFLOW_JUSTIFICATION.equals(justification)) {
-							String containerId = wrkFlow.getComments();
-							rtn = _containerService.kill(containerId, user);
-						}
-					}
-				}
-			}catch(Exception e) {
-	            return e.getMessage();
-			}
+			String rtn = killJob(workflowId);
 			return rtn;
 		}
 
@@ -140,23 +130,53 @@ public class WorkflowManagement extends AbstractXapiProjectRestController {
 					final String[] splitValue = StringUtils.split(accessionIdCSV, ",");
 					if (splitValue != null && splitValue.length > 0) {
 						for (String accessionId : splitValue) {
-							final Collection<? extends PersistentWorkflowI> workFlows = workflowUtils.getOpenWorkflows(user,accessionId);
-							if (workFlows != null) {
-								for (PersistentWorkflowI w: workFlows) {
-									String externalId = w.getExternalid();
-									XnatProjectdata proj = XnatProjectdata.getProjectByIDorAlias(externalId, user, false);
-									if (proj != null && Permissions.canEdit(user,proj)) {
-										String justification = w.getJustification();
-										if (WORKFLOW_JUSTIFICATION.equals(justification) && RUNNING.equals(w.getStatus().toUpperCase())) {
-											String containerId = w.getComments();
-											String killStatus = _containerService.kill(containerId, user);
-											rtn+= "Session: " + accessionId + " job " + w.getPipelineName() + " terminated: " + killStatus + "\n";
-										}
-									}else {
-										rtn +=  "Insufficient privilege to terminate workflow for " + accessionId + "\n";
-									}
+							rtn += killJob(accessionId);
+						}
+					}
+				}
+			}catch(Exception e) {
+	            return e.getMessage();
+			}
+			return rtn;
+		}
+		
+		private String killJob(String workflowId) {
+			//Get the workflow
+			final UserI user = getSessionUser();
+			String rtn = "Insufficient privelege";
+			try {
+				PersistentWorkflowI wrkFlow = WorkflowUtils.getUniqueWorkflow(user, workflowId);
+				if (wrkFlow != null) {
+					String externalId = wrkFlow.getExternalid();
+					XnatProjectdata proj = XnatProjectdata.getProjectByIDorAlias(externalId, user, false);
+					if (proj != null && Permissions.canEdit(user,proj)) {
+						String justification = wrkFlow.getJustification();
+						if (WORKFLOW_JUSTIFICATION.equals(justification)) {
+							String containerId = wrkFlow.getComments();
+							rtn = _containerService.kill(containerId, user);
+						}else {
+							//Could be service request is created but not yet in preparing status
+							Integer wrkFlowId = wrkFlow.getWorkflowId();
+							WrkWorkflowdata workflow = (WrkWorkflowdata)WorkflowUtils.getUniqueWorkflow(user, workflowId);
+							if(workflow != null){
+						        EventDetails eventDetails =  EventUtils.newEventInstance(EventUtils.CATEGORY.PROJECT_ADMIN, EventUtils.TYPE.WEB_SERVICE, EventUtils.getDeleteAction(workflow.getXSIType()));
+
+		                        final PersistentWorkflowI deletedWorkflow = WorkflowUtils.getOrCreateWorkflowData(null, user, WrkWorkflowdata.SCHEMA_ELEMENT_NAME, workflow.getId(), proj.getId(), eventDetails);
+		                        final EventMetaI ciDeleted = deletedWorkflow.buildEvent();
+								try {
+									// If the workflow exists, delete it -
+			                        final EventMetaI ci = workflow.buildEvent();
+									SaveItemHelper.authorizedDelete(workflow.getCurrentDBVersion(), user,ci);
+									PersistentWorkflowUtils.complete(deletedWorkflow, ciDeleted);
+									//TODO
+									//Remove the request from Docker Also
+
+								}catch(Exception de) {
+		                            PersistentWorkflowUtils.fail(deletedWorkflow, ciDeleted);
+		                            throw de;
 								}
 							}
+
 						}
 					}
 				}
