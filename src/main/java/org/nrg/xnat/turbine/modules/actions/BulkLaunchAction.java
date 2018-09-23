@@ -63,7 +63,13 @@ public class BulkLaunchAction extends DisplaySearchAction {
 
 		    final int startWhere=search_xml.indexOf("<xdat:search_where");
 		    final int endWhere=search_xml.indexOf("</xdat:bundle") -1;
-		    final String whereClause=search_xml.substring(startWhere, endWhere);
+		    String whereClause;
+		    if(startWhere==-1){
+		    	whereClause="";
+		    }else{
+		    	whereClause=search_xml.substring(startWhere, endWhere);
+		    }
+		    
 		    
 			context.put("xss",this.buildNewSearchXML(search_xml, user, whereClause));
 			super.doPreliminaryProcessing(data, context);
