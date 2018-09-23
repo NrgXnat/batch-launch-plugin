@@ -16,6 +16,7 @@ version '0.1.2'
 // TODO: This is the minimum set of Gradle plugins required to build most XNAT plugins. You may include many others, including plugins for testing and test coverage, IDE integration, and more.
 apply plugin: 'java'
 apply plugin: 'maven'
+apply plugin: 'eclipse'
 
 // TODO: As of the 1.7.x release, XNAT is built as a Java 7-compatible (i.e. JDK 1.7) application. All plugins must be 1.7 compatible as well.
 sourceCompatibility = 1.7
@@ -101,7 +102,6 @@ dependencies {
         exclude group: '*'
     } 
     compile("org.nrg.xdat:core:${vXnatDev}") {
-        exclude group: '*'
     }
     compile "org.nrg:prefs:${vXnatDev}"
     compile "org.nrg:framework:${vXnatDev}"
