@@ -326,7 +326,7 @@ function renderActionOptions() {
 		    success: function(responseData) {
 			responseData.forEach(function(availableCommand) {
 			    if (availableCommand.enabled) {
-		               $('#actionsDropdown').append('<option value="{&quot;root-element-name&quot;:&quot;'+availableCommand['root-element-name'] + '&quot;,&quot;wrapper-id&quot;:&quot;'+ availableCommand['wrapper-id'] + '&quot;,&quot;command-id&quot;:&quot;'+ availableCommand['command-id'] +  '&quot;}">' + availableCommand['wrapper-description'] + '</option>');
+		               $('#actionsDropdown').append('<option value="{&quot;root-element-name&quot;:&quot;'+availableCommand['root-element-name'] + '&quot;,&quot;wrapper-id&quot;:&quot;'+ availableCommand['wrapper-id'] + '&quot;,&quot;command-id&quot;:&quot;'+ availableCommand['command-id'] +  '&quot;}">' + availableCommand['wrapper-name'] + '</option>');
 			    }
 	         });
 			 removeDisabled =true;
