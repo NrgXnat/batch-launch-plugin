@@ -342,55 +342,54 @@ var XNAT = getObject(XNAT || {});
         })
     };
 
-    historyTable.viewHistory = function(id){
-        if (containerHistory[id]) {
-            var historyEntry = XNAT.plugin.batchLaunch.containerHistory[id];
-            var historyDialogButtons = [
-                {
-                    label: 'OK',
-                    isDefault: true,
-                    close: true
-                }
-            ];
-
-            // build nice-looking history entry table
-            var pheTable = XNAT.table({
-                className: 'xnat-table compact',
-                style: {
-                    width: '100%',
-                    marginTop: '15px',
-                    marginBottom: '15px'
-                }
-            });
-
-            // add table header row
-            pheTable.tr()
-                .th({ addClass: 'left', html: '<b>Key</b>' })
-                .th({ addClass: 'left', html: '<b>Value</b>' });
-
-            for (var key in historyEntry){
-                var val = historyEntry[key], formattedVal = '';
-                if (Array.isArray(val)) {
-                    var items = [];
-                    val.forEach(function(item){
-                        if (typeof item === 'object') item = JSON.stringify(item);
-                        items.push(spawn('li',[ spawn('code',item) ]));
-                    });
-                    formattedVal = spawn('ul',{ style: { 'list-style-type': 'none', 'padding-left': '0' }}, items);
-                } else if (typeof val === 'object' ) {
-                    formattedVal = spawn('code', JSON.stringify(val));
-                } else if (!val) {
-                    formattedVal = spawn('code','false');
-                } else {
-                    formattedVal = spawn('code',val);
-                }
-
-                pheTable.tr()
-                    .td('<b>'+key+'</b>')
-                    .td([ spawn('div',{ style: { 'word-break': 'break-all','max-width':'600px' }}, formattedVal) ]);
-
-                // check logs and populate buttons at bottom of modal
-                if (key === 'log-paths') {
+    historyTable.viewHistoryEntry = function(historyEntry){
+    	if(historyEntry) {
+	    	var historyDialogButtons = [
+	            {
+	                label: 'OK',
+	                isDefault: true,
+	                close: true
+	            }
+	        ];
+	
+	        // build nice-looking history entry table
+	        var pheTable = XNAT.table({
+	            className: 'xnat-table compact',
+	            style: {
+	                width: '100%',
+	                marginTop: '15px',
+	                marginBottom: '15px'
+	            }
+	        });
+	
+	        // add table header row
+	        pheTable.tr()
+	            .th({ addClass: 'left', html: '<b>Key</b>' })
+	            .th({ addClass: 'left', html: '<b>Value</b>' });
+	
+	        for (var key in historyEntry){
+	            var val = historyEntry[key], formattedVal = '';
+	            if (Array.isArray(val)) {
+	                var items = [];
+	                val.forEach(function(item){
+	                    if (typeof item === 'object') item = JSON.stringify(item);
+	                    items.push(spawn('li',[ spawn('code',item) ]));
+	                });
+	                formattedVal = spawn('ul',{ style: { 'list-style-type': 'none', 'padding-left': '0' }}, items);
+	            } else if (typeof val === 'object' ) {
+	                formattedVal = spawn('code', JSON.stringify(val));
+	            } else if (!val) {
+	                formattedVal = spawn('code','false');
+	            } else {
+	                formattedVal = spawn('code',val);
+	            }
+	
+	            pheTable.tr()
+	                .td('<b>'+key+'</b>')
+	                .td([ spawn('div',{ style: { 'word-break': 'break-all','max-width':'600px' }}, formattedVal) ]);
+	
+	            // check logs and populate buttons at bottom of modal
+	            if (key === 'log-paths') {
 					historyDialogButtons.push({
 						label: 'View StdOut.log',
 						close: false,
@@ -402,7 +401,7 @@ var XNAT = getObject(XNAT || {});
 							historyTable.viewLog(jobid,'stdout')
 						}
 					});
-
+	
 					historyDialogButtons.push({
 						label: 'View StdErr.log',
 						close: false,
@@ -414,38 +413,38 @@ var XNAT = getObject(XNAT || {});
 							historyTable.viewLog(jobid,'stderr')
 						}
 					})
-                }
-                if (key === 'setup-container-id') {
-                    historyDialogButtons.push({
-                        label: 'View Setup Container',
-                        close: true,
-                        action: function(){
-                            historyTable.viewHistory(historyEntry[key]);
-                        }
-                    })
-                }
-                if (key === 'parent-database-id' && historyEntry[key]) {
-                    var parentId = historyEntry[key];
-                    historyDialogButtons.push({
-                        label: 'View Parent Container',
-                        close: true,
-                        action: function(){
-                            historyTable.viewHistory(parentId);
-                        }
-                    })
-                }
-
-            }
-
-            // display history
-            XNAT.ui.dialog.open({
-                title: historyEntry['wrapper-name'],
-                width: 800,
-                scroll: true,
-                content: pheTable.table,
-                buttons: historyDialogButtons
-            });
-        } else {
+	            }
+	            if (key === 'setup-container-id') {
+	                historyDialogButtons.push({
+	                    label: 'View Setup Container',
+	                    close: true,
+	                    action: function(){
+	                        historyTable.viewHistory(historyEntry[key]);
+	                    }
+	                })
+	            }
+	            if (key === 'parent-database-id' && historyEntry[key]) {
+	                var parentId = historyEntry[key];
+	                historyDialogButtons.push({
+	                    label: 'View Parent Container',
+	                    close: true,
+	                    action: function(){
+	                        historyTable.viewHistory(parentId);
+	                    }
+	                })
+	            }
+	
+	        }
+	
+	        // display history
+	        XNAT.ui.dialog.open({
+	            title: historyEntry['wrapper-name'],
+	            width: 800,
+	            scroll: true,
+	            content: pheTable.table,
+	            buttons: historyDialogButtons
+	        });
+    	}else {
             console.log(id);
             XNAT.ui.dialog.open({
                 content: 'Sorry, could not display this history item.',
@@ -457,6 +456,35 @@ var XNAT = getObject(XNAT || {});
                     }
                 ]
             });
+
+    	}
+    }
+    
+    historyTable.viewHistory = function(id){
+        if (containerHistory[id]) {
+           var historyEntry = XNAT.plugin.batchLaunch.containerHistory[id];
+           historyTable.viewHistoryEntry(historyEntry);
+        } else {
+        	//Could be a container or a service id, get details
+    		XNAT.xhr.getJSON({
+	        url: XNAT.url.rootUrl('/xapi/containers/'+id),
+		    success: function(responseData) {
+		    	historyTable.viewHistoryEntry(responseData);
+		    },
+		    error : function(o) {
+	        	console.log(id);
+	            XNAT.ui.dialog.open({
+	                content: 'Sorry, could not display this history item.',
+	                buttons: [
+	                    {
+	                        label: 'OK',
+	                        isDefault: true,
+	                        close: true
+	                    }
+	                ]
+	            });
+		    }
+		});
         }
     };
 

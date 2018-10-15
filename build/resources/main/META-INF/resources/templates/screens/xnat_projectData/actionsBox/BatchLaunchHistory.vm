@@ -1,9 +1,31 @@
 #if ($item.canEdit($user))
-<li class="yuimenuitem" id="batch-launch-history">
-        #set ( $batchLaunchHistoryUri = "/app/template/Page.vm?view=batchLaunch&id=$project.getId()" )
-        <a href="$content.getURI($batchLaunchHistoryUri)">Processing History</a>
-    </li>
- 
+	#if ($om.getExperimentCountByXSIType().size()==0)
+	
+	#elseif ($om.getExperimentCountByXSIType().size()==1)
+		#foreach ($xsiTypeProc in $om.getExperimentCountByXSIType().keySet())
+     	<li class="yuimenuitem" id="batch-launch-history">
+	        #set ( $batchLaunchHistoryUri = "/app/template/XDATScreen_bulk_action.vm/project/$om.getId()/dataType/$xsiTypeProc" )
+	        <a href="$content.getURI($batchLaunchHistoryUri)">Processing Dashboard</a>
+	    </li>
+ 		#end
+	#else
+	<li class="yuimenuitem  ProcessingGrouping" style="margin-bottom:2px">
+     	<a class="yuimenuitemlabel" href="#processingBoardbox"><div class="ic">&nbsp;</div><div class="ic_spacer">&nbsp;</div>Processing Dashboard</a>
+            <div id="#processingBoardbox" class="yuimenu">
+             <div class="bd">
+              <ul class="first-of-type">
+ 				#foreach ($xsiTypeProc in $om.getExperimentCountByXSIType().keySet())
+     			<li class="yuimenuitem $!li_class">
+	                #set ( $batchLaunchHistoryUri = "/app/template/XDATScreen_bulk_action.vm/project/$om.getId()/dataType/$xsiTypeProc" )
+	        		<a href="$content.getURI($batchLaunchHistoryUri)">$data.getSession().getAttribute("userHelper").getBrowseableElementDisplay($xsiTypeProc).getBriefDescription()</a>
+                </li>
+ 				#end
+ 			  </ul>
+ 			 </div>
+ 			</div>
+ 		</li>
+	#end
+    
 #end
 
 

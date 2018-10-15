@@ -107,6 +107,8 @@ public class WorkflowManagement extends AbstractXapiProjectRestController {
 			}
 		}
 
+	   
+	   
 		@XapiRequestMapping(value = "/{id}/kill", method = POST)
 	    @ApiOperation(value = "Kill Process (those users who have delete permissions on associated project, can terminate)")
 	    @ResponseBody
@@ -186,6 +188,37 @@ public class WorkflowManagement extends AbstractXapiProjectRestController {
 			return rtn;
 		}
 
+	    @ApiOperation(value = "Gets the container/service ID from a workflow" )
+		@ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
+	    @XapiRequestMapping(value = "/{workflowid}/container", method = RequestMethod.GET, produces = {MediaType.TEXT_PLAIN_VALUE})
+		public ResponseEntity<String> getContainerOrServiceId(@PathVariable("workflowid") final String workflowId) throws Exception{
+			//Get the workflow
+			final UserI user = getSessionUser();
+			try {
+				PersistentWorkflowI wrkFlow = WorkflowUtils.getUniqueWorkflow(user, workflowId);
+				if (wrkFlow != null) {
+					String justification = wrkFlow.getJustification();
+					if (WORKFLOW_JUSTIFICATION.equals(justification)) {
+						//Is a container launch - could be service or containter id
+						final String _containerOrServiceId = wrkFlow.getComments().trim();
+						if (_containerOrServiceId != null) {
+					            return ResponseEntity.ok()
+					                    .header(HttpHeaders.CONTENT_TYPE,  MediaType.TEXT_PLAIN_VALUE)
+					                    .body(_containerOrServiceId);
+						}else {
+				            return new ResponseEntity<>("Container or Service ID not found for the workflow", HttpStatus.NO_CONTENT);
+						}
+					}else {
+			            return new ResponseEntity<>("Container/Service not found", HttpStatus.NO_CONTENT);
+					}
+				}else {
+		            return new ResponseEntity<>("Workflow not found", HttpStatus.NO_CONTENT);
+				}
+			}catch(Exception e) {
+	            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+			}
+		}
+		
 
 		private static String getAttachmentDisposition(final String name, final String extension) {
 	        return String.format(ATTACHMENT_DISPOSITION, name, extension);

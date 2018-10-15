@@ -11,7 +11,7 @@ import org.gradle.internal.jvm.Jvm
 
 // TODO: Change the group and version to values appropriate for your plugin project.
 group 'org.nrg.xnat.plugins'
-version '0.1.2'
+version '0.1.5'
 
 // TODO: This is the minimum set of Gradle plugins required to build most XNAT plugins. You may include many others, including plugins for testing and test coverage, IDE integration, and more.
 apply plugin: 'java'
@@ -59,8 +59,9 @@ sourceSets {
 
 // TODO: This provides access to all of these repositories for dependency resolution.
 repositories {
-    mavenLocal()
+
     mavenCentral()
+    mavenLocal()
     jcenter()
     maven {
         url 'http://dcm4che.org/maven2'
@@ -81,6 +82,7 @@ repositories {
      flatDir {
        dirs 'libs'
    }
+
 }
 
 // TODO: Keeping your versions as variables makes it easier to update versions when you have multiple libraries from the same framework that thus have the same version.
@@ -95,6 +97,7 @@ def vSwagger = '2.4.0'
 // TODO: This is a pretty minimal set of dependencies, so don't worry if you need to add more.
 dependencies {
     compile name: 'containers-2.0.0-rc3-DEMO-fat'
+   // compile name: 'containers-2.0.0.12-RC2-RADIOLOGICS-fat'
     compile("org.nrg.xnat:web:${vXnatDev}") {
         exclude group: '*'
     }
@@ -124,4 +127,10 @@ dependencies {
     compile "org.springframework:spring-web:${vSpring}"
     compile "log4j:log4j:${vLog4j}"
     compile "io.springfox:springfox-swagger2:${vSwagger}"
+}
+configurations {
+    compile.exclude group: 'javax.sql'
+    compile.exclude group: 'javax.transaction'
+    compile.exclude group: 'javax.jms'
+
 }
