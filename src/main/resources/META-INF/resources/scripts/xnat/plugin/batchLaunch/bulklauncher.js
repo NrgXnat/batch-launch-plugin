@@ -320,7 +320,6 @@ function renderActionOptions() {
 		var data_type_val = $('#searchRootElement').val();
 		var projectId = $('#searchProjectId').val();
 		xmodal.loading.open({ title: 'Loading configured containers and pipelines...' });
-		var removeDisabled = false;
 		XNAT.xhr.getJSON({
 	            url: XNAT.url.rootUrl('/xapi/commands/available?project='+projectId+'&xsiType='+data_type_val),
 		    success: function(responseData) {
@@ -329,7 +328,8 @@ function renderActionOptions() {
 		               $('#actionsDropdown').append('<option value="{&quot;root-element-name&quot;:&quot;'+availableCommand['root-element-name'] + '&quot;,&quot;wrapper-id&quot;:&quot;'+ availableCommand['wrapper-id'] + '&quot;,&quot;command-id&quot;:&quot;'+ availableCommand['command-id'] +  '&quot;}">' + availableCommand['wrapper-name'] + '</option>');
 			    }
 	         });
-			 removeDisabled =true;
+			 $('#actionsDropdown').removeClass('disabled');  
+             $('#actionsDropdown').prop("disabled",false);
 		    },
 		    error : function(o) {
 			    XNAT.dialog.open({
@@ -346,35 +346,8 @@ function renderActionOptions() {
 			    });
 		    }
 		});
-		//Load configured pipelines
-		XNAT.xhr.getJSON({
-            url: XNAT.url.rootUrl('/data/archive/projects/'+projectId+'/pipelines?format=json'),
-	    success: function(responseData) {
-			responseData.ResultSet.Result.forEach(function(configuredPipeline) {
-		               $('#actionsDropdown').append('<option value="{&quot;root-element-name&quot;:&quot;'+availableCommand['root-element-name'] + '&quot;,&quot;wrapper-id&quot;:&quot;'+ availableCommand['wrapper-id'] + '&quot;,&quot;command-id&quot;:&quot;'+ availableCommand['command-id'] +  '&quot;}">' + availableCommand['wrapper-description'] + '</option>');
-	        });
-	    },
-	    error : function(o) {
-		    XNAT.dialog.open({
-	    		    title: 'Error!',
-	    		    content: 'Could not get actions associated with ' + data_type_val + ' encounetered ' + o,
-	    		    width: 400,
-	    		    buttons: [
-	    			{
-	    			    label: 'OK',
-	    			    isDefault: true,
-	    			    close: true
-	    			}
-	    		    ]
-		    });
-	    }
-	});
-	if (removeDisabled) {
-        $('#actionsDropdown').removeClass('disabled');
-        $('#actionsDropdown').prop("disabled",false);
-	}
+		//TODO: Load configured pipelines
 	xmodal.loading.close();
-
 }
 
  $( '#actionsDropdown' ).change(function() {
