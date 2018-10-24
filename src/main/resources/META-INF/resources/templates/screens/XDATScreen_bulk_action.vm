@@ -8,6 +8,7 @@
 
 <!--BEGIN /screens/XDATScreen_bulk_action.vm -->
 <script type="text/javascript" src="$content.getURI("/scripts/xnat/ui/breadcrumbs.js")"></script>
+<script type="text/javascript" src="$content.getURI("/scripts/lib/jquery-ui/jquery-ui.js")"></script>
 <script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/batchLaunch/commandHistory.js")"></script> 
 <script src="$content.getURI("scripts/xnat/plugin/workflowMgmt/workflowmgmt.js")"></script>
 
