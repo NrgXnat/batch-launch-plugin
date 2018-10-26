@@ -810,7 +810,14 @@ var XNAT = getObject(XNAT || {});
                        		    	$( "#container-progressbar" ).show();
                        		    }
 
-                                xmodal.loading.open({ title: 'Launching Container(s)...', content:'<div id="container-progressbar" style="height:30px">&nbsp;</div>'});
+                       		    var pBarSettings={};
+                       		    if(XNAT.jobs.total==1){
+                       		    	pBarSettings={ title: 'Launching Container(s)...'};
+                       		    }else{
+                       		    	pBarSettings={ title: 'Launching Container(s)...', content:'<div id="pBar-wrapper" class="withThinBorder" style="width:220px"><div id="container-progressbar" style="height:30px">&nbsp;</div></div>'};
+                       		    }
+                       		    
+                                xmodal.loading.open(pBarSettings);
                        		    
                        		    bulkData.forEach(function(item,i){
                        		    	XNAT.xhr.postJSON({
