@@ -23,7 +23,7 @@ var keyAndHeaderMap = [];
 </script>
 
 <div id="breadcrumbs"></div>
-
+<div id="statusbar">#addGlobalCustomScreens("batchLaunch/statusbar")</div>
 
 #if($xss)
 <textarea id="xss" style="display:none">$xss</textarea>
