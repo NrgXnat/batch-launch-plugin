@@ -73,6 +73,9 @@ $( document ).ready(function() {
 	       	    }
 	       	for (var header_col in columnsToShow) {
 				if (columnsToShow[header_col] === 1) {
+                  if (header_col === "MR ID") {
+                      header_col = "Session";
+                  }
 				  $('tr#xnat-table-header-row1').append('<th class="left" style="width:120px;word-wrap:break-word;">'+ header_col +'</th>');
 				}
 	        }
