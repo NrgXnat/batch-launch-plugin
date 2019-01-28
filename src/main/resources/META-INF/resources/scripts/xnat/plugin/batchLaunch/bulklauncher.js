@@ -128,7 +128,8 @@ $( document ).ready(function() {
                          	    }
                          	    rowDataWithColumns += '<td style="width:120px;">';
                          	    if (workFlowStatus) {
- 	                        	    rowDataWithColumns += '<span  title="'+ hdr +'"><font '+ fontColor + '>' + workFlowStatus+'</font></span>';
+                         	    	workFlowStatusFirstLetterCapital = workFlowStatus.charAt(0).toUpperCase() + workFlowStatus.slice(1);
+ 	                        	    rowDataWithColumns += '<span  title="'+ hdr +'"><font '+ fontColor + '>' + workFlowStatusFirstLetterCapital+'</font></span>';
 			 					    rowDataWithColumns += ' 	 <span class="inline-actions">';
 			 					    rowDataWithColumns += '          <i class="fa fa-eye"  title="View Details" onclick="viewContainerDetails('+workFlowId+')"></i>';
 			 					   // rowDataWithColumns += '          <i class="fa fa-eye"  title="View Std Log" onclick="viewWorkflowFile('+workFlowId+',\'stdout\')"></i>';
@@ -136,7 +137,8 @@ $( document ).ready(function() {
 			 					    rowDataWithColumns += '          <i class="fa fa-trash" title="Terminate Process" onclick="killProcess('+workFlowId+')"></i>';
 			 					    rowDataWithColumns += '     </span>';
                          	    }else {
-                         	    	rowDataWithColumns += '<span>--</span>';
+                         	    	fontColor = 'color="gray"';
+                         	    	rowDataWithColumns += '<span>Ready</span>';
                          	    }
                                 rowDataWithColumns += '</td>';
                            }
