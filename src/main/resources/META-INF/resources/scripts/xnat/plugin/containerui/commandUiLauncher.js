@@ -253,7 +253,7 @@ var XNAT = getObject(XNAT || {});
             attr = (input.disabled) ? { 'disabled':'disabled' } : {};
 
         return spawn(
-            'div', { className: classes.join(' '), data: dataProps }, [
+            'div', { className: classes.push('clearfix').join(' '), data: dataProps }, [
                 spawn('label.element-label', name),
                 spawn('div.element-wrapper', { style: { 'word-wrap': 'break-word' } }, valueLabel),
                 spawn('input',{
@@ -709,7 +709,7 @@ var XNAT = getObject(XNAT || {});
                                 		  }
                                     }
                                 	input.type =  'hidden' ;
-                                    input.value =  targets.toString();
+                                    input.value =  targetLabels.toString();
                                     if (input.advanced === undefined || input.advanced !== true) {
                                         var inputElement = launcher.formInputs(input);
                                         $bulkInputContainer.append(inputElement);
@@ -810,36 +810,51 @@ var XNAT = getObject(XNAT || {});
                        		    	$( "#container-progressbar" ).show();
                        		    }
 
-                       		    var pBarSettings={};
-                       		    if(XNAT.jobs.total==1){
-                       		    	pBarSettings={ title: 'Launching Container(s)...'};
-                       		    }else{
-                       		    	pBarSettings={ title: 'Launching Container(s)...', content:'<div id="pBar-wrapper" class="withThinBorder" style="width:220px"><div id="container-progressbar" style="height:30px">&nbsp;</div></div>'};
-                       		    }
-                       		    
-                                xmodal.loading.open(pBarSettings);
-                       		    
-                       		    bulkData.forEach(function(item,i){
-                       		    	XNAT.xhr.postJSON({
-                       		    		url:csrfUrl('/xapi/wrappers/'+wrapperId+'/launch'),
-                       		    		data:JSON.stringify(item),
-                       		    		success:function(data){
-                       		    			if (data.status=="success") {
-                       		    				XNAT.jobs.success++;
-                                            } else if(data.successes.length > 0) {
-                       		    				XNAT.jobs.failed++;
-                                            } else {
-                                                errorHandler({
-                                                    statusText: 'Something went wrong. No containers were launched.'
-                                                });
-                                            }
-                       		    			XNAT.jobs.handleReturn();
-                       		    		},
-                                        fail: function (e) {
-                                        	XNAT.jobs.failed++;
+                                XNAT.xhr.postJSON({
+                                    beforeSend: function() {
+                                            XNAT.ui.dialog.closeAll();
+                                            XNAT.ui.dialog.alert("Containers are being launched in the background. You may continue to work, refreshing the dashboard to see updated progress.");
+                                            return true;
+                                        },
+                                    url: bulkLaunchUrl(wrapperId),
+                                    data: JSON.stringify(bulkData),
+                                    success: function (data) {
+                                        var successRecord = '',
+                                            failureRecord = '';
+    
+                                        if (data.successes.length > 0) {
+                                            successRecord += '<p>Successfully launched containers on: </p><ul>';
+                                            data.successes.forEach(function(success){
+                                                successRecord += '<li>'+success.params[rootElement]+'</li>';
+                                            });
+                                            successRecord += '</ul>';
                                         }
-                       		    	})
-                       		    });
+    
+                                        if (data.failures.length > 0) {
+                                            failureRecord += '<p>Failed to launch containers on: </p><ul>';
+                                            data.failures.forEach(function(failure){
+                                                failureRecord += '<li>'+failure.params[rootElement]+'</li>';
+                                            });
+                                            failureRecord += '</ul>';
+                                        }
+    
+                                        XNAT.ui.dialog.open({
+                                            title: 'Container Launch Record',
+                                            content: successRecord + failureRecord,
+                                            buttons: [
+                                                {
+                                                    label: 'OK',
+                                                    isDefault: true,
+                                                    close: true,
+                                                    action: XNAT.ui.dialog.closeAll()
+                                                }
+                                            ]
+                                        })
+                                    },
+                                    fail: function (e) {
+                                        errorHandler(e);
+                                    }
+                                });
 
                             } else {
                                 // don't run container if invalid characters are found
