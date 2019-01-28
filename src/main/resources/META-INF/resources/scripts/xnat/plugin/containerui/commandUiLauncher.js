@@ -633,7 +633,7 @@ var XNAT = getObject(XNAT || {});
     }
 
 
-    
+
     function launchManyContainers(inputJson,rootElement,wrapperId,targets, targetLabels){
         /* In a bulk launcher, a list of input objects will be passed to the launcher.
          * The launcher should consider the target elements to be static
@@ -646,7 +646,7 @@ var XNAT = getObject(XNAT || {});
 
     	//inputJson contains elements like
     	//"session":{"description":"Input session","type":"Session","default-value":null,"matcher":null,"user-settable":null,"advanced":false,"required":null}
- 
+
         var launcherContent = spawn('div.panel',[
             spawn('p','Please specify settings for this container.'),
             spawn('div.target-list')
@@ -674,13 +674,13 @@ var XNAT = getObject(XNAT || {});
                                 $panel.append(spawn('div',{ className: 'bulk-controls bulk-inputs inputs-'+k }));
                                 var $bulkInputContainer = $panel.find('.inputs-'+k);
 
-                  		        var input = {};	
+                  		        var input = {};
                   		            input.name = argument;
                                 	input.label = argument;
                                     for(var property in argumentDefinition) {
                                 		  if (argumentDefinition.hasOwnProperty(property)) {
                                 		    var propertyValue = argumentDefinition[property];
-                                		    input[property] = propertyValue; 
+                                		    input[property] = propertyValue;
                                 		  }
                                     }
                                 	input.type = argumentDefinition.type;
@@ -694,18 +694,18 @@ var XNAT = getObject(XNAT || {});
                                             $bulkInputContainer.append(advancedInput);
                                            // $bulkInputContainer.parents('.advanced-settings-container').removeClass('hidden');
                                         }
-                              ++k;          
+                              ++k;
               		        }else {
               		        	if (argument === rootElement) {
                                     $panel.append(spawn('div',{ className: 'bulk-controls bulk-inputs inputs-'+k }));
                                     var $bulkInputContainer = $panel.find('.inputs-'+k);
-              		        		var input = {};	
+              		        		var input = {};
                   		            input.name = argument;
                                 	input.label = argument;
                                     for(var property in argumentDefinition) {
                                 		  if (argumentDefinition.hasOwnProperty(property)) {
                                 		    var propertyValue = argumentDefinition[property];
-                                		    input[property] = propertyValue; 
+                                		    input[property] = propertyValue;
                                 		  }
                                     }
                                 	input.type =  'hidden' ;
@@ -744,6 +744,7 @@ var XNAT = getObject(XNAT || {});
                        		    var csvRootElementValues = $panel.find('input[name='+rootElement+']').val();
                        		    var rootElementArray = csvRootElementValues.split(',');
                        		    var targetData = {};
+                       		    var failedData = [];
                        		    $panel.find('.bulk-inputs').each(function(){
                                     // iterate over each set of inputs and add an object of inputs and values to the bulkData array
                        		    	var $thisPanel = $(this);
@@ -769,21 +770,22 @@ var XNAT = getObject(XNAT || {});
                                 });
                        		    rootElementArray.forEach(function(item,i){
                            		    var launchData = {};
-                           		    launchData[rootElement] = item;	
+                           		    launchData[rootElement] = item;
                            		    Object.keys(targetData).forEach(function(key) {
                            		      launchData[key] = targetData[key];
-                           		    });	
+                           		    });
                            		    bulkData.push(launchData);
-                       		    }); 
-                       		    
+                       		    });
+
                        		    XNAT.jobs={};
                        		    XNAT.jobs.total=bulkData.length;
                        		    XNAT.jobs.failed=0;
+                       		    XNAT.jobs.failedData=[];
                        		    XNAT.jobs.success=0;
                        		    XNAT.jobs.handleReturn=function(){
                        		    	if(XNAT.jobs.total== (XNAT.jobs.success+XNAT.jobs.failed)){
                        		    		xmodal.loading.close();
-                       		    		
+
                        		    		XNAT.ui.dialog.open({
                                             title: 'Containers Launched',
                                             content: spawn('div', XNAT.jobs.success + ' of '+XNAT.jobs.total+' containers successfully requested.' ),
@@ -803,7 +805,7 @@ var XNAT = getObject(XNAT || {});
                        		    	if(barParam.value==0){
                        		    		barParam.value=1;
                        		    	}
-                       		    	
+
                        		    	$( "#container-progressbar" ).css("background-color", "#2074ba");
                        		    	$( "#container-progressbar" ).css("height", "30px");
                        		    	$( "#container-progressbar" ).css("width", barParam.value+"px");
@@ -884,7 +886,7 @@ var XNAT = getObject(XNAT || {});
     }
 
 
-    
+
     // for bulk launching, apply any user-updated value to all matching inputs
     $(document).on('change','.bulk-master input',function(){
         var name = $(this).prop('name');
@@ -1085,7 +1087,7 @@ var XNAT = getObject(XNAT || {});
     };
 
 /*
- 
+
      launcher.bulkLaunchDialog = function(wrapperId,rootElement,targets){
         // 'targets' should be formatted as a one-dimensional array of XNAT data values (i.e. scan IDs) that a container will run on in series.
         // the 'root element' should match one of the inputs in the command config object, and overwrite it with the values provided in the 'targets' array
@@ -1115,7 +1117,7 @@ var XNAT = getObject(XNAT || {});
     };
 */
 
-    
+
     launcher.bulkLaunchDialog = function(project,commandId,wrapperId,rootElement,targets, targetLabels){
         // 'targets' should be formatted as a one-dimensional array of XNAT data values (i.e. scan IDs) that a container will run on in series.
         // the 'root element' should match one of the inputs in the command config object, and overwrite it with the values provided in the 'targets' array
@@ -1124,7 +1126,7 @@ var XNAT = getObject(XNAT || {});
         var targetObj = rootElement + '=' + targets.toString();
 
         var launchUrl = rootUrl('/xapi/projects/'+project+'/commands/'+commandId+'/wrappers/'+wrapperId+'/config');
-            
+
         xmodal.loading.open({ title: 'Configuring Container Launcher' });
         XNAT.xhr.getJSON({
             url: launchUrl,

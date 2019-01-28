@@ -142,7 +142,7 @@ var XNAT = getObject(XNAT || {});
  	        }
     }
 
-    function spawnHistoryTable(sortedHistoryObj){
+function spawnHistoryTable(sortedHistoryObj){
 
         var $dataRows = [];
 
@@ -158,8 +158,8 @@ var XNAT = getObject(XNAT || {});
         // });
         return {
             kind: 'table.dataTable',
-            name: 'userProfiles',
-            id: 'user-profiles',
+            name: 'launchHistory',
+            id: 'launchHistory',
             // load: URL,
             data: sortedHistoryObj,
             before: {
@@ -244,7 +244,7 @@ var XNAT = getObject(XNAT || {});
                                         }
                                         else {
                                             $dataRows.addClass(FILTERCLASS).filter(function(){
-                                                var timestamp = this.querySelector('input.container-timestamp');
+                                                var timestamp = this.querySelector('input.container-launch');
                                                 var containerLaunch = +(timestamp.value);
                                                 return selectedValue === containerLaunch-1 || selectedValue > (currentTime - containerLaunch);
                                             }).removeClass(FILTERCLASS);
@@ -269,7 +269,7 @@ var XNAT = getObject(XNAT || {});
                         }
                         return spawn('!',[
                             spawn('span', dateString ),
-                            spawn('input.hidden.container-timestamp.filtering|type=hidden', { value: timestamp } )
+                            spawn('input.hidden.container-launch.filtering|type=hidden', { value: timestamp } )
                         ])
                     }
                 },
@@ -309,7 +309,6 @@ var XNAT = getObject(XNAT || {});
             }
         }
     }
-
 
     historyTable.viewLog = viewLog = function(containerId,logFile){
         XNAT.xhr.get ({
@@ -351,7 +350,7 @@ var XNAT = getObject(XNAT || {});
 	                close: true
 	            }
 	        ];
-	
+
 	        // build nice-looking history entry table
 	        var pheTable = XNAT.table({
 	            className: 'xnat-table compact',
@@ -361,12 +360,12 @@ var XNAT = getObject(XNAT || {});
 	                marginBottom: '15px'
 	            }
 	        });
-	
+
 	        // add table header row
 	        pheTable.tr()
 	            .th({ addClass: 'left', html: '<b>Key</b>' })
 	            .th({ addClass: 'left', html: '<b>Value</b>' });
-	
+
 	        for (var key in historyEntry){
 	            var val = historyEntry[key], formattedVal = '';
 	            if (Array.isArray(val)) {
@@ -383,11 +382,11 @@ var XNAT = getObject(XNAT || {});
 	            } else {
 	                formattedVal = spawn('code',val);
 	            }
-	
+
 	            pheTable.tr()
 	                .td('<b>'+key+'</b>')
 	                .td([ spawn('div',{ style: { 'word-break': 'break-all','max-width':'600px' }}, formattedVal) ]);
-	
+
 	            // check logs and populate buttons at bottom of modal
 	            if (key === 'log-paths') {
 					historyDialogButtons.push({
@@ -401,7 +400,7 @@ var XNAT = getObject(XNAT || {});
 							historyTable.viewLog(jobid,'stdout')
 						}
 					});
-	
+
 					historyDialogButtons.push({
 						label: 'View StdErr.log',
 						close: false,
@@ -433,9 +432,9 @@ var XNAT = getObject(XNAT || {});
 	                    }
 	                })
 	            }
-	
+
 	        }
-	
+
 	        // display history
 	        XNAT.ui.dialog.open({
 	            title: historyEntry['wrapper-name'],
@@ -459,7 +458,7 @@ var XNAT = getObject(XNAT || {});
 
     	}
     }
-    
+
     historyTable.viewHistory = function(id){
         if (containerHistory[id]) {
            var historyEntry = XNAT.plugin.batchLaunch.containerHistory[id];
