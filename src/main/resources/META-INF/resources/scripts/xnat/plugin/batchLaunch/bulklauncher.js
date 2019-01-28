@@ -1,8 +1,9 @@
+var sessionPipelineWorkFlowStatus = {};
 
 
-  function findLabel(key){
+function findLabel(key){
         return key.indexOf('identifier') > 0;
-    }
+}
 
 
 $( document ).ready(function() {
@@ -51,11 +52,11 @@ $( document ).ready(function() {
 
 	        // Dont add columns for workflows which have not been executed for
 			// the project at all
-	       	     for (var wrk_col in columnsToShow) {
-	       	        if (columnsToShow[wrk_col] === 1) {
+	       	for (var wrk_col in columnsToShow) {
+	       	      if (columnsToShow[wrk_col] === 1) {
 	       	          continue;
-	       	        }
-		       	$.each(rows, function(i, d) {
+	       	      }
+		       	  $.each(rows, function(i, d) {
 			       if (columnsToShow[wrk_col] === 0) {
 					if (keyAndHeaderMap.hasOwnProperty(wrk_col)) {
 					    var key = keyAndHeaderMap[wrk_col];
@@ -69,14 +70,14 @@ $( document ).ready(function() {
 					     }
 					    }
 			        }
-			});
-	       	    }
+			     });
+	       	}
 	       	for (var header_col in columnsToShow) {
 				if (columnsToShow[header_col] === 1) {
                   if (header_col === "MR ID") {
                       header_col = "Session";
                   }
-				  $('tr#xnat-table-header-row1').append('<th class="left" style="width:120px;word-wrap:break-word;">'+ header_col +'</th>');
+				  $('tr#xnat-table-header-row1').append('<th class="left sort"  style="width:120px;word-wrap:break-word;">'+ header_col +'</th>');
 				}
 	        }
 
@@ -85,12 +86,14 @@ $( document ).ready(function() {
 	       	    var session_id = d.session_id;
 	       	    var subject_id = d.xnat_subjectdata_subjectid;
 	       	    var session_project = d.project;
+	       	    var sessionLabel = d[sessionLabelKey];
+	       	    var sessionWorkFlowStatus = {};
 	       	    if (!projectId) {
 	       	    	projectId =  d.project;
-		    }
+		        }
 
 	       	    var single_select_checkbox_id = "select-"+session_id;
-	       	    var id_json = '{&quot;accession-id&quot;:&quot;'+ session_id+ '&quot;,&quot;label&quot;:&quot;' + d[sessionLabelKey] +'&quot;,&quot;project&quot;:&quot;'+session_project+'&quot;,&quot;xsiType&quot;:&quot;'+ dataType +'&quot;}';
+	       	    var id_json = '{&quot;accession-id&quot;:&quot;'+ session_id+ '&quot;,&quot;label&quot;:&quot;' + sessionLabel +'&quot;,&quot;project&quot;:&quot;'+session_project+'&quot;,&quot;xsiType&quot;:&quot;'+ dataType +'&quot;}';
 	       	    var session_url= 'app/action/DisplayItemAction/search_element/' + dataType +'/search_field/' + dataType+'.ID/search_value/'+ session_id+ '/popup/$popup';
 	       	    var subject_url= 'app/action/DisplayItemAction/search_element/xnat:subjectData/search_field/xnat:subjectData.ID/search_value/'+ subject_id+ '/popup/$popup';
 
@@ -100,8 +103,8 @@ $( document ).ready(function() {
 		        rowDataWithColumns +='</td>';
 
 	       	    for (var hdr in columnsToShow) {
-		        if (keyAndHeaderMap.hasOwnProperty(hdr)) {
-		            var key = keyAndHeaderMap[hdr];
+		          if (keyAndHeaderMap.hasOwnProperty(hdr)) {
+		                var key = keyAndHeaderMap[hdr];
 	            		if (hdr == 'Project') {
 		            			rowDataWithColumns += '<td class="session-' + session_id +'-'+ d[key] +'" style="width:120px;"><span  title="'+ hdr +'">' + d[key]+'</span></td>';
                         }else if (key == sessionLabelKey) {
@@ -128,30 +131,36 @@ $( document ).ready(function() {
                          	    }
                          	    rowDataWithColumns += '<td style="width:120px;">';
                          	    if (workFlowStatus) {
- 	                        	    rowDataWithColumns += '<span  title="'+ hdr +'"><font '+ fontColor + '>' + workFlowStatus+'</font></span>';
+                         	    	workFlowStatusFirstLetterCapital = workFlowStatus.charAt(0).toUpperCase() + workFlowStatus.slice(1);
+ 	                        	    rowDataWithColumns += '<span  title="'+ hdr +'"><font '+ fontColor + '>' + workFlowStatusFirstLetterCapital+'</font></span>';
 			 					    rowDataWithColumns += ' 	 <span class="inline-actions">';
 			 					    rowDataWithColumns += '          <i class="fa fa-eye"  title="View Details" onclick="viewContainerDetails('+workFlowId+')"></i>';
 			 					   // rowDataWithColumns += '          <i class="fa fa-eye"  title="View Std Log" onclick="viewWorkflowFile('+workFlowId+',\'stdout\')"></i>';
 			 					   // rowDataWithColumns += '          <i class="fa fa-eye"  title="View Std Error" onclick="viewWorkflowFile('+workFlowId+',\'stderr\')"></i>';
 			 					    rowDataWithColumns += '          <i class="fa fa-trash" title="Terminate Process" onclick="killProcess('+workFlowId+')"></i>';
 			 					    rowDataWithColumns += '     </span>';
+			 					    sessionWorkFlowStatus[hdr]=workFlowStatus;
                          	    }else {
-                         	    	rowDataWithColumns += '<span>--</span>';
+                         	    	fontColor = 'color="gray"';
+                         	    	rowDataWithColumns += '<span><font '+ fontColor + '>Ready</font></span>';
+                         	    	sessionWorkFlowStatus[hdr]='--';
                          	    }
-                                rowDataWithColumns += '</td>';
+								//console.log('Added ' + sessionLabel + ' hdr' + hdr + ' Workflow ' + workFlowStatus);
+ 								rowDataWithColumns += '</td>';
                            }
                        }
 		        }
 		    }
-		    rowDataWithColumns += '</tr>';
+			sessionPipelineWorkFlowStatus[sessionLabel]=sessionWorkFlowStatus;
+			rowDataWithColumns += '</tr>';
 		    $('tbody#xnat-table-datarows-tbody').append(rowDataWithColumns);
 
 	        });
 		xmodal.loading.close();
 		setTableWidth('div-xnat-table','data-table-titlerow');
 		setTableHeight('div-xnat-table');
-	        $('#searchRootElement').val(dataType);
-	        $('#searchProjectId').val(projectId);
+	    $('#searchRootElement').val(dataType);
+	    $('#searchProjectId').val(projectId);
 		populateBreadCrumbs();
 		// Now get the actions associated with the datatype
 		renderActionOptions();
@@ -328,10 +337,10 @@ function renderActionOptions() {
 		    success: function(responseData) {
 			responseData.forEach(function(availableCommand) {
 			    if (availableCommand.enabled) {
-		               $('#actionsDropdown').append('<option value="{&quot;root-element-name&quot;:&quot;'+availableCommand['root-element-name'] + '&quot;,&quot;wrapper-id&quot;:&quot;'+ availableCommand['wrapper-id'] + '&quot;,&quot;command-id&quot;:&quot;'+ availableCommand['command-id'] +  '&quot;}">' + availableCommand['wrapper-name'] + '</option>');
+		               $('#actionsDropdown').append('<option value="{&quot;root-element-name&quot;:&quot;'+availableCommand['root-element-name'] + '&quot;,&quot;wrapper-id&quot;:&quot;'+ availableCommand['wrapper-id'] + '&quot;,&quot;command-id&quot;:&quot;'+ availableCommand['command-id'] +  '&quot;,&quot;wrapper-name&quot;:&quot;'+ availableCommand['wrapper-name'] +  '&quot;}">' + availableCommand['wrapper-name'] + '</option>');
 			    }
 	         });
-			 $('#actionsDropdown').removeClass('disabled');  
+			 $('#actionsDropdown').removeClass('disabled');
              $('#actionsDropdown').prop("disabled",false);
 		    },
 		    error : function(o) {
@@ -363,8 +372,10 @@ function renderActionOptions() {
         }
  });
 
+
 function launchContainer() {
      var commandDetails =  $('#actionsDropdown').find(":selected").val();
+     console.log("CommandDetails: " + commandDetails);
      if (commandDetails == "Select") {
      	 XNAT.dialog.open({
 		    title: 'Please select a container to launch!',
@@ -378,28 +389,65 @@ function launchContainer() {
 			}
 		    ]
 		});
-	  $(this).addClass('disabled');
-	  	return false;
+	    $(this).addClass('disabled');
+	   	return false;
      } else{
 	      var targets = [];
 	      var targetLabels = [];
 	      $('input.selectable-select-one:checkbox').each(function(){
-		  if ($(this).is(':checked')) {
-			// Get the JSON
-			var jsonData = JSON.parse($(this).val());
-			targets.push(jsonData['accession-id']);
-			targetLabels.push(jsonData['label']);
-		  }
+		     if ($(this).is(':checked')) {
+			   // Get the JSON
+			    var jsonData = JSON.parse($(this).val());
+			    targets.push(jsonData['accession-id']);
+			    targetLabels.push(jsonData['label']);
+		      }
 	       });
+		   //Are there any sessions in the selected list which are in any state other than Failed or Complete?
+		   //If this change the selected sessions
 	       var projectId = $('#searchProjectId').val();
 	       var commandDetailsJsonObj = JSON.parse(commandDetails);
 	       var rootElementName = commandDetailsJsonObj['root-element-name'];
 	       var wrapperId =  commandDetailsJsonObj['wrapper-id'];
 	       var commandId =  commandDetailsJsonObj['command-id'];
+	       var pipelineName = commandDetailsJsonObj['wrapper-name'];
+		   //Are there any sessions in the selected list which are in any state other than Failed or Complete?
+		   //If this change the selected sessions
+		   var sessionsBeingProcessed =	checkSelectedSessions(targetLabels,pipelineName);
+		   if (sessionsBeingProcessed && sessionsBeingProcessed.length > 0) {
+				 var sessionList = "";
+				 sessionsBeingProcessed.forEach(function(sessionId) {
+					 sessionList += "<p>" + sessionId + "</p>";
+				 });
+				 XNAT.dialog.open({
+				    		    title: 'Error!',
+				    		    content: 'The following session(s) can not be processed currently ' + sessionList + ' please exclude the above session(s) and relaunch.' ,
+				    		    width: 400,
+				    		    buttons: [
+				    			{
+				    			    label: 'OK',
+				    			    isDefault: true,
+				    			    close: true
+				    			}
+				    		    ]
+			    });
+		   }else {
                XNAT.plugin.containerService.launcher.bulkLaunchDialog(projectId,commandId,wrapperId,rootElementName,targets, targetLabels);
-
-	       // window.location.reload();
+	       }
      }
 }
 
-
+function checkSelectedSessions(targets, pipelineName) {
+	var failedWorkflowStatus = "Failed";
+	var completeWorkflowStatus = "Complete";
+	var sessionsBeingProcessed = [];
+	targets.forEach(function(sessionId) {
+	  var wrkFlowStatus = sessionPipelineWorkFlowStatus[sessionId];
+	  if (wrkFlowStatus) {
+		  var status = wrkFlowStatus[pipelineName];
+		  if (status != failedWorkflowStatus && status != completeWorkflowStatus && status != "--") {
+			  sessionsBeingProcessed.push(sessionId);
+	  	  }
+	  }
+	});
+	return sessionsBeingProcessed;
+}
