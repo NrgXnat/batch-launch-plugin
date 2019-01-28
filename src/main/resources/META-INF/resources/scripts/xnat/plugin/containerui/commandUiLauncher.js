@@ -664,7 +664,7 @@ var XNAT = getObject(XNAT || {});
                     // display root elements first
                     $targetListContainer.append(spawn('p',[ spawn('strong', targets.length + ' item(s) selected to run in bulk.' )]));
 
-                    var targetList = launcher.formInputs({ name: rootElement, type: 'staticList', value: targets.toString() });
+                    var targetList = launcher.formInputs({ name: rootElement, type: 'staticList', value: targetLabels.toString() });
                     $targetListContainer.append(targetList);
                     var k=0;
                     for(var argument in inputJson) {
@@ -709,7 +709,7 @@ var XNAT = getObject(XNAT || {});
                                 		  }
                                     }
                                 	input.type =  'hidden' ;
-                                    input.value =  targetLabels.toString();
+                                    input.value =  targets.toString();
                                     if (input.advanced === undefined || input.advanced !== true) {
                                         var inputElement = launcher.formInputs(input);
                                         $bulkInputContainer.append(inputElement);
