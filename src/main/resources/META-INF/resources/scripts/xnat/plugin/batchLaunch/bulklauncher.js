@@ -469,7 +469,7 @@ function checkSelectedSessions(targets, pipelineName) {
         var wrkFlowStatus = sessionPipelineWorkFlowStatus[sessionId];
         if (wrkFlowStatus) {
             var status = wrkFlowStatus[pipelineName];
-            if (status != failedWorkflowStatus && status != completeWorkflowStatus) {
+            if (status && (!status.includes(failedWorkflowStatus) && status != completeWorkflowStatus)) {
                 sessionsBeingProcessed.push(sessionId);
             }
         }
