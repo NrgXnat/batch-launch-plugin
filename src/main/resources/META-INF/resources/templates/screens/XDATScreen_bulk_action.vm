@@ -4,7 +4,7 @@
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
 #set($SESSION_DISPLAY_NAME_PLURAL = $displayManager.getPluralDisplayNameForImageSession())
 <link rel="stylesheet" href="$content.getURI("scripts/xnat/plugin/scanTable/scanTable.css")"></link>
-
+<link rel="stylesheet" href="$content.getURI("style/xnat/plugin/batchLaunch/bulklauncher.css")"></link>
 
 <!--BEGIN /screens/XDATScreen_bulk_action.vm -->
 <script type="text/javascript" src="$content.getURI("/scripts/xnat/ui/breadcrumbs.js")"></script>
@@ -56,6 +56,9 @@ var keyAndHeaderMap = [];
     divContent +=     '		                <th class="toggle-all" style="width: 45px;">						';
     divContent +=     '		                    <input type="checkbox" class="selectable-select-all" id="toggle-all-sessions" title="Toggle All Sessions" />	';
     divContent +=     '		                </th>															';
+    divContent +=     '		            </tr>															';
+    divContent +=     '		            <tr id="xnat-table-header-row2">								';
+    divContent +=     '		                <td style="width: 45px;"></td>						        ';
     divContent +=     '		            </tr>															';
     divContent +=     '	            </thead>																';	
     divContent +=     '	            <tbody id="xnat-table-datarows-tbody">												';	
