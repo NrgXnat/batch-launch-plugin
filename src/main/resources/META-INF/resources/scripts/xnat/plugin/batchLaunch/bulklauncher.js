@@ -99,8 +99,9 @@ $(document).ready(function () {
                                 $("#xnat-table td." + colClass + ":not(:contains('" + val + "'))").parent().hide();
                             }
                         });
+                        resizeTableCols("xnat-table");
                     });
-                    $('tr#xnat-table-header-row2').append($("<td></td>").append($filterInput));
+                    $('tr#xnat-table-header-row2').append($("<td style='width:120px;'></td>").append($filterInput));
                 }
             }
 
@@ -131,16 +132,16 @@ $(document).ready(function () {
                         var key = keyAndHeaderMap[hdr];
                         label = columnsToShow[hdr]['label'];
                         if (hdr == 'Project') {
-                            rowDataWithColumns += '<td class="' + label + ' session-' + session_id + '-' + d[key] + '" style="width:120px;"><span  title="' + label + '">' + d[key] + '</span></td>';
+                            rowDataWithColumns += '<td class="' + label + ' session-' + session_id + '-' + d[key] + '"><span  title="' + label + '">' + d[key] + '</span></td>';
                         } else if (key == sessionLabelKey) {
                             var url = XNAT.url.rootUrl(session_url);
-                            rowDataWithColumns += '<td class="' + label + '"  style="width:120px;"><a href="' + url + '"  target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
+                            rowDataWithColumns += '<td class="' + label + '" ><a href="' + url + '"  target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
 
                         } else if (key == subjectLabelKey) {
                             var url = XNAT.url.rootUrl(subject_url);
-                            rowDataWithColumns += '<td class="' + label + '"  style="width:120px;"><a href="' + url + '" target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
+                            rowDataWithColumns += '<td class="' + label + '" ><a href="' + url + '" target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
                         } else if (key.startsWith("res_file")) {
-                            rowDataWithColumns += '<td class="' + label + '"  style="width:120px;">' + d[key] + '</td>';
+                            rowDataWithColumns += '<td class="' + label + '" >' + d[key] + '</td>';
                         } else {
                             if (columnsToShow[hdr]['show'] === 1) {
                                 // d.key contains status#workflow id
@@ -155,7 +156,7 @@ $(document).ready(function () {
                                 } else if (workFlowStatus == "Complete") {
                                     fontColor = 'color="green"';
                                 }
-                                rowDataWithColumns += '<td class="' + label + '" style="width:120px;">';
+                                rowDataWithColumns += '<td class="' + label + '">';
                                 if (workFlowStatus) {
                                     workFlowStatusFirstLetterCapital = workFlowStatus.charAt(0).toUpperCase() + workFlowStatus.slice(1);
                                     rowDataWithColumns += '<span  title="' + label + '"><font ' + fontColor + '>' + workFlowStatusFirstLetterCapital + '</font></span>';
@@ -181,6 +182,7 @@ $(document).ready(function () {
                 $('tbody#xnat-table-datarows-tbody').append(rowDataWithColumns);
 
             });
+            resizeTableCols("xnat-table");
             xmodal.loading.close();
             setTableWidth('div-xnat-table', 'data-table-titlerow');
             setTableHeight('div-xnat-table');
@@ -212,6 +214,36 @@ $(document).ready(function () {
         }
     });
 });
+
+function resizeTableCols(table_id) {
+    function cssWidth($item) {
+        var ws = $item.css("width") || "0";
+        return Number(ws.replace(/[^\d\.]/g, ""));
+    }
+    var $table = $("table#" + table_id);
+
+    var $headerCells = $table.find("thead tr:first").children(),
+        $filterCells = $table.find("thead tr:last").children(),
+        $bodyCells = $table.find("tbody tr:not(:hidden):first").children();
+
+    //ignore first col (checkboxes)
+    var chkWidth = cssWidth($($headerCells[0])); // Always constant
+    var minWidth = (cssWidth($table) - chkWidth) / ($headerCells.length - 1);
+
+    // Set common width for thead & tbody cells (needed for scrollable tbody)
+    $bodyCells.each(function(i, v) {
+        var widths = [cssWidth($(v)),
+            cssWidth($($headerCells[i])),
+            cssWidth($($filterCells[i]))];
+        if (i > 0) {
+            widths.push(minWidth);
+        }
+        var wid = Math.max.apply(this,widths);
+        $(v).css("width", wid);
+        $($headerCells[i]).css("width", wid);
+        $($filterCells[i]).css("width", wid);
+    });
+}
 
 function setItemWidth(div_id, width) {
     var d = YUIDOM.get(div_id);
