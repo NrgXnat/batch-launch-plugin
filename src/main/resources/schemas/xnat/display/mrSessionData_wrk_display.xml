@@ -11,15 +11,25 @@
 	<DisplayField id="WRK_STATUS" header="STATUS" visible="true" searchable="false" data-type="string" xsi:type="SubQueryField">
 		<Content type="sql">widstatus</Content>
 		<description>Workflow</description>
-<!--		<HTML-Link>
-			<Property name="ONCLICK" value="return rpt('@Field1','wrk:workflowData','wrk:workflowData.wrk_workflowdata_id');">
-				<InsertValue id="Field1" field="wrk_workflowdata_id"/>
-			</Property>
-		</HTML-Link> -->
 		<SubQuery>select distinct on (w.id)  w.id as session_id, w.externalid, w.wrk_workflowdata_id, w.pipeline_name ,  w.status, w.status ||'#' || w.wrk_workflowdata_id AS widstatus from wrk_workflowdata w where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' order by w.id,launch_time desc</SubQuery>
 		<MappingColumns>
 			<MappingColumn schemaField="xnat:mrSessionData.ID" queryField="session_id"/>
 		</MappingColumns>
-		
+	</DisplayField>
+	<DisplayField id="RES_FILE_SIZE" header="File Size" visible="true" searchable="false" data-type="string" xsi:type="SubQueryField">
+		<Content type="sql">file_size</Content>
+		<description>File Size by Resource</description>
+		<SubQuery>SELECT xnat_experimentdata_id AS session_id, label,  file_size FROM xnat_abstractResource abst JOIN xnat_experimentdata_resource res ON abst.xnat_abstractresource_id=res.xnat_abstractresource_xnat_abstractresource_id WHERE label='@WHERE' ORDER BY xnat_experimentdata_id</SubQuery>
+		<MappingColumns>
+			<MappingColumn schemaField="xnat:mrSessionData.ID" queryField="session_id"/>
+		</MappingColumns>
+	</DisplayField>
+	<DisplayField id="RES_FILE_COUNT" header="Files" visible="true" searchable="false" data-type="string" xsi:type="SubQueryField">
+		<Content type="sql">file_count</Content>
+		<description>File Count by Resource</description>
+		<SubQuery>SELECT xnat_experimentdata_id AS session_id, label, file_count FROM xnat_abstractResource abst JOIN xnat_experimentdata_resource res ON abst.xnat_abstractresource_id=res.xnat_abstractresource_xnat_abstractresource_id WHERE label='@WHERE' ORDER BY xnat_experimentdata_id</SubQuery>
+		<MappingColumns>
+			<MappingColumn schemaField="xnat:mrSessionData.ID" queryField="session_id"/>
+		</MappingColumns>
 	</DisplayField>
 </Displays>

@@ -27,6 +27,7 @@ import org.nrg.xdat.turbine.modules.actions.SearchA;
 import org.nrg.xdat.turbine.modules.actions.SearchA.SearchTimeoutException;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.XFTItem;
+import org.nrg.xft.db.PoolDBUtils;
 import org.nrg.xft.exception.DBPoolException;
 import org.nrg.xft.exception.ElementNotFoundException;
 import org.nrg.xft.exception.XFTInitException;
@@ -71,7 +72,7 @@ public class BulkLaunchAction extends DisplaySearchAction {
 		    }
 		    
 		    
-			context.put("xss",this.buildNewSearchXML(search_xml, user, whereClause));
+			context.put("xss",this.buildNewSearchXML(search_xml, user, whereClause,data));
 			super.doPreliminaryProcessing(data, context);
 			data.setScreenTemplate(getScreenTemplate());
 
@@ -99,7 +100,7 @@ public class BulkLaunchAction extends DisplaySearchAction {
 		}
 	}
 
-	 private String buildNewSearchXML(final String search_xml, UserI user, final String whereClause) throws Exception{;
+	 private String buildNewSearchXML(final String search_xml, UserI user, final String whereClause, final RunData data) throws Exception{;
 	 	 final StringReader sr = new StringReader(search_xml);
          final InputSource is = new InputSource(sr);
          final SAXReader reader = new SAXReader(user);
@@ -130,7 +131,25 @@ public class BulkLaunchAction extends DisplaySearchAction {
                 	distinctProjectsInSearch.add(project);
                 }
             }
-            return (new SearchXMLBuilder()).execute(distinctProjectsInSearch, rootElementName, user, whereClause);
+            
+            String job = data.getParameters().getString("job");
+            if (PoolDBUtils.HackCheck(job)) {
+            	throw new Exception("Invalid value submitted.");
+            }
+            
+            String resources = data.getParameters().getString("resources");
+            if (PoolDBUtils.HackCheck(resources)) {
+            	throw new Exception("Invalid value submitted.");
+            }
+            
+            String[] resourceArray=null;
+            if(org.apache.commons.lang3.StringUtils.isNotEmpty(resources)){
+            	if(resources.contains(",")){
+            		resourceArray=resources.split(",");
+            	}
+            }
+            
+            return (new SearchXMLBuilder()).execute(distinctProjectsInSearch, rootElementName, user, whereClause,job,java.util.Arrays.asList(resourceArray));
 	 }
 
 

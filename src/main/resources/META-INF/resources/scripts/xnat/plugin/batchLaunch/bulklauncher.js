@@ -63,7 +63,7 @@ $( document ).ready(function() {
 					    if (wrk_col != 'Project' && key != sessionLabelKey && key != subjectLabelKey) {
 						    var workFlowStatusIndx = d[key].indexOf("#");
 						    var workFlowStatus = d[key].substring(0,workFlowStatusIndx);
-						    if (workFlowStatus) {
+						    if (workFlowStatus || key.startsWith("res_file")) {
 							columnsToShow[wrk_col]=1;
 							return false;
 						    }
@@ -117,6 +117,9 @@ $( document ).ready(function() {
 
                         }else {
                            if (columnsToShow[hdr] === 1) {
+                        	   if(key.startsWith("res_file")){
+                        		   rowDataWithColumns += '<td style="width:120px;">' + d[key]+'</td>';
+                        	   }else{
                         	    // d.key contains status#workflow id
                          	    var workFlowStatusIndx = d[key].indexOf("#");
                          	    var workFlowStatus = d[key].substring(0,workFlowStatusIndx);
@@ -147,6 +150,7 @@ $( document ).ready(function() {
                          	    }
 								//console.log('Added ' + sessionLabel + ' hdr' + hdr + ' Workflow ' + workFlowStatus);
  								rowDataWithColumns += '</td>';
+                        	   }
                            }
                        }
 		        }

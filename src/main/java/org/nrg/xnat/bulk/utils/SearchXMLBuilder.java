@@ -3,6 +3,7 @@ package org.nrg.xnat.bulk.utils;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 
 import org.nrg.containers.model.command.auto.CommandSummaryForContext;
 import org.nrg.containers.services.CommandService;
@@ -17,7 +18,7 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xnat.turbine.utils.ArcSpecManager;
 
 public class SearchXMLBuilder {
-	public String execute(final List<String> projects, final String dataType, final UserI user, final String whereClause){
+	public String execute(final List<String> projects, final String dataType, final UserI user, final String whereClause, String specificJob,List<String> resources){
 		StringBuilder sb=new StringBuilder();
 		sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
 		sb.append("<xdat:bundle ID=\"\" allow-diff-columns=\"0\" secure=\"0\" brief-description=\"Sessions\" xmlns:arc=\"http://nrg.wustl.edu/arc\" xmlns:val=\"http://nrg.wustl.edu/val\" xmlns:pipe=\"http://nrg.wustl.edu/pipe\" xmlns:wrk=\"http://nrg.wustl.edu/workflow\" xmlns:scr=\"http://nrg.wustl.edu/scr\" xmlns:xdat=\"http://nrg.wustl.edu/security\" xmlns:cat=\"http://nrg.wustl.edu/catalog\" xmlns:prov=\"http://www.nbirn.net/prov\" xmlns:xnat=\"http://nrg.wustl.edu/xnat\" xmlns:xnat_a=\"http://nrg.wustl.edu/xnat_assessments\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://nrg.wustl.edu/workflow https://imagingdb.blackthornrx.com/schemas/workflow.xsd http://nrg.wustl.edu/catalog https://imagingdb.blackthornrx.com/schemas/catalog.xsd http://nrg.wustl.edu/pipe https://imagingdb.blackthornrx.com/schemas/repository.xsd http://nrg.wustl.edu/scr https://imagingdb.blackthornrx.com/schemas/screeningAssessment.xsd http://nrg.wustl.edu/arc https://imagingdb.blackthornrx.com/schemas/project.xsd http://nrg.wustl.edu/val https://imagingdb.blackthornrx.com/schemas/protocolValidation.xsd http://nrg.wustl.edu/xnat https://imagingdb.blackthornrx.com/schemas/xnat.xsd http://nrg.wustl.edu/xnat_assessments https://imagingdb.blackthornrx.com/schemas/assessments.xsd http://www.nbirn.net/prov https://imagingdb.blackthornrx.com/schemas/birnprov.xsd http://nrg.wustl.edu/security https://imagingdb.blackthornrx.com/schemas/security.xsd\">");
@@ -45,68 +46,95 @@ public class SearchXMLBuilder {
 		sb.append("<xdat:header>Subject</xdat:header>");
 		sb.append("<xdat:value>").append(projects.get(0)).append("</xdat:value>");
 		sb.append("</xdat:search_field>");
-
-        //Get a list of all pipelines/containers which have been configured for the project.
-        List<String> configuredPipelinesOrContainers = new ArrayList<String>();
-        for(String project: projects){
-			ArcProject aProject = ArcSpecManager.GetFreshInstance().getProjectArc(project);
-			if (aProject != null) {
-	        	List<ArcProjectDescendantI> descendants = aProject.getPipelines_descendants_descendant();
-	            for (ArcProjectDescendantI descendant : descendants) {
-	                ArcProjectDescendant instance = (ArcProjectDescendant) descendant;
-	                if (instance.getXsitype().equals("All Datatypes") || instance.getXsitype().equals(dataType)) {
-	                    List<ArcProjectDescendantPipelineI> pipelines = instance.getPipeline();
-	                    for (ArcProjectDescendantPipelineI pipeline1 : pipelines) {
-	                        ArcProjectDescendantPipeline descPipeline = (ArcProjectDescendantPipeline) pipeline1;
-	                        ArcPipelinedata pipeline = descPipeline.getPipelinedata();
-	        				 String path = pipeline.getLocation() ;
-	         				configuredPipelinesOrContainers.add(path);
-	                    }
-	                }
-	    		 }
-			}
-        }
-		
-    	//Get configured containers
-		try {
-    		List<String> cmmds = containerWrappersForDataType(projects,dataType,user);
-    		configuredPipelinesOrContainers.addAll(cmmds);
-		}catch(Exception nsbe) {
-
-		}
-       
 		int sequence=100;
-        for (String pipeline:configuredPipelinesOrContainers) {
-			int lastSlash = pipeline.lastIndexOf(File.separator);
-			String header = pipeline;
-			if (lastSlash != -1) {
-				header = pipeline.substring(lastSlash+1);
-			}else {
-				lastSlash = pipeline.lastIndexOf("/");
+
+		if(StringUtils.isBlank(specificJob)){
+	        //Get a list of all pipelines/containers which have been configured for the project.
+	        List<String> configuredPipelinesOrContainers = new ArrayList<String>();
+	        for(String project: projects){
+				ArcProject aProject = ArcSpecManager.GetFreshInstance().getProjectArc(project);
+				if (aProject != null) {
+		        	List<ArcProjectDescendantI> descendants = aProject.getPipelines_descendants_descendant();
+		            for (ArcProjectDescendantI descendant : descendants) {
+		                ArcProjectDescendant instance = (ArcProjectDescendant) descendant;
+		                if (instance.getXsitype().equals("All Datatypes") || instance.getXsitype().equals(dataType)) {
+		                    List<ArcProjectDescendantPipelineI> pipelines = instance.getPipeline();
+		                    for (ArcProjectDescendantPipelineI pipeline1 : pipelines) {
+		                        ArcProjectDescendantPipeline descPipeline = (ArcProjectDescendantPipeline) pipeline1;
+		                        ArcPipelinedata pipeline = descPipeline.getPipelinedata();
+		        				 String path = pipeline.getLocation() ;
+		         				configuredPipelinesOrContainers.add(path);
+		                    }
+		                }
+		    		 }
+				}
+	        }
+			
+	    	//Get configured containers
+			try {
+	    		List<String> cmmds = containerWrappersForDataType(projects,dataType,user);
+	    		configuredPipelinesOrContainers.addAll(cmmds);
+			}catch(Exception nsbe) {
+	
+			}
+	       
+	        for (String pipeline:configuredPipelinesOrContainers) {
+				int lastSlash = pipeline.lastIndexOf(File.separator);
+				String header = pipeline;
 				if (lastSlash != -1) {
 					header = pipeline.substring(lastSlash+1);
 				}else {
-					lastSlash = pipeline.lastIndexOf("\\");
+					lastSlash = pipeline.lastIndexOf("/");
 					if (lastSlash != -1) {
 						header = pipeline.substring(lastSlash+1);
+					}else {
+						lastSlash = pipeline.lastIndexOf("\\");
+						if (lastSlash != -1) {
+							header = pipeline.substring(lastSlash+1);
+						}
 					}
 				}
+				int lastDot = header.lastIndexOf(".");
+				if (lastDot != -1) {
+					header = header.substring(0,lastDot);
+				}
+				String pipelineEscaped = pipeline.replace(".", "_").replace("\\s+", "_");
+				String pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
+						"<xdat:field_ID>WRK_STATUS="+ pipelineEscaped +"</xdat:field_ID>" +
+						"<xdat:sequence>"+sequence+"</xdat:sequence>" +
+						"<xdat:type>string</xdat:type>" +
+						"<xdat:header>"+pipelineEscaped+"</xdat:header>" +
+						"<xdat:value>"+pipelineEscaped+"</xdat:value>" +
+						"</xdat:search_field>";
+						//Add the xdat field which contains the project field
+				sb.append(pipelineDisplay);
+				sequence++;
 			}
-			int lastDot = header.lastIndexOf(".");
-			if (lastDot != -1) {
-				header = header.substring(0,lastDot);
-			}
-			String pipelineEscaped = pipeline.replace(".", "_").replace("\\s+", "_");
+		}else{
+			//user is working on one specific pipeline
 			String pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
-					"<xdat:field_ID>WRK_STATUS="+ pipelineEscaped +"</xdat:field_ID>" +
+					"<xdat:field_ID>WRK_STATUS="+ specificJob +"</xdat:field_ID>" +
 					"<xdat:sequence>"+sequence+"</xdat:sequence>" +
 					"<xdat:type>string</xdat:type>" +
-					"<xdat:header>"+pipelineEscaped+"</xdat:header>" +
-					"<xdat:value>"+pipelineEscaped+"</xdat:value>" +
+					"<xdat:header>"+specificJob+"</xdat:header>" +
+					"<xdat:value>"+specificJob+"</xdat:value>" +
 					"</xdat:search_field>";
-					//Add the xdat field which contains the project field
 			sb.append(pipelineDisplay);
 			sequence++;
+		}        
+		
+		if(resources!=null){
+			for(String resource: resources){
+				String pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
+						"<xdat:field_ID>RES_FILE_COUNT="+ resource +"</xdat:field_ID>" +
+						"<xdat:sequence>"+sequence+"</xdat:sequence>" +
+						"<xdat:type>string</xdat:type>" +
+						"<xdat:header>"+resource+"</xdat:header>" +
+						"<xdat:value>"+resource+"</xdat:value>" +
+						"</xdat:search_field>";
+				sb.append(pipelineDisplay);
+				sequence++;
+			}
 		}
         
 		sb.append(whereClause);
