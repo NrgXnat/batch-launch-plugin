@@ -169,7 +169,6 @@ $(document).ready(function () {
                                 } else {
                                     fontColor = 'color="gray"';
                                     rowDataWithColumns += '<span><font ' + fontColor + '>Ready</font></span>';
-                                    sessionWorkFlowStatus[hdr] = '--';
                                 }
                                 //console.log('Added ' + sessionLabel + ' hdr' + hdr + ' Workflow ' + workFlowStatus);
                                 rowDataWithColumns += '</td>';
@@ -466,11 +465,13 @@ function checkSelectedSessions(targets, pipelineName) {
     var completeWorkflowStatus = "Complete";
     var sessionsBeingProcessed = [];
     targets.forEach(function (sessionId) {
-        var wrkFlowStatus = sessionPipelineWorkFlowStatus[sessionId];
-        if (wrkFlowStatus) {
-            var status = wrkFlowStatus[pipelineName];
-            if (status && (!status.includes(failedWorkflowStatus) && status != completeWorkflowStatus)) {
-                sessionsBeingProcessed.push(sessionId);
+        if (sessionPipelineWorkFlowStatus.hasOwnProperty(sessionId)) {
+            var wrkFlowStatus = sessionPipelineWorkFlowStatus[sessionId];
+            if (wrkFlowStatus && wrkFlowStatus.hasOwnProperty(pipelineName)) {
+                var status = wrkFlowStatus[pipelineName];
+                if (status && (!status.includes(failedWorkflowStatus) && status != completeWorkflowStatus)) {
+                    sessionsBeingProcessed.push(sessionId);
+                }
             }
         }
     });
