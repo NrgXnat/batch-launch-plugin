@@ -46,6 +46,13 @@ public class SearchXMLBuilder {
 		sb.append("<xdat:header>Subject</xdat:header>");
 		sb.append("<xdat:value>").append(projects.get(0)).append("</xdat:value>");
 		sb.append("</xdat:search_field>");
+		sb.append("<xdat:search_field>");
+		sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
+		sb.append("<xdat:field_ID>VISIT</xdat:field_ID>");
+		sb.append("<xdat:sequence>3</xdat:sequence>");
+		sb.append("<xdat:type>string</xdat:type>");
+		sb.append("<xdat:header>Visit</xdat:header>");
+		sb.append("</xdat:search_field>");
 		int sequence=100;
 
 		if(StringUtils.isBlank(specificJob)){
@@ -117,6 +124,36 @@ public class SearchXMLBuilder {
 					"<xdat:sequence>"+sequence+"</xdat:sequence>" +
 					"<xdat:type>string</xdat:type>" +
 					"<xdat:header>"+specificJob+"</xdat:header>" +
+					"<xdat:value>"+specificJob+"</xdat:value>" +
+					"</xdat:search_field>";
+			sb.append(pipelineDisplay);
+			sequence++;
+			
+			pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
+					"<xdat:field_ID>WRK_STATUS_LAUNCH="+ specificJob +"</xdat:field_ID>" +
+					"<xdat:sequence>"+sequence+"</xdat:sequence>" +
+					"<xdat:type>date</xdat:type>" +
+					"<xdat:header>Launched</xdat:header>" +
+					"<xdat:value>"+specificJob+"</xdat:value>" +
+					"</xdat:search_field>";
+			sb.append(pipelineDisplay);
+			sequence++;
+			
+			pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
+					"<xdat:field_ID>WRK_STATUS_LASTMOD="+ specificJob +"</xdat:field_ID>" +
+					"<xdat:sequence>"+sequence+"</xdat:sequence>" +
+					"<xdat:type>date</xdat:type>" +
+					"<xdat:header>Last Mod</xdat:header>" +
+					"<xdat:value>"+specificJob+"</xdat:value>" +
+					"</xdat:search_field>";
+			sb.append(pipelineDisplay);
+			sequence++;
+			
+			pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
+					"<xdat:field_ID>WRK_STATUS_NUMRUNS="+ specificJob +"</xdat:field_ID>" +
+					"<xdat:sequence>"+sequence+"</xdat:sequence>" +
+					"<xdat:type>integer</xdat:type>" +
+					"<xdat:header>Runs</xdat:header>" +
 					"<xdat:value>"+specificJob+"</xdat:value>" +
 					"</xdat:search_field>";
 			sb.append(pipelineDisplay);
