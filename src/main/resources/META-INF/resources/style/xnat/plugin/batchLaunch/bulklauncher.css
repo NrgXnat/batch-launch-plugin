@@ -1,5 +1,7 @@
 .bulk-inputs {margin-bottom:15px;}
 
+#selectable-table-bulk {width:max-content;}
+#xnat-table.selectable {width:max-content;}
 #xnat-table tbody, #xnat-table thead {
     display: block;
 }
@@ -10,6 +12,10 @@
 .pull-right {
     float:right;
 }
+.counts{
+    margin:10px;
+}
+
 .dropdown-menu{
     z-index: 1000;
     display:block;
