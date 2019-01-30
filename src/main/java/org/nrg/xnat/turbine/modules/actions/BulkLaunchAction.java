@@ -37,6 +37,9 @@ import org.nrg.xnat.bulk.utils.SearchXMLBuilder;
 import org.nrg.xnat.turbine.utils.ArcSpecManager;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.xml.sax.InputSource;
+
+import com.google.common.collect.Lists;
+
 import org.nrg.xdat.om.*;
 import org.nrg.xdat.model.*;
 
@@ -149,7 +152,21 @@ public class BulkLaunchAction extends DisplaySearchAction {
             	}
             }
             
-            return (new SearchXMLBuilder()).execute(distinctProjectsInSearch, rootElementName, user, whereClause,job,resourceArray==null?null:java.util.Arrays.asList(resourceArray));
+            String scans = (String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("scan_types",data);
+            if (org.apache.commons.lang3.StringUtils.isNotEmpty(scans) && PoolDBUtils.HackCheck(scans)) {
+            	throw new Exception("Invalid value submitted.");
+            }
+            
+            java.util.List<String> typesList=null;
+            if(org.apache.commons.lang3.StringUtils.isNotEmpty(scans)){
+            	if(resources.indexOf(",")>0){
+            		typesList=java.util.Arrays.asList(scans.split(","));
+            	}else{
+            		typesList=Lists.newArrayList(scans);
+            	}
+            }
+            
+            return (new SearchXMLBuilder()).execute(distinctProjectsInSearch, rootElementName, user, whereClause,job,resourceArray==null?null:java.util.Arrays.asList(resourceArray),typesList);
 	 }
 
 

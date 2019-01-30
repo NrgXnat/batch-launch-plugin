@@ -96,7 +96,22 @@ public class  XDATScreen_bulk_action  extends SecureScreen {
 	            	}
 	            }
 	            
-	    		context.put("xss", (new SearchXMLBuilder()).execute(Lists.newArrayList(project), dataType, user, sb.toString(),job,resourceList));
+	            String scans = (String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("scan_types",data);
+	            if (org.apache.commons.lang3.StringUtils.isNotEmpty(scans) && PoolDBUtils.HackCheck(scans)) {
+	            	throw new Exception("Invalid value submitted.");
+	            }
+	            
+	            java.util.List<String> typesList=null;
+	            if(org.apache.commons.lang3.StringUtils.isNotEmpty(scans)){
+	            	if(resources.indexOf(",")>0){
+	            		typesList=java.util.Arrays.asList(scans.split(","));
+	            	}else{
+	            		typesList=Lists.newArrayList(scans);
+	            	}
+	            }
+	            
+	            
+	    		context.put("xss", (new SearchXMLBuilder()).execute(Lists.newArrayList(project), dataType, user, sb.toString(),job,resourceList,typesList));
 	    		context.put("preventRefresh", false);
 	    	}
 	    	

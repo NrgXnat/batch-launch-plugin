@@ -18,7 +18,7 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xnat.turbine.utils.ArcSpecManager;
 
 public class SearchXMLBuilder {
-	public String execute(final List<String> projects, final String dataType, final UserI user, final String whereClause, String specificJob,List<String> resources){
+	public String execute(final List<String> projects, final String dataType, final UserI user, final String whereClause, String specificJob,List<String> resources, List<String> scan_types){
 		StringBuilder sb=new StringBuilder();
 		sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
 		sb.append("<xdat:bundle ID=\"\" allow-diff-columns=\"0\" secure=\"0\" brief-description=\"Sessions\" xmlns:arc=\"http://nrg.wustl.edu/arc\" xmlns:val=\"http://nrg.wustl.edu/val\" xmlns:pipe=\"http://nrg.wustl.edu/pipe\" xmlns:wrk=\"http://nrg.wustl.edu/workflow\" xmlns:scr=\"http://nrg.wustl.edu/scr\" xmlns:xdat=\"http://nrg.wustl.edu/security\" xmlns:cat=\"http://nrg.wustl.edu/catalog\" xmlns:prov=\"http://www.nbirn.net/prov\" xmlns:xnat=\"http://nrg.wustl.edu/xnat\" xmlns:xnat_a=\"http://nrg.wustl.edu/xnat_assessments\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://nrg.wustl.edu/workflow https://imagingdb.blackthornrx.com/schemas/workflow.xsd http://nrg.wustl.edu/catalog https://imagingdb.blackthornrx.com/schemas/catalog.xsd http://nrg.wustl.edu/pipe https://imagingdb.blackthornrx.com/schemas/repository.xsd http://nrg.wustl.edu/scr https://imagingdb.blackthornrx.com/schemas/screeningAssessment.xsd http://nrg.wustl.edu/arc https://imagingdb.blackthornrx.com/schemas/project.xsd http://nrg.wustl.edu/val https://imagingdb.blackthornrx.com/schemas/protocolValidation.xsd http://nrg.wustl.edu/xnat https://imagingdb.blackthornrx.com/schemas/xnat.xsd http://nrg.wustl.edu/xnat_assessments https://imagingdb.blackthornrx.com/schemas/assessments.xsd http://www.nbirn.net/prov https://imagingdb.blackthornrx.com/schemas/birnprov.xsd http://nrg.wustl.edu/security https://imagingdb.blackthornrx.com/schemas/security.xsd\">");
@@ -54,6 +54,20 @@ public class SearchXMLBuilder {
 		sb.append("<xdat:header>Visit</xdat:header>");
 		sb.append("</xdat:search_field>");
 		int sequence=100;
+
+		if(scan_types!=null){
+			for(String sType: scan_types){
+				String pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
+						"<xdat:field_ID>SCAN_TYPE_COUNT="+ sType +"</xdat:field_ID>" +
+						"<xdat:sequence>"+sequence+"</xdat:sequence>" +
+						"<xdat:type>integer</xdat:type>" +
+						"<xdat:header>"+sType+"</xdat:header>" +
+						"<xdat:value>"+sType+"</xdat:value>" +
+						"</xdat:search_field>";
+				sb.append(pipelineDisplay);
+				sequence++;
+			}
+		}
 
 		if(StringUtils.isBlank(specificJob)){
 	        //Get a list of all pipelines/containers which have been configured for the project.

@@ -98,7 +98,7 @@ function launcherTableInit() {
                             if (wrk_col != 'Project' && key != sessionLabelKey && key != subjectLabelKey) {
                                 var workFlowStatusIndx = d[key].indexOf("#");
                                 var workFlowStatus = d[key].substring(0, workFlowStatusIndx);
-                                if (workFlowStatus || key.startsWith("res_file")) {
+                                if (workFlowStatus || key.startsWith("res_file") || key.startsWith("wrk_status_launch") || key.startsWith("wrk_status_numrows") || key.startsWith("wrk_status_lastmod") || key.startsWith("scan_type_count")) {
                                     columnsToShow[wrk_col]['show'] = 1;
                                     return false;
                                 }
@@ -193,7 +193,7 @@ function launcherTableInit() {
                         } else if (key == subjectLabelKey) {
                             var url = XNAT.url.rootUrl(subject_url);
                             rowDataWithColumns += '<td class="' + label + '" ><a href="' + url + '" target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
-                        } else if (key.startsWith("res_file")) {
+                        } else if (key.startsWith("res_file") || key.startsWith("wrk_status_launch") || key.startsWith("wrk_status_numrows") || key.startsWith("wrk_status_lastmod") || key.startsWith("scan_type_count")) {
                             rowDataWithColumns += '<td class="' + label + '" >' + d[key] + '</td>';
                         } else {
                             // d.key contains status#workflow id
