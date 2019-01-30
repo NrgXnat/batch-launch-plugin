@@ -119,7 +119,8 @@ function launcherTableInit() {
                     $filterInput = $.spawn('input#filter-' + label + '.filter-data', {
                         type: 'text',
                         title: label + ':filter',
-                        placeholder: 'Search...'
+                        placeholder: 'Search...',
+                        style: 'width: 90%;'
                     });
                     $filterInput.on('keyup', function(){
                         $('#xnat-table tr').show();
@@ -327,8 +328,7 @@ function resizeTableCols(table_id) {
     $bodyCells.each(function(i, v) {
         var wid = Math.max(
             cssToNumber($(v), "width"),
-            cssToNumber($($headerCells[i]), "width"),
-            cssToNumber($($filterCells[i]), "width")
+            cssToNumber($($headerCells[i]), "width")
         );
         $(v).css("width", wid);
         $($headerCells[i]).css("width", wid);
@@ -510,7 +510,6 @@ function renderActionOptions() {
             });
         }
     });
-    //TODO: Load configured pipelines
     xmodal.loading.close();
 }
 
