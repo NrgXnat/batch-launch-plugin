@@ -133,12 +133,12 @@ public class BulkLaunchAction extends DisplaySearchAction {
             }
             
             String job = data.getParameters().getString("job");
-            if (PoolDBUtils.HackCheck(job)) {
+            if (job!=null && PoolDBUtils.HackCheck(job)) {
             	throw new Exception("Invalid value submitted.");
             }
             
             String resources = data.getParameters().getString("resources");
-            if (PoolDBUtils.HackCheck(resources)) {
+            if (resources!=null && PoolDBUtils.HackCheck(resources)) {
             	throw new Exception("Invalid value submitted.");
             }
             
@@ -149,7 +149,7 @@ public class BulkLaunchAction extends DisplaySearchAction {
             	}
             }
             
-            return (new SearchXMLBuilder()).execute(distinctProjectsInSearch, rootElementName, user, whereClause,job,java.util.Arrays.asList(resourceArray));
+            return (new SearchXMLBuilder()).execute(distinctProjectsInSearch, rootElementName, user, whereClause,job,resourceArray==null?null:java.util.Arrays.asList(resourceArray));
 	 }
 
 
