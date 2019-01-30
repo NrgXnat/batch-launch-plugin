@@ -5,11 +5,7 @@ function findLabel(key) {
     return key.indexOf('identifier') > 0;
 }
 
-$(document).ready(function () {
-    if (window.performance) {
-        console.info("window.performance works fine on this browser");
-    }
-
+function launcherTableInit() {
     xmodal.loading.open({title: 'Loading information...'});
 
     var xml = document.getElementById("xss").value;
@@ -22,6 +18,40 @@ $(document).ready(function () {
         url: XNAT.url.restUrl('REST/search?format=json&XNAT_CSRF=' + window.csrfToken),
         data: xml,
         success: function (responseData) {
+            //Add table
+
+            var divContent =  '	<div class="data-table-titlerow" id="data-table-titlerow">							';
+            divContent +=     '	    <h3 class="data-table-title">Select experiments to launch processing</h3>		';
+            divContent +=     '	    <div class="data-table-actionsrow" id="data-table-actionsrow">							';
+            divContent +=     '	        <span  class="textlink-sm data-table-action">					';
+            divContent +=     '	          <select id="actionsDropdown" class="data-table-action disabled"  disabled>	';
+            divContent +=     '	          </select>									';
+            divContent +=     '	        </span>										';
+            divContent +=     ' 	<button class="btn btn-sm data-table-action disabled" onclick="javascript:launchContainer()">Launch container</button>	';
+//    divContent +=     '		<button class="btn btn-sm data-table-action disabled" onclick="javascript:terminateContainers()">Terminate Containers</button>	';
+            divContent +=     '		<button class="btn btn-sm" type="submit" onclick="javascript:reload()">Reload</button>				';
+            divContent +=     '	    </div>													';
+            divContent +=     '    <span class="clear clearfix"></span>									';
+            divContent +=     '	</div>														';
+            divContent +=     '	<div class="data-table-wrapper" id="div-xnat-table-header" style="overflow-x:scroll;overflow-y:scroll;padding-right:0;">						';
+            divContent +=     '	       <table id="xnat-table" class="xnat-table clean  selectable" style="border:none;">		';
+            divContent +=     '	            <thead>												';
+            divContent +=     '		            <tr id="xnat-table-header-row1">								';
+            divContent +=     '		                <th class="toggle-all" style="width: 45px;">						';
+            divContent +=     '		                    <input type="checkbox" class="selectable-select-all" id="toggle-all-sessions" title="Toggle All Sessions" />	';
+            divContent +=     '		                </th>															';
+            divContent +=     '		            </tr>															';
+            divContent +=     '		            <tr id="xnat-table-header-row2">								';
+            divContent +=     '		                <td style="width: 45px;"></td>						        ';
+            divContent +=     '		            </tr>															';
+            divContent +=     '	            </thead>																';
+            divContent +=     '	            <tbody id="xnat-table-datarows-tbody">												';
+            divContent +=     '             </tbody>																';
+            divContent +=     '	        </table>																';
+            divContent +=     '	</div>																		';
+            $('#selectable-table-bulk').append(divContent);
+
+
             dataType = responseData.ResultSet.rootElementName;
             var opts = responseData.ResultSet.Columns;
             $.each(opts, function (i, d) {
@@ -80,17 +110,18 @@ $(document).ready(function () {
 
             // Add thead
             var $filterInput, label;
+            var showHideList = [];
             for (var header_col in columnsToShow) {
                 if (columnsToShow[header_col]['show'] === 1) {
                     label = columnsToShow[header_col]['label'];
-                    $('tr#xnat-table-header-row1').append('<th class="left sort"  style="width:120px;word-wrap:break-word;">' + label + '</th>');
+                    $('tr#xnat-table-header-row1').append($('<th id="th-'+ label +'" class="left sort"  style="width:120px;word-wrap:break-word;">' + label + '</th>'));
                     //Filter for each column
                     $filterInput = $.spawn('input#filter-' + label + '.filter-data', {
                         type: 'text',
                         title: label + ':filter',
                         placeholder: 'Search...'
                     });
-                    $filterInput.on('change', function(){
+                    $filterInput.on('keyup', function(){
                         $('#xnat-table tr').show();
                         $('input.filter-data').each(function(){
                             var val = $(this).val();
@@ -99,10 +130,31 @@ $(document).ready(function () {
                                 $("#xnat-table td." + colClass + ":not(:contains('" + val + "'))").parent().hide();
                             }
                         });
+                        resizeTableCols("xnat-table");
+                        setStateSelectAllToggle($('.selectable-select-all'));
                     });
-                    $('tr#xnat-table-header-row2').append($("<td></td>").append($filterInput));
+                    $('tr#xnat-table-header-row2').append($("<td style='width:120px;'></td>").append($filterInput));
+                    showHideList.push($.spawn("span.dropdown-item", {}, [
+                        $.spawn("input", {
+                            id: "show-"+label,
+                            type: "checkbox",
+                            checked: "checked"
+                        }),
+                        $.spawn("label|for='show-"+label+"'", {}, label)
+                    ]));
                 }
             }
+            // show-hide columns
+            var $button = $.spawn("button#show-hide-columns.pull-right",
+                {}, ["Show/Hide Columns", "&nbsp;", $.spawn("i.fa.fa-caret-down")]);
+            $('#data-table-actionsrow').append($button);
+            var $dropdown = $.spawn("div#show-hide-columns-list.dropdown-menu", {}, showHideList);
+            $('#data-table-actionsrow').append($dropdown);
+            var listcoords = $dropdown.offset();
+            var coords = $button.offset();
+            var leftt = coords['left'] - listcoords['left'],
+                topt = coords['top'] - listcoords['top'] + cssToNumber($button,"height");
+            $dropdown.css("transform", "translate3d("+leftt+"px, "+topt+"px, 0)");
 
             // AddDataTableRows:
             var workFlowStatusFirstLetterCapital;
@@ -131,16 +183,16 @@ $(document).ready(function () {
                         var key = keyAndHeaderMap[hdr];
                         label = columnsToShow[hdr]['label'];
                         if (hdr == 'Project') {
-                            rowDataWithColumns += '<td class="' + label + ' session-' + session_id + '-' + d[key] + '" style="width:120px;"><span  title="' + label + '">' + d[key] + '</span></td>';
+                            rowDataWithColumns += '<td class="' + label + ' session-' + session_id + '-' + d[key] + '"><span  title="' + label + '">' + d[key] + '</span></td>';
                         } else if (key == sessionLabelKey) {
                             var url = XNAT.url.rootUrl(session_url);
-                            rowDataWithColumns += '<td class="' + label + '"  style="width:120px;"><a href="' + url + '"  target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
+                            rowDataWithColumns += '<td class="' + label + '" ><a href="' + url + '"  target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
 
                         } else if (key == subjectLabelKey) {
                             var url = XNAT.url.rootUrl(subject_url);
-                            rowDataWithColumns += '<td class="' + label + '"  style="width:120px;"><a href="' + url + '" target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
+                            rowDataWithColumns += '<td class="' + label + '" ><a href="' + url + '" target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
                         } else if (key.startsWith("res_file")) {
-                            rowDataWithColumns += '<td class="' + label + '"  style="width:120px;">' + d[key] + '</td>';
+                            rowDataWithColumns += '<td class="' + label + '" >' + d[key] + '</td>';
                         } else {
                             if (columnsToShow[hdr]['show'] === 1) {
                                 // d.key contains status#workflow id
@@ -155,7 +207,7 @@ $(document).ready(function () {
                                 } else if (workFlowStatus == "Complete") {
                                     fontColor = 'color="green"';
                                 }
-                                rowDataWithColumns += '<td class="' + label + '" style="width:120px;">';
+                                rowDataWithColumns += '<td class="' + label + '">';
                                 if (workFlowStatus) {
                                     workFlowStatusFirstLetterCapital = workFlowStatus.charAt(0).toUpperCase() + workFlowStatus.slice(1);
                                     rowDataWithColumns += '<span  title="' + label + '"><font ' + fontColor + '>' + workFlowStatusFirstLetterCapital + '</font></span>';
@@ -169,7 +221,6 @@ $(document).ready(function () {
                                 } else {
                                     fontColor = 'color="gray"';
                                     rowDataWithColumns += '<span><font ' + fontColor + '>Ready</font></span>';
-                                    sessionWorkFlowStatus[hdr] = '--';
                                 }
                                 //console.log('Added ' + sessionLabel + ' hdr' + hdr + ' Workflow ' + workFlowStatus);
                                 rowDataWithColumns += '</td>';
@@ -182,6 +233,7 @@ $(document).ready(function () {
                 $('tbody#xnat-table-datarows-tbody').append(rowDataWithColumns);
 
             });
+            resizeTableCols("xnat-table");
             xmodal.loading.close();
             setTableWidth('div-xnat-table', 'data-table-titlerow');
             setTableHeight('div-xnat-table');
@@ -212,7 +264,71 @@ $(document).ready(function () {
 
         }
     });
+}
+
+$(document).ready(function () {
+    if (window.performance) {
+        console.info("window.performance works fine on this browser");
+    }
+
+    launcherTableInit();
+
+    $(document).on('click','button#show-hide-columns', function(){
+        var $dropdown = $('div#show-hide-columns-list');
+        if ($dropdown.css("visibility") === "visible") {
+            $(this).find("i").removeClass("fa-caret-up").addClass("fa-caret-down");
+            $('div#show-hide-columns-list').css("visibility", "hidden");
+        } else {
+            $(this).find("i").removeClass("fa-caret-down").addClass("fa-caret-up");
+            $('div#show-hide-columns-list').css("visibility", "visible");
+        }
+        return false;
+    });
+    $(document).on('click', '#show-hide-columns-list input', function(){
+        toggleColumn(this.id.replace("show-", ""), $(this).prop("checked"));
+    });
 });
+
+function cssToNumber($item, attrName) {
+    var ws = $item.css(attrName) || "0";
+    return Number(ws.replace(/[^\d\.]/g, ""));
+}
+
+function toggleColumn(target, show){
+    var $columns = $("th#th-" + target + ", td." + target).add($("input#filter-" + target).parent());
+    if (show) {
+        $columns.show();
+    } else {
+        $columns.hide();
+    }
+    resizeTableCols("xnat-table");
+}
+
+function resizeTableCols(table_id) {
+    var $table = $("table#" + table_id);
+
+    var $headerCells = $table.find("thead tr:not(:hidden):first").children(":not(:hidden)"),
+        $filterCells = $table.find("thead tr:not(:hidden):last").children(":not(:hidden)"),
+        $bodyCells = $table.find("tbody tr:not(:hidden):first").children(":not(:hidden)");
+
+    //ignore first col (checkboxes)
+    var chkWidth = cssToNumber($($headerCells[0]), "width"); // Always constant
+    var minWidth = (cssToNumber($table, "width") - chkWidth) / ($headerCells.length - 1);
+
+    // Set common width for thead & tbody cells (needed for scrollable tbody)
+    $bodyCells.each(function(i, v) {
+        var widths = [cssToNumber($(v), "width"),
+            cssToNumber($($headerCells[i]), "width"),
+            cssToNumber($($filterCells[i]), "width")];
+        if (i > 0) {
+            widths.push(minWidth);
+        }
+        var wid = Math.max.apply(this,widths);
+        $(v).css("width", wid);
+        $($headerCells[i]).css("width", wid);
+        $($filterCells[i]).css("width", wid);
+    });
+}
 
 function setItemWidth(div_id, width) {
     var d = YUIDOM.get(div_id);
@@ -281,7 +397,8 @@ function setTableHeight(div_id) {
 
 
 function reload() {
-    window.location.reload();
+    $('#selectable-table-bulk').children().detach();
+    launcherTableInit();
 }
 
 function displaySessionDetails(sessionLabel, sessionUrl) {
@@ -303,6 +420,7 @@ function viewWorkflowFile(workFlowId, fileType) {
 };
 
 function viewContainerDetails(workFlowId) {
+    xmodal.loading.open({title: 'Loading details...'});
     var containerDetailsUrl = XNAT.url.rootUrl('xapi/workflows/' + workFlowId + '/container');
     XNAT.xhr.getText({
         url: containerDetailsUrl,
@@ -322,6 +440,9 @@ function viewContainerDetails(workFlowId) {
                     }
                 ]
             });
+        },
+        complete: function() {
+            xmodal.loading.close();
         }
     });
 
@@ -466,11 +587,13 @@ function checkSelectedSessions(targets, pipelineName) {
     var completeWorkflowStatus = "Complete";
     var sessionsBeingProcessed = [];
     targets.forEach(function (sessionId) {
-        var wrkFlowStatus = sessionPipelineWorkFlowStatus[sessionId];
-        if (wrkFlowStatus) {
-            var status = wrkFlowStatus[pipelineName];
-            if (status && (!status.includes(failedWorkflowStatus) && status != completeWorkflowStatus)) {
-                sessionsBeingProcessed.push(sessionId);
+        if (sessionPipelineWorkFlowStatus.hasOwnProperty(sessionId)) {
+            var wrkFlowStatus = sessionPipelineWorkFlowStatus[sessionId];
+            if (wrkFlowStatus && wrkFlowStatus.hasOwnProperty(pipelineName)) {
+                var status = wrkFlowStatus[pipelineName];
+                if (status && (!status.includes(failedWorkflowStatus) && status != completeWorkflowStatus)) {
+                    sessionsBeingProcessed.push(sessionId);
+                }
             }
         }
     });
