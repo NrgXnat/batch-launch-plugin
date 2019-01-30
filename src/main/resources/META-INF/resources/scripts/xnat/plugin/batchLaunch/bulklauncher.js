@@ -5,11 +5,7 @@ function findLabel(key) {
     return key.indexOf('identifier') > 0;
 }
 
-$(document).ready(function () {
-    if (window.performance) {
-        console.info("window.performance works fine on this browser");
-    }
-
+function launcherTableInit() {
     xmodal.loading.open({title: 'Loading information...'});
 
     var xml = document.getElementById("xss").value;
@@ -80,17 +76,18 @@ $(document).ready(function () {
 
             // Add thead
             var $filterInput, label;
+            var showHideList = [];
             for (var header_col in columnsToShow) {
                 if (columnsToShow[header_col]['show'] === 1) {
                     label = columnsToShow[header_col]['label'];
-                    $('tr#xnat-table-header-row1').append('<th class="left sort"  style="width:120px;word-wrap:break-word;">' + label + '</th>');
+                    $('tr#xnat-table-header-row1').append($('<th id="th-'+ label +'" class="left sort"  style="width:120px;word-wrap:break-word;">' + label + '</th>'));
                     //Filter for each column
                     $filterInput = $.spawn('input#filter-' + label + '.filter-data', {
                         type: 'text',
                         title: label + ':filter',
                         placeholder: 'Search...'
                     });
-                    $filterInput.on('change', function(){
+                    $filterInput.on('keyup', function(){
                         $('#xnat-table tr').show();
                         $('input.filter-data').each(function(){
                             var val = $(this).val();
@@ -100,10 +97,31 @@ $(document).ready(function () {
                             }
                         });
                         resizeTableCols("xnat-table");
+                        setStateSelectAllToggle($('.selectable-select-all'));
                     });
                     $('tr#xnat-table-header-row2').append($("<td style='width:120px;'></td>").append($filterInput));
+                    showHideList.push($.spawn("span.dropdown-item", {}, [
+                        $.spawn("input", {
+                            id: "show-"+label,
+                            class: "show-hide-ck",
+                            type: "checkbox",
+                            checked: "checked"
+                        }),
+                        $.spawn("label|for='show-"+label+"'", {}, label)
+                    ]));
                 }
             }
+            // show-hide columns
+            var $button = $.spawn("button#show-hide-columns.pull-right",
+                {}, ["Show/Hide Columns", "&nbsp;", $.spawn("i.fa.fa-caret-down")]);
+            $('#data-table-actionsrow').append($button);
+            var $dropdown = $.spawn("div#show-hide-columns-list.dropdown-menu", {}, showHideList);
+            $('#data-table-actionsrow').append($dropdown);
+            var listcoords = $dropdown.offset();
+            var coords = $button.offset();
+            var leftt = coords['left'] - listcoords['left'],
+                topt = coords['top'] - listcoords['top'] + cssToNumber($button,"height");
+            $dropdown.css("transform", "translate3d("+leftt+"px, "+topt+"px, 0)");
 
             // AddDataTableRows:
             var workFlowStatusFirstLetterCapital;
@@ -213,28 +231,62 @@ $(document).ready(function () {
 
         }
     });
+}
+
+$(document).ready(function () {
+    if (window.performance) {
+        console.info("window.performance works fine on this browser");
+    }
+
+    launcherTableInit();
+
+    $(document).on('click','button#show-hide-columns', function(){
+        var $dropdown = $('div#show-hide-columns-list');
+        if ($dropdown.css("visibility") === "visible") {
+            $(this).find("i").removeClass("fa-caret-up").addClass("fa-caret-down");
+            $('div#show-hide-columns-list').css("visibility", "hidden");
+        } else {
+            $(this).find("i").removeClass("fa-caret-down").addClass("fa-caret-up");
+            $('div#show-hide-columns-list').css("visibility", "visible");
+        }
+        return false;
+    });
+    $(document).on('click', '#show-hide-columns-list input', function(){
+        toggleColumn(this.id.replace("show-", ""), $(this).prop("checked"));
+    });
 });
 
-function resizeTableCols(table_id) {
-    function cssWidth($item) {
-        var ws = $item.css("width") || "0";
-        return Number(ws.replace(/[^\d\.]/g, ""));
+function cssToNumber($item, attrName) {
+    var ws = $item.css(attrName) || "0";
+    return Number(ws.replace(/[^\d\.]/g, ""));
+}
+
+function toggleColumn(target, show){
+    var $columns = $("th#th-" + target + ", td." + target).add($("input#filter-" + target).parent());
+    if (show) {
+        $columns.show();
+    } else {
+        $columns.hide();
     }
+    resizeTableCols("xnat-table");
+}
+
+function resizeTableCols(table_id) {
     var $table = $("table#" + table_id);
 
-    var $headerCells = $table.find("thead tr:first").children(),
-        $filterCells = $table.find("thead tr:last").children(),
-        $bodyCells = $table.find("tbody tr:not(:hidden):first").children();
+    var $headerCells = $table.find("thead tr:not(:hidden):first").children(":not(:hidden)"),
+        $filterCells = $table.find("thead tr:not(:hidden):last").children(":not(:hidden)"),
+        $bodyCells = $table.find("tbody tr:not(:hidden):first").children(":not(:hidden)");
 
     //ignore first col (checkboxes)
-    var chkWidth = cssWidth($($headerCells[0])); // Always constant
-    var minWidth = (cssWidth($table) - chkWidth) / ($headerCells.length - 1);
+    var chkWidth = cssToNumber($($headerCells[0]), "width"); // Always constant
+    var minWidth = (cssToNumber($table, "width") - chkWidth) / ($headerCells.length - 1);
 
     // Set common width for thead & tbody cells (needed for scrollable tbody)
     $bodyCells.each(function(i, v) {
-        var widths = [cssWidth($(v)),
-            cssWidth($($headerCells[i])),
-            cssWidth($($filterCells[i]))];
+        var widths = [cssToNumber($(v), "width"),
+            cssToNumber($($headerCells[i]), "width"),
+            cssToNumber($($filterCells[i]), "width")];
         if (i > 0) {
             widths.push(minWidth);
         }
@@ -313,6 +365,8 @@ function setTableHeight(div_id) {
 
 function reload() {
     window.location.reload();
+    // TODO make the following function work without duplicating elements
+    //launcherTableInit();
 }
 
 function displaySessionDetails(sessionLabel, sessionUrl) {
@@ -334,6 +388,7 @@ function viewWorkflowFile(workFlowId, fileType) {
 };
 
 function viewContainerDetails(workFlowId) {
+    xmodal.loading.open({title: 'Loading details...'});
     var containerDetailsUrl = XNAT.url.rootUrl('xapi/workflows/' + workFlowId + '/container');
     XNAT.xhr.getText({
         url: containerDetailsUrl,
@@ -353,6 +408,9 @@ function viewContainerDetails(workFlowId) {
                     }
                 ]
             });
+        },
+        complete: function() {
+            xmodal.loading.close();
         }
     });
 
