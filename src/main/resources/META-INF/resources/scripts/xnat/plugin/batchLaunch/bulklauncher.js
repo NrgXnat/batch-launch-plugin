@@ -18,6 +18,40 @@ function launcherTableInit() {
         url: XNAT.url.restUrl('REST/search?format=json&XNAT_CSRF=' + window.csrfToken),
         data: xml,
         success: function (responseData) {
+            //Add table
+
+            var divContent =  '	<div class="data-table-titlerow" id="data-table-titlerow">							';
+            divContent +=     '	    <h3 class="data-table-title">Select experiments to launch processing</h3>		';
+            divContent +=     '	    <div class="data-table-actionsrow" id="data-table-actionsrow">							';
+            divContent +=     '	        <span  class="textlink-sm data-table-action">					';
+            divContent +=     '	          <select id="actionsDropdown" class="data-table-action disabled"  disabled>	';
+            divContent +=     '	          </select>									';
+            divContent +=     '	        </span>										';
+            divContent +=     ' 	<button class="btn btn-sm data-table-action disabled" onclick="javascript:launchContainer()">Launch container</button>	';
+//    divContent +=     '		<button class="btn btn-sm data-table-action disabled" onclick="javascript:terminateContainers()">Terminate Containers</button>	';
+            divContent +=     '		<button class="btn btn-sm" type="submit" onclick="javascript:reload()">Reload</button>				';
+            divContent +=     '	    </div>													';
+            divContent +=     '    <span class="clear clearfix"></span>									';
+            divContent +=     '	</div>														';
+            divContent +=     '	<div class="data-table-wrapper" id="div-xnat-table-header" style="overflow-x:scroll;overflow-y:scroll;padding-right:0;">						';
+            divContent +=     '	       <table id="xnat-table" class="xnat-table clean  selectable" style="border:none;">		';
+            divContent +=     '	            <thead>												';
+            divContent +=     '		            <tr id="xnat-table-header-row1">								';
+            divContent +=     '		                <th class="toggle-all" style="width: 45px;">						';
+            divContent +=     '		                    <input type="checkbox" class="selectable-select-all" id="toggle-all-sessions" title="Toggle All Sessions" />	';
+            divContent +=     '		                </th>															';
+            divContent +=     '		            </tr>															';
+            divContent +=     '		            <tr id="xnat-table-header-row2">								';
+            divContent +=     '		                <td style="width: 45px;"></td>						        ';
+            divContent +=     '		            </tr>															';
+            divContent +=     '	            </thead>																';
+            divContent +=     '	            <tbody id="xnat-table-datarows-tbody">												';
+            divContent +=     '             </tbody>																';
+            divContent +=     '	        </table>																';
+            divContent +=     '	</div>																		';
+            $('#selectable-table-bulk').append(divContent);
+
+
             dataType = responseData.ResultSet.rootElementName;
             var opts = responseData.ResultSet.Columns;
             $.each(opts, function (i, d) {
@@ -103,7 +137,6 @@ function launcherTableInit() {
                     showHideList.push($.spawn("span.dropdown-item", {}, [
                         $.spawn("input", {
                             id: "show-"+label,
-                            class: "show-hide-ck",
                             type: "checkbox",
                             checked: "checked"
                         }),
@@ -364,9 +397,8 @@ function setTableHeight(div_id) {
 
 
 function reload() {
-    window.location.reload();
-    // TODO make the following function work without duplicating elements
-    //launcherTableInit();
+    $('#selectable-table-bulk').children().detach();
+    launcherTableInit();
 }
 
 function displaySessionDetails(sessionLabel, sessionUrl) {
