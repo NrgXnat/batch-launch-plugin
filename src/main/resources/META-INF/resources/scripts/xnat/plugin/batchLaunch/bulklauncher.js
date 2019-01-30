@@ -28,7 +28,7 @@ function launcherTableInit() {
             divContent +=     '	          </select>									';
             divContent +=     '	        </span>										';
             divContent +=     ' 	<button class="btn btn-sm data-table-action disabled" onclick="javascript:launchContainer()">Launch container</button>	';
-//    divContent +=     '		<button class="btn btn-sm data-table-action disabled" onclick="javascript:terminateContainers()">Terminate Containers</button>	';
+            //divContent +=     '		<button class="btn btn-sm data-table-action disabled" onclick="javascript:terminateContainers()">Terminate Containers</button>	';
             divContent +=     '		<button class="btn btn-sm" type="submit" onclick="javascript:reload()">Reload</button>				';
             divContent +=     '	    </div>													';
             divContent +=     '    <span class="clear clearfix"></span>									';
@@ -80,7 +80,7 @@ function launcherTableInit() {
                 }
             });
 
-            columnsToShow['Project']['show'] = 1;
+            columnsToShow['Project']['show'] = 0;
             columnsToShow['MR ID']['show'] = 1;
             columnsToShow['Subject']['show'] = 1;
             var rows = responseData.ResultSet.Result;
@@ -132,6 +132,7 @@ function launcherTableInit() {
                         });
                         resizeTableCols("xnat-table");
                         setStateSelectAllToggle($('.selectable-select-all'));
+                        $("span#table-visible-count").text($('#xnat-table tbody tr:not(:hidden)').length);
                     });
                     $('tr#xnat-table-header-row2').append($("<td style='width:120px;'></td>").append($filterInput));
                     showHideList.push($.spawn("span.dropdown-item", {}, [
@@ -150,11 +151,11 @@ function launcherTableInit() {
             $('#data-table-actionsrow').append($button);
             var $dropdown = $.spawn("div#show-hide-columns-list.dropdown-menu", {}, showHideList);
             $('#data-table-actionsrow').append($dropdown);
-            var listcoords = $dropdown.offset();
-            var coords = $button.offset();
-            var leftt = coords['left'] - listcoords['left'],
-                topt = coords['top'] - listcoords['top'] + cssToNumber($button,"height");
-            $dropdown.css("transform", "translate3d("+leftt+"px, "+topt+"px, 0)");
+
+            // row counts
+            var nres = rows.length.toString();
+            var $count = $('<div class="counts">Showing <span id="table-visible-count">'+nres+'</span> of <span id="table-overall-count">'+nres+'</span> experiments</div>')
+            $('table#xnat-table').after($count);
 
             // AddDataTableRows:
             var workFlowStatusFirstLetterCapital;
@@ -179,7 +180,7 @@ function launcherTableInit() {
                 rowDataWithColumns += '</td>';
 
                 for (var hdr in columnsToShow) {
-                    if (keyAndHeaderMap.hasOwnProperty(hdr)) {
+                    if (keyAndHeaderMap.hasOwnProperty(hdr) && columnsToShow[hdr]['show'] === 1) {
                         var key = keyAndHeaderMap[hdr];
                         label = columnsToShow[hdr]['label'];
                         if (hdr == 'Project') {
@@ -194,37 +195,35 @@ function launcherTableInit() {
                         } else if (key.startsWith("res_file")) {
                             rowDataWithColumns += '<td class="' + label + '" >' + d[key] + '</td>';
                         } else {
-                            if (columnsToShow[hdr]['show'] === 1) {
-                                // d.key contains status#workflow id
-                                var workFlowStatusIndx = d[key].indexOf("#");
-                                var workFlowStatus = d[key].substring(0, workFlowStatusIndx);
-                                var workFlowId = d[key].substring(workFlowStatusIndx + 1);
-                                var fontColor = "";
-                                if (workFlowStatus.startsWith("Killed") || workFlowStatus.startsWith("Failed") || workFlowStatus == "Failed" || workFlowStatus.startsWith("Error") || workFlowStatus == "Error") {
-                                    fontColor = 'color="red"';
-                                } else if (workFlowStatus == "Queued" || workFlowStatus == "Created") {
-                                    fontColor = 'color="orange"';
-                                } else if (workFlowStatus == "Complete") {
-                                    fontColor = 'color="green"';
-                                }
-                                rowDataWithColumns += '<td class="' + label + '">';
-                                if (workFlowStatus) {
-                                    workFlowStatusFirstLetterCapital = workFlowStatus.charAt(0).toUpperCase() + workFlowStatus.slice(1);
-                                    rowDataWithColumns += '<span  title="' + label + '"><font ' + fontColor + '>' + workFlowStatusFirstLetterCapital + '</font></span>';
-                                    rowDataWithColumns += ' 	 <span class="inline-actions">';
-                                    rowDataWithColumns += '          <i class="fa fa-eye"  title="View Details" onclick="viewContainerDetails(' + workFlowId + ')"></i>';
-                                    // rowDataWithColumns += '          <i class="fa fa-eye"  title="View Std Log" onclick="viewWorkflowFile('+workFlowId+',\'stdout\')"></i>';
-                                    // rowDataWithColumns += '          <i class="fa fa-eye"  title="View Std Error" onclick="viewWorkflowFile('+workFlowId+',\'stderr\')"></i>';
-                                    rowDataWithColumns += '          <i class="fa fa-trash" title="Terminate Process" onclick="killProcess(' + workFlowId + ')"></i>';
-                                    rowDataWithColumns += '     </span>';
-                                    sessionWorkFlowStatus[hdr] = workFlowStatus;
-                                } else {
-                                    fontColor = 'color="gray"';
-                                    rowDataWithColumns += '<span><font ' + fontColor + '>Ready</font></span>';
-                                }
-                                //console.log('Added ' + sessionLabel + ' hdr' + hdr + ' Workflow ' + workFlowStatus);
-                                rowDataWithColumns += '</td>';
+                            // d.key contains status#workflow id
+                            var workFlowStatusIndx = d[key].indexOf("#");
+                            var workFlowStatus = d[key].substring(0, workFlowStatusIndx);
+                            var workFlowId = d[key].substring(workFlowStatusIndx + 1);
+                            var fontColor = "";
+                            if (workFlowStatus.startsWith("Killed") || workFlowStatus.startsWith("Failed") || workFlowStatus == "Failed" || workFlowStatus.startsWith("Error") || workFlowStatus == "Error") {
+                                fontColor = 'color="red"';
+                            } else if (workFlowStatus == "Queued" || workFlowStatus == "Created") {
+                                fontColor = 'color="orange"';
+                            } else if (workFlowStatus == "Complete") {
+                                fontColor = 'color="green"';
                             }
+                            rowDataWithColumns += '<td class="' + label + '">';
+                            if (workFlowStatus) {
+                                workFlowStatusFirstLetterCapital = workFlowStatus.charAt(0).toUpperCase() + workFlowStatus.slice(1);
+                                rowDataWithColumns += '<span  title="' + label + '"><font ' + fontColor + '>' + workFlowStatusFirstLetterCapital + '</font></span>';
+                                rowDataWithColumns += ' 	 <span class="inline-actions">';
+                                rowDataWithColumns += '          <i class="fa fa-eye"  title="View Details" onclick="viewContainerDetails(' + workFlowId + ')"></i>';
+                                // rowDataWithColumns += '          <i class="fa fa-eye"  title="View Std Log" onclick="viewWorkflowFile('+workFlowId+',\'stdout\')"></i>';
+                                // rowDataWithColumns += '          <i class="fa fa-eye"  title="View Std Error" onclick="viewWorkflowFile('+workFlowId+',\'stderr\')"></i>';
+                                rowDataWithColumns += '          <i class="fa fa-trash" title="Terminate Process" onclick="killProcess(' + workFlowId + ')"></i>';
+                                rowDataWithColumns += '     </span>';
+                                sessionWorkFlowStatus[hdr] = workFlowStatus;
+                            } else {
+                                fontColor = 'color="gray"';
+                                rowDataWithColumns += '<span><font ' + fontColor + '>Ready</font></span>';
+                            }
+                            //console.log('Added ' + sessionLabel + ' hdr' + hdr + ' Workflow ' + workFlowStatus);
+                            rowDataWithColumns += '</td>';
                         }
                     }
                 }
@@ -274,18 +273,31 @@ $(document).ready(function () {
     launcherTableInit();
 
     $(document).on('click','button#show-hide-columns', function(){
+        var $button = $(this);
         var $dropdown = $('div#show-hide-columns-list');
+
         if ($dropdown.css("visibility") === "visible") {
-            $(this).find("i").removeClass("fa-caret-up").addClass("fa-caret-down");
-            $('div#show-hide-columns-list').css("visibility", "hidden");
+            $button.find("i").removeClass("fa-caret-up").addClass("fa-caret-down");
+            $('div#show-hide-columns-list').css({
+                visibility: "hidden",
+                transform: "translate3d(0,0,0)"
+            });
         } else {
+            var coords = $button.offset();
+            var listcoords = $dropdown.offset();
+            var leftt = coords['left'] - listcoords['left'],
+                topt = coords['top'] - listcoords['top'] + cssToNumber($button,"height");
             $(this).find("i").removeClass("fa-caret-down").addClass("fa-caret-up");
-            $('div#show-hide-columns-list').css("visibility", "visible");
+            $('div#show-hide-columns-list').css({
+                visibility: "visible",
+                transform: "translate3d(" + leftt + "px, " + topt + "px, 0)"
+            });
         }
         return false;
     });
     $(document).on('click', '#show-hide-columns-list input', function(){
         toggleColumn(this.id.replace("show-", ""), $(this).prop("checked"));
+        $('button#show-hide-columns').click().click(); // keep it in view, but be sure to transform if table size changes
     });
 });
 
@@ -311,19 +323,13 @@ function resizeTableCols(table_id) {
         $filterCells = $table.find("thead tr:not(:hidden):last").children(":not(:hidden)"),
         $bodyCells = $table.find("tbody tr:not(:hidden):first").children(":not(:hidden)");
 
-    //ignore first col (checkboxes)
-    var chkWidth = cssToNumber($($headerCells[0]), "width"); // Always constant
-    var minWidth = (cssToNumber($table, "width") - chkWidth) / ($headerCells.length - 1);
-
     // Set common width for thead & tbody cells (needed for scrollable tbody)
     $bodyCells.each(function(i, v) {
-        var widths = [cssToNumber($(v), "width"),
+        var wid = Math.max(
+            cssToNumber($(v), "width"),
             cssToNumber($($headerCells[i]), "width"),
-            cssToNumber($($filterCells[i]), "width")];
-        if (i > 0) {
-            widths.push(minWidth);
-        }
-        var wid = Math.max.apply(this,widths);
+            cssToNumber($($filterCells[i]), "width")
+        );
         $(v).css("width", wid);
         $($headerCells[i]).css("width", wid);
         $($filterCells[i]).css("width", wid);
