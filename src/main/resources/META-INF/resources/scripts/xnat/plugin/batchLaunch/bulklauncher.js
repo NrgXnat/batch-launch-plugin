@@ -37,6 +37,13 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         }).removeClass(filterClass);
     }
 
+    function isWorkflowFailed(status) {
+        return status.startsWith("Killed") || status.startsWith("Failed") || status == "Failed" || status.startsWith("Error") || status == "Error";
+    }
+    function isWorkflowComplete(status) {
+        return status == "Complete" || status == "Failed (Dismissed)";
+    }
+
     function findLabel(key) {
         return key.indexOf('identifier') > 0;
     }
@@ -63,7 +70,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                 divContent += '	          <select id="actionsDropdown" class="data-table-action disabled"  disabled>	';
                 divContent += '	          </select>									';
                 divContent += '	        </span>										';
-                divContent += ' 	<button class="btn btn-sm data-table-action disabled" onclick="javascript:launchContainer()">Launch container</button>	';
+                divContent += ' 	<button class="btn btn-sm data-table-action disabled" id="launch-container">Launch container</button>	';
                 //divContent +=     '		<button class="btn btn-sm data-table-action disabled" onclick="javascript:terminateContainers()">Terminate Containers</button>	';
                 divContent += '		<button class="btn btn-sm" type="submit" id="reload">Reload</button>				';
                 if (isDetails) {
@@ -117,6 +124,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                             columnsToShow[header] = {
                                 show: 0,
                                 label: label,
+                                labelClean: label.replace(' ','-'),
                                 type: d.type,
                                 pipeline: d.key.startsWith("wrk_status") && d.type === "string" && d.xPATH.replace(/[^.]*./,'') === "WRK_STATUS" //Hack
                             };
@@ -154,15 +162,16 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                 }
 
                 // Add thead with filters
-                var $filterInput, label;
+                var $filterInput, label, labelClean;
                 var showHideList = [];
                 var filterCssList = [];
                 for (var header_col in columnsToShow) {
                     if (columnsToShow[header_col]['show'] === 1) {
                         label = columnsToShow[header_col]['label'];
-                        var filterClass = 'filter-' + label;
+                        labelClean = columnsToShow[header_col]['labelClean'];
+                        var filterClass = 'filter-' + labelClean;
                         filterCssList.push(filterClass);
-                        $('tr#xnat-table-header-row1').append($('<th id="th-' + label + '" class="left sort"  style="width:120px;word-wrap:break-word;">' + label + '</th>'));
+                        $('tr#xnat-table-header-row1').append($('<th id="th-' + labelClean + '" class="left sort"  style="width:120px;word-wrap:break-word;">' + label + '</th>'));
                         //Filter for each column
                         if (columnsToShow[header_col]['type'] === 'date') {
                             var MIN = 60 * 1000;
@@ -205,7 +214,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                                     on: {
                                         change: function () {
                                             var filterClass = this.id;
-                                            var colClass = this.id.replace('filter-','');
+                                            var colClass = filterClass.replace('filter-','');
                                             var selectedValue = parseInt(this.value, 10);
                                             var currentTime = Date.now();
                                             if (selectedValue === 0) {
@@ -226,9 +235,9 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                                 }
                             }).element]);
                         } else {
-                            $filterInput = $.spawn('input#filter-' + label + '.filter-data', {
+                            $filterInput = $.spawn('input#filter-' + labelClean + '.filter-data', {
                                 type: 'text',
-                                title: label + ':filter',
+                                title: labelClean + ':filter',
                                 placeholder: 'Search...',
                                 style: 'width: 90%;'
                             });
@@ -259,10 +268,10 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                         $('tr#'+tableId+'-header-row2').append($("<td style='width:120px;'></td>").append($filterInput));
                         var dropdownItemContents = [
                             $.spawn("input|checked='checked'", {
-                                id: "show-" + label,
+                                id: "show-" + labelClean,
                                 type: "checkbox"
                             }),
-                            $.spawn("label|for='show-" + label + "'", {}, label)
+                            $.spawn("label|for='show-" + labelClean + "'", {}, label)
                         ];
                         if (!isDetails && columnsToShow[header_col]['pipeline']) {
                             dropdownItemContents.push("&nbsp;");
@@ -315,39 +324,42 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                         if (keyAndHeaderMap.hasOwnProperty(hdr) && columnsToShow[hdr]['show'] === 1) {
                             var key = keyAndHeaderMap[hdr];
                             label = columnsToShow[hdr]['label'];
+                            labelClean = columnsToShow[hdr]['labelClean'];
                             if (hdr == 'Project') {
-                                rowDataWithColumns += '<td class="' + label + ' session-' + session_id + '-' + d[key] + '"><span  title="' + label + '">' + d[key] + '</span></td>';
+                                rowDataWithColumns += '<td class="' + labelClean + ' session-' + session_id + '-' + d[key] + '"><span  title="' + label + '">' + d[key] + '</span></td>';
                             } else if (key == sessionLabelKey) {
                                 var url = XNAT.url.rootUrl(session_url);
-                                rowDataWithColumns += '<td class="' + label + '" ><a href="' + url + '"  target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
+                                rowDataWithColumns += '<td class="' + labelClean + '" ><a href="' + url + '"  target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
 
                             } else if (key == subjectLabelKey) {
                                 var url = XNAT.url.rootUrl(subject_url);
-                                rowDataWithColumns += '<td class="' + label + '" ><a href="' + url + '" target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
+                                rowDataWithColumns += '<td class="' + labelClean + '" ><a href="' + url + '" target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
                             } else if (key.startsWith("res_file") || key.startsWith("wrk_status_launch") || key.startsWith("wrk_status_numrows") || key.startsWith("wrk_status_lastmod") || key.startsWith("scan_type_count")) {
-                                rowDataWithColumns += '<td class="' + label + '" >' + d[key] + '</td>';
+                                rowDataWithColumns += '<td class="' + labelClean + '" >' + d[key] + '</td>';
                             } else {
                                 // d.key contains status#workflow id
                                 var workFlowStatusIndx = d[key].indexOf("#");
                                 var workFlowStatus = d[key].substring(0, workFlowStatusIndx);
                                 var workFlowId = d[key].substring(workFlowStatusIndx + 1);
                                 var fontColor = "";
-                                if (workFlowStatus.startsWith("Killed") || workFlowStatus.startsWith("Failed") || workFlowStatus == "Failed" || workFlowStatus.startsWith("Error") || workFlowStatus == "Error") {
+                                if (isWorkflowFailed(workFlowStatus)) {
                                     fontColor = 'color="red"';
                                 } else if (workFlowStatus == "Queued" || workFlowStatus == "Created") {
                                     fontColor = 'color="orange"';
-                                } else if (workFlowStatus == "Complete") {
+                                } else if (isWorkflowComplete(workFlowStatus)) {
                                     fontColor = 'color="green"';
                                 }
-                                rowDataWithColumns += '<td class="' + label + '">';
+                                rowDataWithColumns += '<td class="' + labelClean + '">';
                                 if (workFlowStatus) {
                                     workFlowStatusFirstLetterCapital = workFlowStatus.charAt(0).toUpperCase() + workFlowStatus.slice(1);
                                     rowDataWithColumns += '<span  title="' + label + '"><font ' + fontColor + '>' + workFlowStatusFirstLetterCapital + '</font></span>';
                                     rowDataWithColumns += ' 	 <span class="inline-actions">';
-                                    rowDataWithColumns += '          <i class="fa fa-eye"  title="View Details" onclick="viewContainerDetails(' + workFlowId + ')"></i>';
+                                    rowDataWithColumns += '          <i class="fa fa-eye view-details" title="View Details" data-id="'+workFlowId+'"></i>';
                                     // rowDataWithColumns += '          <i class="fa fa-eye"  title="View Std Log" onclick="viewWorkflowFile('+workFlowId+',\'stdout\')"></i>';
                                     // rowDataWithColumns += '          <i class="fa fa-eye"  title="View Std Error" onclick="viewWorkflowFile('+workFlowId+',\'stderr\')"></i>';
-                                    rowDataWithColumns += '          <i class="fa fa-trash" title="Terminate Process" onclick="killProcess(' + workFlowId + ')"></i>';
+                                    if (!isWorkflowFailed(workFlowStatus) && !isWorkflowComplete(workFlowStatus)) {
+                                        rowDataWithColumns += '          <i class="fa fa-trash terminate-process" title="Terminate Process" data-id="' + workFlowId + '"></i>';
+                                    }
                                     rowDataWithColumns += '     </span>';
                                     sessionWorkFlowStatus[hdr] = workFlowStatus;
                                 } else {
@@ -438,6 +450,16 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
             $('#selectable-table-bulk').children().detach();
             launcherTableInit();
         });
+        $(document).on('click', 'button#launch-container', function(){
+            launchContainer();
+        });
+        $(document).on('click', '.view-details', function(){
+            viewContainerDetails($(this).data("id"));
+        });
+        $(document).on('click', '.terminate-process', function(){
+            killProcess($(this).data("id"));
+        });
+
     });
 
     function cssToNumber($item, attrName) {
