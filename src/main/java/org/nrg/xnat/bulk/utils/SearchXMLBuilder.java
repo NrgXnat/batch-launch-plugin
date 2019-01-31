@@ -3,8 +3,11 @@ package org.nrg.xnat.bulk.utils;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.lang3.StringUtils;
 
+import org.apache.commons.lang3.StringUtils;
+import org.nrg.containers.model.command.auto.Command.CommandOutput;
+import org.nrg.containers.model.command.auto.Command.CommandWrapper;
+import org.nrg.containers.model.command.auto.Command.CommandWrapperOutput;
 import org.nrg.containers.model.command.auto.CommandSummaryForContext;
 import org.nrg.containers.services.CommandService;
 import org.nrg.xdat.XDAT;
@@ -14,8 +17,11 @@ import org.nrg.xdat.om.ArcPipelinedata;
 import org.nrg.xdat.om.ArcProject;
 import org.nrg.xdat.om.ArcProjectDescendant;
 import org.nrg.xdat.om.ArcProjectDescendantPipeline;
+import org.nrg.xft.exception.ElementNotFoundException;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.turbine.utils.ArcSpecManager;
+
+import com.google.common.collect.Lists;
 
 public class SearchXMLBuilder {
 	public String execute(final List<String> projects, final String dataType, final UserI user, final String whereClause, String specificJob,List<String> resources, List<String> scan_types){
@@ -172,6 +178,18 @@ public class SearchXMLBuilder {
 					"</xdat:search_field>";
 			sb.append(pipelineDisplay);
 			sequence++;
+			
+			for(String resource:getOuputResourceLabelsForContainer(specificJob,dataType,user)){
+				pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
+						"<xdat:field_ID>RES_FILE_COUNT="+ resource +"</xdat:field_ID>" +
+						"<xdat:sequence>"+sequence+"</xdat:sequence>" +
+						"<xdat:type>string</xdat:type>" +
+						"<xdat:header>"+resource+"</xdat:header>" +
+						"<xdat:value>"+resource+"</xdat:value>" +
+						"</xdat:search_field>";
+				sb.append(pipelineDisplay);
+				sequence++;
+			}
 		}        
 		
 		if(resources!=null){
@@ -193,6 +211,28 @@ public class SearchXMLBuilder {
 		sb.append("</xdat:bundle>");
 		
 		return sb.toString();
+	}
+	
+	private List<String> getOuputResourceLabelsForContainer(String containerName, String xsiType,UserI user){
+		final List<String> resources= Lists.newArrayList();
+		if(StringUtils.isNotEmpty(containerName)){
+			final CommandService cmdService = XDAT.getContextService().getBean(CommandService.class);
+			try {
+				final List<CommandSummaryForContext> cmdSummary = cmdService.available(xsiType, user);
+				for (final CommandSummaryForContext c:cmdSummary) {
+					if(StringUtils.equals(containerName, c.wrapperName())){
+						final CommandWrapper cmd=cmdService.retrieveWrapper(c.wrapperId());
+						for(final CommandWrapperOutput out:cmd.outputHandlers()){
+							resources.add(out.label());
+						}
+					}
+				}
+			} catch (ElementNotFoundException e) {
+				//ignore
+			}
+		}
+		
+		return resources;
 	}
 
 	private List<String> containerWrappersForDataType(List<String> projects, String xsiType, UserI user) throws Exception {
