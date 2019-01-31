@@ -79,7 +79,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                 divContent += '	    </div>													';
                 divContent += '    <span class="clear clearfix"></span>									';
                 divContent += '	</div>														';
-                divContent += '	<div class="data-table-wrapper" id="div-"'+tableId+'"-header" style="overflow-x:scroll;overflow-y:scroll;padding-right:0;">						';
+                divContent += '	<div class="data-table-wrapper" id="div-"'+tableId+'-header">';
                 divContent += '	       <table id="'+tableId+'" class="xnat-table clean  selectable" style="border:none;">		';
                 divContent += '	            <thead>												';
                 divContent += '		            <tr id="xnat-table-header-row1">								';
