@@ -37,6 +37,13 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         }).removeClass(filterClass);
     }
 
+    function isWorkflowFailed(status) {
+        return status.startsWith("Killed") || status.startsWith("Failed") || status == "Failed" || status.startsWith("Error") || status == "Error";
+    }
+    function isWorkflowComplete(status) {
+        return status == "Complete" || status == "Failed (Dismissed)";
+    }
+
     function findLabel(key) {
         return key.indexOf('identifier') > 0;
     }
@@ -63,7 +70,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                 divContent += '	          <select id="actionsDropdown" class="data-table-action disabled"  disabled>	';
                 divContent += '	          </select>									';
                 divContent += '	        </span>										';
-                divContent += ' 	<button class="btn btn-sm data-table-action disabled" onclick="javascript:launchContainer()">Launch container</button>	';
+                divContent += ' 	<button class="btn btn-sm data-table-action disabled" id="launch-container">Launch container</button>	';
                 //divContent +=     '		<button class="btn btn-sm data-table-action disabled" onclick="javascript:terminateContainers()">Terminate Containers</button>	';
                 divContent += '		<button class="btn btn-sm" type="submit" id="reload">Reload</button>				';
                 if (isDetails) {
@@ -332,11 +339,11 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                                 var workFlowStatus = d[key].substring(0, workFlowStatusIndx);
                                 var workFlowId = d[key].substring(workFlowStatusIndx + 1);
                                 var fontColor = "";
-                                if (workFlowStatus.startsWith("Killed") || workFlowStatus.startsWith("Failed") || workFlowStatus == "Failed" || workFlowStatus.startsWith("Error") || workFlowStatus == "Error") {
+                                if (isWorkflowFailed(workFlowStatus)) {
                                     fontColor = 'color="red"';
                                 } else if (workFlowStatus == "Queued" || workFlowStatus == "Created") {
                                     fontColor = 'color="orange"';
-                                } else if (workFlowStatus == "Complete") {
+                                } else if (isWorkflowComplete(workFlowStatus)) {
                                     fontColor = 'color="green"';
                                 }
                                 rowDataWithColumns += '<td class="' + label + '">';
@@ -344,10 +351,12 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                                     workFlowStatusFirstLetterCapital = workFlowStatus.charAt(0).toUpperCase() + workFlowStatus.slice(1);
                                     rowDataWithColumns += '<span  title="' + label + '"><font ' + fontColor + '>' + workFlowStatusFirstLetterCapital + '</font></span>';
                                     rowDataWithColumns += ' 	 <span class="inline-actions">';
-                                    rowDataWithColumns += '          <i class="fa fa-eye"  title="View Details" onclick="viewContainerDetails(' + workFlowId + ')"></i>';
+                                    rowDataWithColumns += '          <i class="fa fa-eye view-details" title="View Details" data-id="'+workFlowId+'"></i>';
                                     // rowDataWithColumns += '          <i class="fa fa-eye"  title="View Std Log" onclick="viewWorkflowFile('+workFlowId+',\'stdout\')"></i>';
                                     // rowDataWithColumns += '          <i class="fa fa-eye"  title="View Std Error" onclick="viewWorkflowFile('+workFlowId+',\'stderr\')"></i>';
-                                    rowDataWithColumns += '          <i class="fa fa-trash" title="Terminate Process" onclick="killProcess(' + workFlowId + ')"></i>';
+                                    if (!isWorkflowFailed(workFlowStatus) && !isWorkflowComplete(workFlowStatus)) {
+                                        rowDataWithColumns += '          <i class="fa fa-trash terminate-process" title="Terminate Process" data-id="' + workFlowId + '"></i>';
+                                    }
                                     rowDataWithColumns += '     </span>';
                                     sessionWorkFlowStatus[hdr] = workFlowStatus;
                                 } else {
@@ -438,6 +447,16 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
             $('#selectable-table-bulk').children().detach();
             launcherTableInit();
         });
+        $(document).on('click', 'button#launch-container', function(){
+            launchContainer();
+        });
+        $(document).on('click', '.view-details', function(){
+            viewContainerDetails($(this).data("id"));
+        });
+        $(document).on('click', '.terminate-process', function(){
+            killProcess($(this).data("id"));
+        });
+
     });
 
     function cssToNumber($item, attrName) {
