@@ -34,22 +34,7 @@ var keyAndHeaderMap = [];
 
 <div id="processing_tabs" class="yui-navset"></div>
 
-<script type="text/javascript">
-
-    var processingTabs = new YAHOO.widget.TabView('processing_tabs');
-
-    processingTabs.addTab(new YAHOO.widget.Tab({
-        active: true,
-        label: 'Launch Processes',
-        content : '<div class="data-table-container"  id="selectable-table-bulk"></div>'
-    }));
-
-    processingTabs.addTab(new YAHOO.widget.Tab({
-        label: 'Processing History',
-        content: '<div class="active-processes-class" id="active-processes" style="overflow-x:scroll;overflow-y:scroll;padding-right:0;"></div>'
-    }));
-
-</script>
+<script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/batchLaunch/tabs.js")"></script>
 
 <input id="searchRootElement" type="hidden" />
 <input id="searchProjectId" type="hidden" />
