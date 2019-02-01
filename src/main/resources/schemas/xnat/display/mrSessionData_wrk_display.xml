@@ -19,7 +19,7 @@
 	<DisplayField id="WRK_STATUS_LAUNCH" header="Launch" visible="true" searchable="false" data-type="date" xsi:type="SubQueryField">
 		<Content type="sql">launch_time</Content>
 		<description>Workflow Launch</description>
-		<SubQuery>select distinct on (w.id)  w.id as session_id, w.externalid, w.wrk_workflowdata_id, w.pipeline_name ,  w.launch_time from wrk_workflowdata w where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' order by w.id,launch_time desc</SubQuery>
+		<SubQuery>select distinct on (w.id)  w.id as session_id, w.externalid, w.wrk_workflowdata_id, w.pipeline_name ,  to_char(w.launch_time,'YYYY-MM-DD HH24:MI:SS') AS launch_time from wrk_workflowdata w where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' order by w.id,launch_time desc</SubQuery>
 		<MappingColumns>
 			<MappingColumn schemaField="xnat:mrSessionData.ID" queryField="session_id"/>
 		</MappingColumns>
@@ -27,7 +27,7 @@
 	<DisplayField id="WRK_STATUS_LASTMOD" header="Last Mod" visible="true" searchable="false" data-type="date" xsi:type="SubQueryField">
 		<Content type="sql">last_modified</Content>
 		<description>Workflow Last Mod</description>
-		<SubQuery>select distinct on (w.id)  w.id as session_id, w.externalid, w.wrk_workflowdata_id, w.pipeline_name ,  meta.last_modified FROM wrk_workflowdata w LEFT JOIN wrk_workflowdata_meta_data meta ON w.workflowData_info=meta.meta_data_id where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' order by w.id,launch_time desc</SubQuery>
+		<SubQuery>select distinct on (w.id)  w.id as session_id, w.externalid, w.wrk_workflowdata_id, w.pipeline_name ,  to_char(meta.last_modified,'YYYY-MM-DD HH24:MI:SS') AS last_modified FROM wrk_workflowdata w LEFT JOIN wrk_workflowdata_meta_data meta ON w.workflowData_info=meta.meta_data_id where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' order by w.id,launch_time desc</SubQuery>
 		<MappingColumns>
 			<MappingColumn schemaField="xnat:mrSessionData.ID" queryField="session_id"/>
 		</MappingColumns>
