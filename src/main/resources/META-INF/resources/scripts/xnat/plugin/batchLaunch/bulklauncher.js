@@ -17,8 +17,9 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
     var sessionPipelineWorkFlowStatus = {};
     var $dataRows = [];
     var tableId = 'xnat-table';
-    // convert from client time to server time
-    var timezoneOffset = new Date(Date.now()).getTimezoneOffset()*60*1000 - parseInt($('span#timezoneOffset').text())*-1;
+    // server time = client time + toServerTime
+    // toServerTime = server time - client time
+    var toServerTime = parseInt($('span#timezoneOffset').text()) - new Date(Date.now()).getTimezoneOffset()*60*1000*-1;
 
     // Similar to table.js, but no way to use it from there
     function cacheRows(){
@@ -228,7 +229,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                                                 $dataRows.removeClass(filterClass);
                                             } else {
                                                 cacheRows();
-                                                var currentTimeServer = Date.now() + timezoneOffset;
+                                                var currentTimeServer = Date.now() + toServerTime;
                                                 $dataRows.addClass(filterClass).filter(function () {
                                                     var timestamp = $(this).find('td.' + colClass).text(), date;
                                                     return timestamp && (date = new Date(timestamp)) &&
