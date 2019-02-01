@@ -28,6 +28,9 @@ var keyAndHeaderMap = [];
 #if($xss)
 <textarea id="xss" style="display:none">$xss</textarea>
 #end
+#if($!timezoneOffset)
+<span id="timezoneOffset" style="display:none">$timezoneOffset</span>
+#end
 
 <div id="processing_tabs" class="yui-navset"></div>
 
