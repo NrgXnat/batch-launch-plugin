@@ -46,6 +46,10 @@ var XNAT = getObject(XNAT || {});
         appended = (appended) ? '?'+appended : '';
         return restUrl('/xapi/containers' + appended);
     }
+    function getProjectHistoryUrl(projectId, appended) {
+        appended = (appended) ? '?' + appended : '';
+        return restUrl('/xapi/projects/'+projectId+'/containers'+appended);
+    }
 
     function viewHistoryDialog(e, onclose){
         e.preventDefault();
@@ -82,7 +86,7 @@ var XNAT = getObject(XNAT || {});
     function sortHistoryData(myProject,callback){
         callback = isFunction(callback) ? callback : function(){};
 
-        var URL = getCommandHistoryUrl();
+        var URL = getProjectHistoryUrl(myProject);
         return XNAT.xhr.getJSON(URL)
             .success(function(data){
                 if (data.length){
@@ -538,7 +542,7 @@ function spawnHistoryTable(sortedHistoryObj){
                     });
                     _historyTable.done(function(){
                         $manager.empty().append(
-                            spawn('h3', { style: { 'margin-bottom': '1em' }}, data.length + ' Containers Launched On Project <a href="' + rootUrl('/data/projects/'+ myProject + '?format=html">' + myProject + '</a> (' + statusCount + ')')),
+                            spawn('h3', { style: { 'margin-bottom': '1em' }}, data.length + ' Containers Launched On Project <a href="' + rootUrl('/data/projects/'+ myProject + '?format=html">' + myProject + '</a> (' + statusCount + ')'))
                         );
                         this.render($manager, 20);
                     });
