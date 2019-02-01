@@ -461,7 +461,7 @@ function spawnHistoryTable(sortedHistoryObj){
             });
 
     	}
-    }
+    };
 
     historyTable.viewHistory = function(id){
         if (containerHistory[id]) {
