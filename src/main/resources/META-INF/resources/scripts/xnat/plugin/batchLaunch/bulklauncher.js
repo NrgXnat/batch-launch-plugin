@@ -62,8 +62,48 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         return key.indexOf('identifier') > 0;
     }
 
+    function exportTableToCSV($table, filename) {
+        //https://stackoverflow.com/questions/7161113/how-do-i-export-html-table-data-as-csv-file
+        var $rows = $table.find('tr:not(#xnat-table-header-row2):not(:hidden)'),
+
+        // Temporary delimiter characters unlikely to be typed by keyboard
+        // This is to avoid accidentally splitting the actual contents
+        tmpColDelim = String.fromCharCode(11), // vertical tab character
+        tmpRowDelim = String.fromCharCode(0), // null character
+
+        // actual delimiter characters for CSV format
+        colDelim = '","',
+        rowDelim = '"\r\n"',
+
+        // Grab text from table into CSV formatted string
+        csv = '"' + $rows.map(function (i, row) {
+            var $row = $(row), $cols = $row.find('td:not(.session-selector),th:not(.toggle-all)');
+
+            return $cols.map(function (j, col) {
+                var $col = $(col), text = $col.text();
+
+                return text.replace(/"/g, '""'); // escape double quotes
+
+            }).get().join(tmpColDelim);
+
+        }).get().join(tmpRowDelim)
+            .split(tmpRowDelim).join(rowDelim)
+            .split(tmpColDelim).join(colDelim) + '"',
+
+        // Data URI
+        csvData = 'data:application/csv;charset=utf-8,' + encodeURIComponent(csv);
+
+        if (window.navigator.msSaveBlob) { // IE 10+
+            //alert('IE' + csv);
+            window.navigator.msSaveOrOpenBlob(new Blob([csv], {type: "text/plain;charset=utf-8;"}), "table.csv")
+        } else {
+            $(this).attr({'download': filename, 'href': csvData, 'target': '_blank'});
+        }
+    }
+
     function launcherTableInit() {
         xmodal.loading.open({title: 'Loading information...'});
+        $dataRows = [];
 
         var xml = document.getElementById("xss").value;
         var identifierKey = "session_id";
@@ -87,6 +127,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                 divContent += ' 	<button class="btn btn-sm data-table-action disabled" id="launch-container">Launch container</button>	';
                 //divContent +=     '		<button class="btn btn-sm data-table-action disabled" onclick="javascript:terminateContainers()">Terminate Containers</button>	';
                 divContent += '		<button class="btn btn-sm" type="submit" id="reload">Reload</button>				';
+                divContent += '		<a class="btn btn-sm" id="download">Download csv</a>				';
                 if (isDetails) {
                     divContent += '		<a class="btn btn-sm" href="'+window.location.href.replace(/\/job\/[^\/]*/,'')+'">Show all pipelines</a>';
                 }
@@ -269,9 +310,9 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                                 updateAfterFiltering();
                             });
                         }
+                        $('tr#'+tableId+'-header-row2').append($("<td style='width:120px;'></td>").append($filterInput));
 
                         //Show/hide checkbox
-                        $('tr#'+tableId+'-header-row2').append($("<td style='width:120px;'></td>").append($filterInput));
                         var dropdownItemContents = [
                             $.spawn("input|checked='checked'", {
                                 id: "show-" + labelClean,
@@ -297,11 +338,11 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
 
                 // row counts
                 var nres = rows.length.toString();
-                var $count = $('<div class="counts">Showing <span id="table-visible-count">' + nres + '</span> of <span id="table-overall-count">' + nres + '</span> experiments</div>')
+                var $count = $('<div class="counts">Showing <span id="table-visible-count">' + nres + '</span> of <span id="table-overall-count">' + nres + '</span> experiments</div>');
                 $('table#' + tableId).after($count);
 
                 // css
-                $("head").append($.spawn("style|type='text/css'", {},
+                $('#selectable-table-bulk').prepend($.spawn("style|type='text/css'", {},
                     $.map(filterCssList, function(e){ return "tr." + e + "{display:none;}"})));
 
                 // AddDataTableRows:
@@ -448,8 +489,11 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
             $('button#show-hide-columns').click().click(); // keep it in view, but be sure to transform if table size changes
         });
         $(document).on('click', 'button#reload', function(){
-            $('#selectable-table-bulk').children().detach();
+            $('#selectable-table-bulk').empty();
             launcherTableInit();
+        });
+        $(document).on('click', 'a#download', function(){
+            exportTableToCSV.apply(this, [$('table#' + tableId), "processing_dashboard.csv"]);
         });
         $(document).on('click', 'button#launch-container', function(){
             launchContainer();
@@ -460,7 +504,6 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         $(document).on('click', '.terminate-process', function(){
             killProcess($(this).data("id"));
         });
-
     });
 
     function cssToNumber($item, attrName) {
