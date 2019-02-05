@@ -512,7 +512,9 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
     }
 
     function toggleColumn(target, show) {
-        var $columns = $("th#th-" + target + ", td." + target).add($("input#filter-" + target).parent());
+        var $columns = $("th#th-" + target + ", td." + target)
+            .add($("input#filter-" + target).parent())
+            .add($("select#filter-" + target).parents("td"));
         if (show) {
             $columns.show();
         } else {
