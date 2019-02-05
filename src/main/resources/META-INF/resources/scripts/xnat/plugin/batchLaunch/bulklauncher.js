@@ -425,8 +425,6 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                 });
                 resizeTableCols(tableId);
                 xmodal.loading.close();
-                setTableWidth('div-xnat-table', 'data-table-titlerow');
-                setTableHeight('div-xnat-table');
                 $('#searchRootElement').val(dataType);
                 $('#searchProjectId').val(projectId);
                 populateBreadCrumbs();

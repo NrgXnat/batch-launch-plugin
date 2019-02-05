@@ -40,7 +40,7 @@ function setTableHeight(div_id) {
          * chrome
          */
         var maxTableHeight = (tableHeight < windowHeight) ? tableHeight + 60 : windowHeight - 60;
-        var minTableHeight = 300;
+        var minTableHeight = 500;
 
         /*
          * available height is visible screen height below the starting Y point
