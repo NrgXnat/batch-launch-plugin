@@ -60,7 +60,7 @@ var processingTabs = new YAHOO.widget.TabView('processing_tabs');
 processingTabs.addTab(new YAHOO.widget.Tab({
     active: true,
     label: 'Launch Processes',
-    content : '<div class="data-table-container"  id="selectable-table-bulk"></div>'
+    content : '<div class="tab-container"><div class="data-table-container"  id="selectable-table-bulk"></div></div>'
 }));
 
 var historyTab = new YAHOO.widget.Tab({

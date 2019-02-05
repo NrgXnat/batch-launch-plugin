@@ -47,7 +47,12 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
     }
 
     function isWorkflowFailed(status) {
-        return status.startsWith("Killed") || status.startsWith("Failed") || status == "Failed" || status.startsWith("Error") || status == "Error";
+        if (status) {
+            status = status.toLowerCase();
+        } else {
+            return false;
+        }
+        return status.startsWith("killed") || status.startsWith("failed") || status.startsWith("error");
     }
     function isWorkflowComplete(status) {
         return status == "Complete" || status == "Failed (Dismissed)";
@@ -583,8 +588,16 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
             url: XNAT.url.rootUrl('/xapi/commands/available?project=' + projectId + '&xsiType=' + data_type_val),
             success: function (responseData) {
                 responseData.forEach(function (availableCommand) {
+                    var pipelineName = availableCommand['wrapper-name'];
                     if (availableCommand.enabled) {
-                        $('#actionsDropdown').append('<option value="{&quot;root-element-name&quot;:&quot;' + availableCommand['root-element-name'] + '&quot;,&quot;wrapper-id&quot;:&quot;' + availableCommand['wrapper-id'] + '&quot;,&quot;command-id&quot;:&quot;' + availableCommand['command-id'] + '&quot;,&quot;wrapper-name&quot;:&quot;' + availableCommand['wrapper-name'] + '&quot;}">' + availableCommand['wrapper-name'] + '</option>');
+                        $('#actionsDropdown').append('<option value="{&quot;root-element-name&quot;:&quot;' + availableCommand['root-element-name'] + '&quot;,&quot;wrapper-id&quot;:&quot;' + availableCommand['wrapper-id'] + '&quot;,&quot;command-id&quot;:&quot;' + availableCommand['command-id'] + '&quot;,&quot;wrapper-name&quot;:&quot;' + availableCommand['wrapper-name'] + '&quot;}">' + pipelineName + '</option>');
+                    } else {
+                        var info = columnsToShow[pipelineName];
+                        if (info && info['show']===1) {
+                            //Hide this column, do it manually in case DOM isn't ready when this runs
+                            $('#show-hide-columns-list input#show-' + info['labelClean']).prop("checked", false);
+                            toggleColumn(info['labelClean'], false);
+                        }
                     }
                 });
                 $('#actionsDropdown').removeClass('disabled');
@@ -683,15 +696,13 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
     }
 
     function checkSelectedSessions(targets, pipelineName) {
-        var failedWorkflowStatus = "Failed";
-        var completeWorkflowStatus = "Complete";
         var sessionsBeingProcessed = [];
         targets.forEach(function (sessionId) {
             if (sessionPipelineWorkFlowStatus.hasOwnProperty(sessionId)) {
                 var wrkFlowStatus = sessionPipelineWorkFlowStatus[sessionId];
                 if (wrkFlowStatus && wrkFlowStatus.hasOwnProperty(pipelineName)) {
                     var status = wrkFlowStatus[pipelineName];
-                    if (status && (!status.includes(failedWorkflowStatus) && status != completeWorkflowStatus)) {
+                    if (status && !isWorkflowFailed(status) && !isWorkflowComplete(status)) {
                         sessionsBeingProcessed.push(sessionId);
                     }
                 }
