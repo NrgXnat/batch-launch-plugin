@@ -1,0 +1,36 @@
+<link rel="stylesheet" type="text/css" href="$!content.getURI("scripts/xnat/plugin/workflowMgmt/dependencies/skin-win8/ui.fancytree.min.css")"/>
+<link rel="stylesheet" type="text/css" href="$!content.getURI("scripts/xnat/app/scanTable/scanTable.css")"/>
+<link rel="stylesheet" type="text/css" href="$!content.getURI("style/xnat/plugin/batchLaunch/batchLaunch.css")"/>
+<script type="text/javascript" src="$!content.getURI("scripts/xnat/plugin/workflowMgmt/dependencies/jquery.fancytree-all-deps.min.js")"></script>
+<script type="text/javascript" src="$!content.getURI("scripts/xnat/plugin/containerService/containerService-history.js")"></script>
+<script type="text/javascript" src="$!content.getURI("scripts/xnat/plugin/workflowMgmt/workflowmgmt.js")"></script>
+<script type="text/javascript" src="$!content.getURI("scripts/xnat/plugin/workflowMgmt/workflow_table.js")"></script>
+
+#if(!$!hide)
+    #if($!onlyTab)
+        <div id="processing_tabs" class="yui-navset"></div>
+        ## Alternatively, we could be adding this to existing tabs
+        <script type="text/javascript">
+            var processingTabs = new YAHOO.widget.TabView('processing_tabs');
+            processingTabs.addTab(new YAHOO.widget.Tab({
+                active: true,
+                label: 'All processing',
+                content: '<div class="tab-container"><div class="data-table-container"  id="workflows-data-table-container"></div></div>'
+            }));
+        </script>
+    #else
+        <div class="tab-container"><div class="data-table-container"  id="workflows-data-table-container"></div></div>
+    #end
+    <script type="text/javascript">
+        XNAT.plugin.batchLaunch.workflowTable.load();
+
+        $('#workflow-callouts-container').append($('<div id="active-workflows-callout" class="warning workflows-callout">\n' +
+                '            Processing is active. See the <a class="scroll-to" href="#workflows-data-table-container">history table</a> for more.\n' +
+                '        <span class="close"><i class="fa fa-close"></i></span>\n' +
+                '        </div>\n' +
+                '        <div id="failed-workflows-callout" class="error workflows-callout">\n' +
+                '            Some processing has recently failed. See the <a class="scroll-to" href="#workflows-data-table-container">history table</a> for more.\n' +
+                '        <span class="close"><i class="fa fa-close"></i></span>\n' +
+                '        </div>'));
+    </script>
+#end

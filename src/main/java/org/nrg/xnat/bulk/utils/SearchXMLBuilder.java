@@ -125,31 +125,15 @@ public class SearchXMLBuilder {
 				if (lastDot != -1) {
 					header = header.substring(0,lastDot);
 				}
+
 				String pipelineEscaped = pipeline.replace(".", "_").replace("\\s+", "_");
-				String pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
-						"<xdat:field_ID>WRK_STATUS="+ pipelineEscaped +"</xdat:field_ID>" +
-						"<xdat:sequence>"+sequence+"</xdat:sequence>" +
-						"<xdat:type>string</xdat:type>" +
-						"<xdat:header>"+pipelineEscaped+"</xdat:header>" +
-						"<xdat:value>"+pipelineEscaped+"</xdat:value>" +
-						"</xdat:search_field>";
-						//Add the xdat field which contains the project field
-				sb.append(pipelineDisplay);
-				sequence++;
+				sequence = addPipeline(pipelineEscaped, dataType, sb, sequence);
 			}
 		}else{
 			//user is working on one specific pipeline
-			String pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
-					"<xdat:field_ID>WRK_STATUS="+ specificJob +"</xdat:field_ID>" +
-					"<xdat:sequence>"+sequence+"</xdat:sequence>" +
-					"<xdat:type>string</xdat:type>" +
-					"<xdat:header>"+specificJob+"</xdat:header>" +
-					"<xdat:value>"+specificJob+"</xdat:value>" +
-					"</xdat:search_field>";
-			sb.append(pipelineDisplay);
-			sequence++;
+			sequence = addPipeline(specificJob, dataType, sb, sequence);
 			
-			pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
+			String pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
 					"<xdat:field_ID>WRK_STATUS_LAUNCH="+ specificJob +"</xdat:field_ID>" +
 					"<xdat:sequence>"+sequence+"</xdat:sequence>" +
 					"<xdat:type>date</xdat:type>" +
@@ -247,5 +231,29 @@ public class SearchXMLBuilder {
 			}
 		}
 		return wrapperNames;
-	} 
+	}
+
+	private int addPipeline(String pipelineEscaped, String dataType, StringBuilder sb, int sequence) {
+		String pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
+				"<xdat:field_ID>WRK_STATUS="+ pipelineEscaped +"</xdat:field_ID>" +
+				"<xdat:sequence>"+sequence+"</xdat:sequence>" +
+				"<xdat:type>string</xdat:type>" +
+				"<xdat:header>"+pipelineEscaped+"</xdat:header>" +
+				"<xdat:value>"+pipelineEscaped+"</xdat:value>" +
+				"</xdat:search_field>";
+		//Add the xdat field which contains the project field
+		sb.append(pipelineDisplay);
+		sequence++;
+
+		pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
+				"<xdat:field_ID>WRK_STATUS_CONTAINERID="+ pipelineEscaped +"</xdat:field_ID>" +
+				"<xdat:sequence>"+sequence+"</xdat:sequence>" +
+				"<xdat:type>string</xdat:type>" +
+				"<xdat:header>Container ID</xdat:header>" +
+				"<xdat:value>"+pipelineEscaped+"</xdat:value>" +
+				"</xdat:search_field>";
+		sb.append(pipelineDisplay);
+		sequence++;
+		return sequence;
+	}
 }

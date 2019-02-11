@@ -2,52 +2,36 @@
 #* @vtlvariable name="siteConfig" type="org.nrg.xdat.preferences.SiteConfigPreferences" *#
 #* @vtlvariable name="turbineUtils" type="org.nrg.xdat.turbine.utils.TurbineUtils" *#
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
-#set($SESSION_DISPLAY_NAME_PLURAL = $displayManager.getPluralDisplayNameForImageSession())
-<link rel="stylesheet" href="$content.getURI("scripts/xnat/plugin/scanTable/scanTable.css")"></link>
-<link rel="stylesheet" href="$content.getURI("style/xnat/plugin/batchLaunch/bulklauncher.css")"></link>
 
 <!--BEGIN /screens/XDATScreen_bulk_action.vm -->
+<link rel="stylesheet" href="$content.getURI("scripts/xnat/plugin/containerService/commandUI.css")"></link>
+
 <script type="text/javascript" src="$content.getURI("/scripts/xnat/ui/breadcrumbs.js")"></script>
 <script type="text/javascript" src="$content.getURI("/scripts/lib/jquery-ui/jquery-ui.js")"></script>
-<script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/batchLaunch/commandHistory.js")"></script> 
-<script src="$content.getURI("scripts/xnat/plugin/workflowMgmt/workflowmgmt.js")"></script>
-
-
-<script>
-
-var projectId;
-var dataType;
-var columnsToShow = {};
-var keyAndHeaderMap = [];
-
-</script>
 
 <div id="breadcrumbs"></div>
-<div id="statusbar">#addGlobalCustomScreens("batchLaunch/statusbar")</div>
+<div id="statusbar"></div>
 
 #if($xss)
-<textarea id="xss" style="display:none">$xss</textarea>
+    <textarea id="xss" style="display:none">$xss</textarea>
 #end
 #if($!timezoneOffset)
-<span id="timezoneOffset" style="display:none">$timezoneOffset</span>
+    <span id="timezoneOffset" style="display:none">$timezoneOffset</span>
 #end
 
-<div id="processing_tabs" class="yui-navset"></div>
+#set($hide=true)
+#parse("/screens/workflow_table.vm")
+<script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/batchLaunch/bulklauncher.js")"></script>
 
-<script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/batchLaunch/tabs.js")"></script>
+<div id="processing_tabs" class="yui-navset"></div>
+<script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/batchLaunch/batchLaunch-tabs.js")"></script>
 
 <input id="searchRootElement" type="hidden" />
 <input id="searchProjectId" type="hidden" />
 
-
-<script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/batchLaunch/bulklauncher.js")"></script>
-
-
-<script src="$content.getURI("scripts/xnat/plugin/scanTable/selectableTableBehavior.js")"></script>
-<script src="$content.getURI("scripts/xnat/plugin/containerui/commandUiLauncher.js")"></script>
-<script src="$content.getURI("scripts/xnat/plugin/containerService/projectSearchLauncher.js")"></script>
-<script src="$content.getURI("scripts/xnat/plugin/workflowMgmt/workflowmgmt.js")"></script>
-
+<script type="text/javascript" src="$content.getURI("scripts/xnat/app/scanTable/selectableTableBehavior.js")"></script>
+<script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/containerService/commandUiLauncher.js")"></script>
+<script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/containerService/projectSearchLauncher.js")"></script>
 
 <BR/>
 <BR/>
