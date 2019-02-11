@@ -1,7 +1,7 @@
 .bulk-inputs {margin-bottom:15px;}
 
-#selectable-table-bulk {max-width:max-content;}
-#xnat-table.selectable {max-width:max-content;}
+.tab-container {overflow-x: auto;}
+#selectable-table-bulk {width:max-content;}
 
 #xnat-table tbody, #xnat-table thead {
     display: block;

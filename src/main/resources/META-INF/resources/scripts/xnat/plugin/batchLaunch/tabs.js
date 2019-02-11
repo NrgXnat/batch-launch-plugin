@@ -40,7 +40,7 @@ function setTableHeight(div_id) {
          * chrome
          */
         var maxTableHeight = (tableHeight < windowHeight) ? tableHeight + 60 : windowHeight - 60;
-        var minTableHeight = 300;
+        var minTableHeight = 500;
 
         /*
          * available height is visible screen height below the starting Y point
@@ -60,7 +60,7 @@ var processingTabs = new YAHOO.widget.TabView('processing_tabs');
 processingTabs.addTab(new YAHOO.widget.Tab({
     active: true,
     label: 'Launch Processes',
-    content : '<div class="data-table-container"  id="selectable-table-bulk"></div>'
+    content : '<div class="tab-container"><div class="data-table-container"  id="selectable-table-bulk"></div></div>'
 }));
 
 var historyTab = new YAHOO.widget.Tab({
