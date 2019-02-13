@@ -74,7 +74,7 @@ public class  XDATScreen_bulk_action  extends SecureScreen {
 	            
 	            java.util.List<String> typesList=null;
 	            if(org.apache.commons.lang3.StringUtils.isNotEmpty(scans)){
-	            	if(resources.indexOf(",")>0){
+	            	if(scans.indexOf(",")>0){
 	            		typesList=java.util.Arrays.asList(scans.split(","));
 	            	}else{
 	            		typesList=Lists.newArrayList(scans);
