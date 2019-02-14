@@ -1,31 +1,28 @@
 package org.nrg.xnat.bulk.xapi;
 
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
-import org.nrg.xdat.om.WrkWorkflowdata;
-import org.nrg.xdat.om.XnatProjectdata;
-import org.nrg.containers.services.ContainerService;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
 import java.util.Map;
-import org.nrg.xft.event.EventUtils;
-import org.nrg.xft.event.EventDetails;
-import org.nrg.xft.event.EventMetaI;
-import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 
-
-
-import org.nrg.xdat.om.WrkWorkflowdata;
 import org.apache.commons.lang3.StringUtils;
+import org.nrg.containers.services.ContainerService;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
+import org.nrg.xdat.om.WrkWorkflowdata;
+import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
+import org.nrg.xft.event.EventDetails;
+import org.nrg.xft.event.EventMetaI;
+import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
+import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xft.utils.SaveItemHelper;
 import org.nrg.xnat.utils.WorkflowUtils;
@@ -106,13 +103,11 @@ public class WorkflowManagement extends AbstractXapiProjectRestController {
 	            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 		}
-
 	   
-	   
-		@XapiRequestMapping(value = "/{id}/kill", method = POST)
+		@XapiRequestMapping(value = "/{workflowid}/kill", method = POST)
 	    @ApiOperation(value = "Kill Process (those users who have delete permissions on associated project, can terminate)")
 	    @ResponseBody
-	    public String kill(final @PathVariable String workflowId) {
+	    public String kill(@PathVariable("workflowid") final String workflowId) {
 			String rtn = killJob(workflowId);
 			return rtn;
 		}
