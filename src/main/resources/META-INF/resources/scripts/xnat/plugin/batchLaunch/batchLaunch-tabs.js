@@ -36,19 +36,19 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
     processingTabs.addTab(launchTab);
 
     // Container history
-    var containersTab = new YAHOO.widget.Tab({
-        label: 'Container history',
-        content: '<div class="tab-container"><div class="data-table-container" id="' + containerTableId + '" style="overflow-x:auto;overflow-y:auto;"></div></div>'
-    });
-    containersTab.addListener('activeChange', function (e) {
-        if (e.newValue && !containerHistoryLoaded) {
-            XNAT.plugin.containerService.historyTable.init(XNAT.plugin.batchLaunch.projectId);
-            XNAT.plugin.batchLaunch.setTableWidth('div-xnat-table', containerTableId);
-            XNAT.plugin.batchLaunch.setTableHeight(containerTableId);
-            containerHistoryLoaded = true;
-        }
-    });
-    processingTabs.addTab(containersTab);
+    // var containersTab = new YAHOO.widget.Tab({
+    //     label: 'Container history',
+    //     content: '<div class="tab-container"><div class="data-table-container" id="' + containerTableId + '" style="overflow-x:auto;overflow-y:auto;"></div></div>'
+    // });
+    // containersTab.addListener('activeChange', function (e) {
+    //     if (e.newValue && !containerHistoryLoaded) {
+    //         XNAT.plugin.containerService.historyTable.init(XNAT.plugin.batchLaunch.projectId);
+    //         XNAT.plugin.batchLaunch.setTableWidth('div-xnat-table', containerTableId);
+    //         XNAT.plugin.batchLaunch.setTableHeight(containerTableId);
+    //         containerHistoryLoaded = true;
+    //     }
+    // });
+    // processingTabs.addTab(containersTab);
 
     // All history
     var historyTab = new YAHOO.widget.Tab({

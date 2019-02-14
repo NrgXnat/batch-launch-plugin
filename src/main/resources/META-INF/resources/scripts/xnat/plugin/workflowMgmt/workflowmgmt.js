@@ -44,7 +44,10 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
         return my_string.charAt(0).toUpperCase() + my_string.slice(1);
     }
 
-    XNAT.plugin.batchLaunch.renderPercentComplete = function(percent) {
+    XNAT.plugin.batchLaunch.renderPercentComplete = function(status, percent) {
+        if (status === "Complete") {
+            return spawn("div.progressbar-div", {}, spawn("div.progress-bar-done", {style: "width: 100%;"}, "100%"));
+        }
         if (!percent) {
             return '';
         }
@@ -96,7 +99,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
 
                     //percent complete
                     $perc.html(
-                        XNAT.plugin.batchLaunch.renderPercentComplete(data['percentageComplete'] || "")
+                        XNAT.plugin.batchLaunch.renderPercentComplete(data['status'], data['percentageComplete'] || "")
                     );
                 }
             },

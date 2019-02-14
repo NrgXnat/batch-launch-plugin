@@ -152,3 +152,14 @@
     -o-transition: width .6s ease;
     transition: width .6s ease;
 }
+
+.progress-bar-done {
+    color: #fff;
+    width: 100%;
+    height: 100%;
+    border-radius: 5px;
+    -webkit-box-shadow: inset 0 1px 0 rgba(0,0,0,.15);
+    box-shadow: inset 0 1px 0 rgba(0,0,0,.15);
+    background-color: #2d69b8;;
+    background-size: 1rem 1rem;
+}

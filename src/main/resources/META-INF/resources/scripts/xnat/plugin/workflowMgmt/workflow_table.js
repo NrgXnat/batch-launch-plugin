@@ -135,7 +135,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                     th: {className: 'percentageComplete'},
                     label: labelMap['percentageComplete']['label'],
                     apply: function(){
-                        return XNAT.plugin.batchLaunch.renderPercentComplete(this['percentageComplete']);
+                        return XNAT.plugin.batchLaunch.renderPercentComplete(this['status'], this['percentageComplete']);
                     }
                 },
                 stepDescription: {
