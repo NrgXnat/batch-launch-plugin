@@ -31,11 +31,19 @@
 		<MappingColumns>
 			<MappingColumn schemaField="xnat:mrSessionData.ID" queryField="session_id"/>
 		</MappingColumns>
-	</DisplayField>>
+	</DisplayField>
 	<DisplayField id="WRK_STATUS_NUMRUNS" header="Num Runs" visible="true" searchable="false" data-type="integer" xsi:type="SubQueryField">
 		<Content type="sql">NUM_WRKS</Content>
 		<description>Workflow Runs</description>
 		<SubQuery>select distinct on (w.id)  w.id as session_id, COUNT(*) AS NUM_WRKS from wrk_workflowdata w where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' GROUP BY session_id</SubQuery>
+		<MappingColumns>
+			<MappingColumn schemaField="xnat:mrSessionData.ID" queryField="session_id"/>
+		</MappingColumns>
+	</DisplayField>
+	<DisplayField id="WRK_STATUS_CONTAINERID" header="Container ID" visible="true" searchable="false" data-type="string" xsi:type="SubQueryField">
+		<Content type="sql">container_id</Content>
+		<description>Container ID</description>
+		<SubQuery>select distinct on (w.id)  w.id as session_id, w.externalid, w.wrk_workflowdata_id, w.pipeline_name ,  w.status, w.comments AS container_id from wrk_workflowdata w where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' AND w.justification='Container launch' order by w.id,launch_time desc</SubQuery>
 		<MappingColumns>
 			<MappingColumn schemaField="xnat:mrSessionData.ID" queryField="session_id"/>
 		</MappingColumns>

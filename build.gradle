@@ -14,9 +14,38 @@ group 'org.nrg.xnat.plugins'
 version '0.2.0'
 
 // TODO: This is the minimum set of Gradle plugins required to build most XNAT plugins. You may include many others, including plugins for testing and test coverage, IDE integration, and more.
+buildscript {
+    ext {
+        vXnat = '1.7.5'
+    }
+    repositories {
+        mavenLocal()
+        maven { 
+            url "https://plugins.gradle.org/m2/"
+        }
+        mavenCentral()
+        jcenter()
+        maven { 
+            url 'https://nrgxnat.jfrog.io/nrgxnat/libs-release'
+            name 'XNAT Release Repository'
+        }
+        maven { 
+            url 'https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot'
+            name 'XNAT Snapshot Repository'
+        }
+    }
+    dependencies {
+        gradleApi()
+        classpath "io.spring.gradle:dependency-management-plugin:1.0.3.RELEASE"
+        classpath "io.franzbecker:gradle-lombok:1.14"
+        classpath "org.nrg.xnat.build:xnat-data-builder:${vXnat}"
+    }
+}
 apply plugin: 'java'
 apply plugin: 'maven'
+apply plugin: 'maven-publish'
 apply plugin: 'eclipse'
+apply plugin: 'io.franzbecker.gradle-lombok'
 
 // TODO: As of the 1.7.x release, XNAT is built as a Java 7-compatible (i.e. JDK 1.7) application. All plugins must be 1.7 compatible as well.
 sourceCompatibility = 1.7
@@ -79,16 +108,12 @@ repositories {
         url 'https://nrgxnat.jfrog.io/nrgxnat/ext-release'
         name 'XNAT External Release Repository'
     }
-     flatDir {
-       dirs 'libs'
-   }
-
 }
 
 // TODO: Keeping your versions as variables makes it easier to update versions when you have multiple libraries from the same framework that thus have the same version.
 // TODO: These versions will change over time as XNAT development continues. Check the latest version of the XNAT template plugin or the XNAT versioning matrix page.
-def vXnatDev = '1.7.4'
-def vXnat = '1.7.4'
+def vXnatDev = '1.7.5'
+def vXnat = '1.7.5'
 def vJunit = '4.12'
 def vSpring = '4.2.9.RELEASE'
 def vLog4j = '1.2.17'
@@ -96,8 +121,9 @@ def vSwagger = '2.4.0'
 
 // TODO: This is a pretty minimal set of dependencies, so don't worry if you need to add more.
 dependencies {
-    compile name: 'containers-2.0.0-rc3-DEMO-fat'
-   // compile name: 'containers-2.0.0.12-RC2-RADIOLOGICS-fat'
+    compile("org.nrg:containers:2.0.0.20-radiologics") {
+        exclude group: '*'
+    }
     compile("org.nrg.xnat:web:${vXnatDev}") {
         exclude group: '*'
     }
@@ -133,4 +159,28 @@ configurations {
     compile.exclude group: 'javax.transaction'
     compile.exclude group: 'javax.jms'
 
+}
+
+task sourceJar(type: Jar, dependsOn: classes) {
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    from javadoc.destinationDir
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+
+            artifact sourceJar {
+                classifier "sources"
+            }
+
+            artifact javadocJar {
+                classifier "javadoc"
+            }
+        }
+    }
 }
