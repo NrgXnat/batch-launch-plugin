@@ -133,7 +133,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
             children.push(spawn('i.fa.fa-archive.wf-dismiss|title="Dismiss failure status"' + idstr));
         } else if (!XNAT.plugin.batchLaunch.isWorkflowComplete(entryMap['status'])) {
             children.push(spawn('i.fa.fa-refresh.wf-refresh|title="Refresh workflow status"' + idstr));
-            children.push(spawn('i.fa.fa-times.wf-fail"|title="Mark workflow as failure"' + idstr));
+            children.push(spawn('i.fa.fa-times.wf-fail|title="Mark workflow as failure"' + idstr));
         }
         return spawn("span.inline-actions",children);
     };
@@ -245,7 +245,8 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
     XNAT.plugin.batchLaunch.getContainerInfo = function(containerId, callbackSuccess, callbackFailure) {
         var historyEntry  = XNAT.plugin.batchLaunch.containerInfo[containerId];
 
-        XNAT.ui.dialog.loading.open();
+        var loadingDialog = XNAT.ui.dialog.loading;
+        loadingDialog.open();
         if (!historyEntry) {
             XNAT.xhr.getJSON({
                 url: XNAT.url.restUrl('/xapi/containers/' + containerId),
@@ -258,7 +259,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
         } else {
             callbackSuccess(historyEntry);
         }
-        XNAT.ui.dialog.loading.close();
+        loadingDialog.close();
     };
 
     XNAT.plugin.batchLaunch.viewWorkflowDetails = function(workflowId, containerId) {
@@ -272,9 +273,10 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
                 XNAT.plugin.containerService.historyTable.viewHistoryEntry,
                 function() {wfModal(workflowId);});
         } else {
-            XNAT.ui.dialog.loading.open();
+            var loadingDialog = XNAT.ui.dialog.loading;
+            loadingDialog.open();
             wfModal(workflowId);
-            XNAT.ui.dialog.loading.close();
+            loadingDialog.close();
         }
     };
 
@@ -294,16 +296,17 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
                     isDefault: true,
                     close: true,
                     action: function (obj) {
-                        XNAT.ui.dialog.loading.open();
+                        var loadingDialog = XNAT.ui.dialog.loading;
+                        loadingDialog.open();
 
                         function killProcessOK(data, status, o) {
-                            XNAT.ui.dialog.loading.close();
+                            loadingDialog.close();
                             XNAT.ui.dialog.message('Success', 'Successfully terminated process; note that status may not update immediately');
                             callback();
                         }
 
                         function killProcessFailed(o, status, error) {
-                            XNAT.ui.dialog.loading.close();
+                            loadingDialog.close();
                             XNAT.ui.dialog.message('Error', 'An unexpected error has occurred while killing process ' + workflowId + '. Please contact your administrator.');
                         }
 
@@ -312,7 +315,6 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
                             success: killProcessOK,
                             error: killProcessFailed
                         });
-                        XNAT.ui.dialog.closeAll();
                     }
                 }
             ]
@@ -322,16 +324,17 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
     XNAT.plugin.batchLaunch.dismissNotification = function(id, st, callback) {
         callback = isFunction(callback) ? callback : function(){};
         function workflowUpdate() {
-            XNAT.ui.dialog.loading.open();
+            var loadingDialog = XNAT.ui.dialog.loading;
+            loadingDialog.open();
 
             function workflowUpdateOK() {
-                XNAT.ui.dialog.loading.close();
+                loadingDialog.close();
                 XNAT.ui.dialog.message('Success', 'Successfully updated workflow status to "<b>' + st + '</b>".');
                 callback();
             }
 
             function workflowUpdateFailed(o, status, error) {
-                XNAT.ui.dialog.loading.close();
+                loadingDialog.close();
                 XNAT.ui.dialog.message('Error', 'An unexpected error has occurred. Please contact your administrator.');
                 console.log('Status: ' + status + '. Error: ' + error);
             }
