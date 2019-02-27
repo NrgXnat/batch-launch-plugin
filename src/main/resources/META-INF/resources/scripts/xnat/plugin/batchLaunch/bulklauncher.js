@@ -113,7 +113,7 @@ console.log('bulklauncher.js');
     }
 
     XNAT.plugin.batchLaunch.launchTable.init = function(reload) {
-        XNAT.ui.dialog.static.wait('Loading processing data...').open();
+        var waitDialog = XNAT.ui.dialog.static.wait('Loading processing data...');
         $dataRows = [];
         $container = $('#selectable-table-bulk');
 
@@ -463,7 +463,7 @@ console.log('bulklauncher.js');
 
             },
             complete: function(){
-                XNAT.ui.dialog.close();
+                waitDialog.close();
             }
         });
     };
@@ -514,10 +514,12 @@ console.log('bulklauncher.js');
             .append('<option value="Select" selected="true">Select container</option>');
         var data_type_val = $('#searchRootElement').val();
         var projectId = XNAT.plugin.batchLaunch.projectId;
-        XNAT.ui.dialog.loading.open();
+        var loadingDialog = XNAT.ui.dialog.loading;
+        loadingDialog.open();
         XNAT.xhr.getJSON({
             url: XNAT.url.rootUrl('/xapi/commands/available?project=' + projectId + '&xsiType=' + data_type_val),
             success: function (responseData) {
+                loadingDialog.close();
                 responseData.forEach(function (availableCommand) {
                     var pipelineName = availableCommand['wrapper-name'];
                     if (availableCommand.enabled) {
@@ -542,6 +544,7 @@ console.log('bulklauncher.js');
                 $actionsDropdown.prop("disabled", false);
             },
             error: function (o) {
+                loadingDialog.close();
                 XNAT.dialog.open({
                     title: 'Error!',
                     content: 'Could not get actions associated with ' + data_type_val + ' encountered ' + o,
@@ -556,7 +559,6 @@ console.log('bulklauncher.js');
                 });
             }
         });
-        XNAT.ui.dialog.loading.close();
     }
 
     function getSelectedExperiments() {
@@ -718,8 +720,8 @@ console.log('bulklauncher.js');
                 ]
             });
         } else {
-            XNAT.plugin.containerService.launcher.bulkLaunchDialog(projectId, commandId, wrapperId,
-                rootElementName, targets, targetLabels);
+            XNAT.plugin.containerService.launcher.bulkLaunchDialog(wrapperId,
+                rootElementName, targets, targetLabels, projectId, commandId);
         }
     }
 

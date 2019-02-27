@@ -65,6 +65,11 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         XNAT.plugin.batchLaunch.workflowTable.reload();
     }
 
+    function getDisplayUrl(data_type, id) {
+        return XNAT.url.rootUrl('/app/action/DisplayItemAction/search_element/' + data_type +
+            '/search_field/' + data_type + '.ID/search_value/' + id);
+    }
+
     function spawnWorkflowTable(data, style_str){
         style_str = style_str || '';
         return {
@@ -97,14 +102,19 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                     th: {className: 'externalId'},
                     label: labelMap['externalId']['label'],
                     apply: function(){
-                        return this['externalId'];
+                        if (this['externalId'] !== 'ADMIN') {
+                            return spawn('a', {href: getDisplayUrl('xnat:projectData', this['externalId'])},
+                                this['externalId']);
+                        } else {
+                            return this['externalId'];
+                        }
                     }
                 },
                 id: {
                     th: {className: 'id'},
                     label: labelMap['id']['label'],
                     apply: function(){
-                        return this['id'];
+                        return spawn('a', {href: getDisplayUrl(this['data_type'], this['id'])}, this['id']);
                     }
                 },
                 status: {
