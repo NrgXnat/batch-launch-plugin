@@ -192,7 +192,8 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         }
 
         // Add loading indicator
-        XNAT.ui.dialog.loading.open();
+        var loadingDialog = XNAT.ui.dialog.loading;
+        loadingDialog.open();
 
         // What kind of page are we on? What kind of table do we want?
         var id="", type="xdat:user", hide_proj = false, hide_id = false, title='History';
@@ -310,7 +311,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                 $content.html('Issue loading history.');
             },
             complete: function() {
-                XNAT.ui.dialog.loading.close();
+                loadingDialog.close();
                 XNAT.plugin.batchLaunch.workflowTable.loading = false;
             }
         });
