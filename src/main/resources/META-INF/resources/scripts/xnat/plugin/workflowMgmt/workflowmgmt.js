@@ -133,7 +133,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
             children.push(spawn('i.fa.fa-archive.wf-dismiss|title="Dismiss failure status"' + idstr));
         } else if (!XNAT.plugin.batchLaunch.isWorkflowComplete(entryMap['status'])) {
             children.push(spawn('i.fa.fa-refresh.wf-refresh|title="Refresh workflow status"' + idstr));
-            children.push(spawn('i.fa.fa-times.wf-fail"|title="Mark workflow as failure"' + idstr));
+            children.push(spawn('i.fa.fa-times.wf-fail|title="Mark workflow as failure"' + idstr));
         }
         return spawn("span.inline-actions",children);
     };
