@@ -114,7 +114,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                     th: {className: 'id'},
                     label: labelMap['id']['label'],
                     apply: function(){
-                        return spawn('a', {href: getDisplayUrl(this['data_type'], this['id'])}, this['id']);
+                        return spawn('a', {href: getDisplayUrl(this['dataType'], this['id'])}, this['id']);
                     }
                 },
                 status: {
