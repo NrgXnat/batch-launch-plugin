@@ -27,17 +27,21 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
         } else {
             return false;
         }
-        return (status.startsWith("killed") || status.startsWith("failed") || status.startsWith("error")) &&
+        return (status.startsWith("killed") || status.startsWith("failed") ||
+            status.startsWith("error") || status.startsWith("destroy")) &&
             !status.includes("dismissed");
     };
     XNAT.plugin.batchLaunch.isWorkflowComplete = function(status) {
         return status === "Complete" || status.includes('(Dismissed)');
     };
     XNAT.plugin.batchLaunch.isWorkflowQueued = function(status) {
-        return status === "Queued" || status === "Created";
+        return status.includes("Queued") || status === "Created";
     };
     XNAT.plugin.batchLaunch.isWorkflowContainer = function(entryMap) {
         return entryMap['justification'] === "Container launch" && entryMap['comments'];
+    };
+    XNAT.plugin.batchLaunch.getContainerId = function(entryMap) {
+        return entryMap['comments'];
     };
 
     function upcaseFirstLetter(my_string) {
@@ -95,12 +99,20 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
 
                 if (!single_cell) {
                     //step
-                    $link.parents("td").siblings("td.stepDescription").html(data['stepDescription'] || "");
+                    $status_td.siblings("td.stepDescription").html(data['stepDescription'] || "");
 
                     //percent complete
                     $perc.html(
                         XNAT.plugin.batchLaunch.renderPercentComplete(data['status'], data['percentageComplete'] || "")
                     );
+
+                    //details
+                    $status_td.siblings("td.details").html(data['details'] || "");
+
+                    if (XNAT.plugin.batchLaunch.isWorkflowContainer(data)) {
+                        // Force reload of container details
+                        XNAT.plugin.batchLaunch.containerInfo[XNAT.plugin.batchLaunch.getContainerId(data)] = undefined;
+                    }
                 }
             },
             error: function() {
@@ -252,7 +264,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
                 url: XNAT.url.restUrl('/xapi/containers/' + containerId),
                 success: function(data) {
                     XNAT.plugin.batchLaunch.containerInfo[containerId] = historyEntry = data;
-                    callbackSuccess(historyEntry);
+                    callbackSuccess(data);
                 },
                 error: callbackFailure
             });
