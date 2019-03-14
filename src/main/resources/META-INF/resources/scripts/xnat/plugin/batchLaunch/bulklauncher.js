@@ -532,7 +532,8 @@ console.log('bulklauncher.js');
                         );
                     } else {
                         var info = columnsToShow[pipelineName];
-                        if (info && info['show']===1) {
+                        var currentJob=$('span#currentJob').text();
+                        if (info && info['show']===1 && !currentJob) {
                             //Hide this column
                             //$('.show-hide-columns-list input#show-' + info['labelClean']).prop("checked", false);
                             //XNAT.plugin.batchLaunch.toggleColumn(info['labelClean'], false);

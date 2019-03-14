@@ -18,6 +18,10 @@
 #if($!timezoneOffset)
     <span id="timezoneOffset" style="display:none">$timezoneOffset</span>
 #end
+#if($!job)
+    <span id="currentJob" style="display:none">$currentJob</span>
+#end
+
 
 #set($hide=true)
 #parse("/screens/workflow_table.vm")

@@ -51,7 +51,10 @@ public class  XDATScreen_bulk_action  extends SecureScreen {
 				String job = (String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("job",data);
 	            if (org.apache.commons.lang3.StringUtils.isNotEmpty(job) && PoolDBUtils.HackCheck(job)) {
 	            	throw new Exception("Invalid value submitted.");
+	            }else if(org.apache.commons.lang3.StringUtils.isNotEmpty(job)){
+	            	context.put("job", job);
 	            }
+	            
 	            
 	            String resources = (String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("resources",data);
 	            if (org.apache.commons.lang3.StringUtils.isNotEmpty(resources) && PoolDBUtils.HackCheck(resources)) {
