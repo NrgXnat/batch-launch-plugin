@@ -33,7 +33,7 @@ public class WorkflowRepository implements PageableRepository {
     private int WF_DURATION_EXP_SEC = 14400; // 4 hours
 
     private static final List<String> inactiveStatuses = Arrays.asList(PersistentWorkflowUtils.COMPLETE,
-            PersistentWorkflowUtils.FAILED, PersistentWorkflowUtils.QUEUED);
+            PersistentWorkflowUtils.FAILED, PersistentWorkflowUtils.QUEUED, "Created", "Killed");
 
     private static final RowMapper<WorkflowDuration> DURATION_WF_MAPPER = new RowMapper<WorkflowDuration>() {
         @Override
