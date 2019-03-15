@@ -18,13 +18,14 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         getObject(XNAT.plugin.batchLaunch.workflowTable || {});
 
     XNAT.plugin.batchLaunch.workflowTable.tableId = "workflows-data-table";
-    var columnIds = ["externalId", "id", "status", "pipelineName", "launchTime", "percentageComplete", "stepDescription"];
+    var columnIds = ["externalId", "id", "status", "pipelineName", "launchTime", "details", "percentageComplete", "stepDescription"];
     var labelMap = {
         externalId: {label: "Project", show: true},
         id: {label: "ID", show: true},
         status: {label: "Status", show: true},
         pipelineName: {label: "Name", show: true},
         launchTime: {label: "Launch time", show: true},
+        details: {label: "Details", show: true},
         percentageComplete: {label: "&percnt;", show: true},
         stepDescription: {label: "Progress", show: true}
     };
@@ -82,8 +83,9 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                     tag: 'style|type=text/css',
                     content: style_str +
                         '#' + XNAT.plugin.batchLaunch.workflowTable.tableId + ' tbody { height: 300px; } \n' +
-                        '#' + XNAT.plugin.batchLaunch.workflowTable.tableId + ' td.stepDescription { min-width: 90px; } \n' +
-                        '#' + XNAT.plugin.batchLaunch.workflowTable.tableId + ' td.stepDescription .inline-actions { width: 90px; } \n' +
+                        '#' + XNAT.plugin.batchLaunch.workflowTable.tableId + ' td.status { min-width: 90px; } \n' +
+                        '#' + XNAT.plugin.batchLaunch.workflowTable.tableId + ' td.status .inline-actions { width: 90px; } \n' +
+                        '#' + XNAT.plugin.batchLaunch.workflowTable.tableId + ' td.details{ max-width: 200px; } \n' +
                         '#' + XNAT.plugin.batchLaunch.workflowTable.tableId + ' td.percentageComplete { min-width: 100px; } \n'
                 }
             },
@@ -140,9 +142,14 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                     th: {className: 'launchTime'},
                     label: labelMap['launchTime']['label'],
                     apply: function(){
-                        return new Date(this['launchTime']).toISOString()
-                            .replace('T', ' ').replace('Z', ' ')
-                            .split('.')[0];
+                        return new Date(this['launchTime']).toLocaleString();
+                    }
+                },
+                details: {
+                    th: {className: 'details'},
+                    label: labelMap['details']['label'],
+                    apply: function(){
+                        return this['details'];
                     }
                 },
                 percentageComplete: {
@@ -182,6 +189,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
     }
 
     XNAT.plugin.batchLaunch.workflowTable.reload = function() {
+        XNAT.plugin.batchLaunch.containerInfo = {};
         XNAT.plugin.batchLaunch.workflowTable.tableBody.find("tr").remove();
         XNAT.plugin.batchLaunch.workflowTable.page = 0;
         XNAT.plugin.batchLaunch.workflowTable.load();

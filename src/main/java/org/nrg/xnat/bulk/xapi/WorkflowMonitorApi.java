@@ -154,10 +154,10 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
         switch (dataType) {
             case "xdat:user":
                 return true;
-            case "xnat:projectData":
+            case XnatProjectdata.SCHEMA_ELEMENT_NAME:
                 item = XnatProjectdata.getXnatProjectdatasById(id, user, false);
                 break;
-            case "xnat:subjectData":
+            case XnatSubjectdata.SCHEMA_ELEMENT_NAME:
                 item = XnatSubjectdata.getXnatSubjectdatasById(id, user, false);
                 break;
             default:
