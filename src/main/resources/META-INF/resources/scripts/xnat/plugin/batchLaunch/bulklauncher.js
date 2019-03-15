@@ -421,7 +421,7 @@ console.log('bulklauncher.js');
                                 sessionWorkFlowStatus[hdr] = workFlowStatus; //Needs to be empty if no status yet
                                 workFlowStatus = workFlowStatus || "Ready";
                                 var workFlowId = d[key].substring(workFlowStatusIndx + 1);
-                                var containerId = d[key.replace("wrk_status", "wrk_status_containerid")];
+                                var containerId = d[key.replace("wrk_status", "wrk_status_cid")];
                                 entryMap['wfid'] = workFlowId;
                                 entryMap['status'] = workFlowStatus;
                                 entryMap['comments'] = containerId;

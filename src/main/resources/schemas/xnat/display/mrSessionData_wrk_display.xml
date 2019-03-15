@@ -40,7 +40,7 @@
 			<MappingColumn schemaField="xnat:mrSessionData.ID" queryField="session_id"/>
 		</MappingColumns>
 	</DisplayField>
-	<DisplayField id="WRK_STATUS_CONTAINERID" header="Container ID" visible="true" searchable="false" data-type="string" xsi:type="SubQueryField">
+	<DisplayField id="WRK_STATUS_CID" header="Container ID" visible="true" searchable="false" data-type="string" xsi:type="SubQueryField">
 		<Content type="sql">container_id</Content>
 		<description>Container ID</description>
 		<SubQuery>select distinct on (w.id)  w.id as session_id, w.externalid, w.wrk_workflowdata_id, w.pipeline_name ,  w.status, w.comments AS container_id from wrk_workflowdata w where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' AND w.justification='Container launch' order by w.id,launch_time desc</SubQuery>

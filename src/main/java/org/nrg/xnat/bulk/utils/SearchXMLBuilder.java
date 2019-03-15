@@ -246,7 +246,7 @@ public class SearchXMLBuilder {
 		sequence++;
 
 		pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
-				"<xdat:field_ID>WRK_STATUS_CONTAINERID="+ pipelineEscaped +"</xdat:field_ID>" +
+				"<xdat:field_ID>WRK_STATUS_CID="+ pipelineEscaped +"</xdat:field_ID>" +
 				"<xdat:sequence>"+sequence+"</xdat:sequence>" +
 				"<xdat:type>string</xdat:type>" +
 				"<xdat:header>Container ID</xdat:header>" +
