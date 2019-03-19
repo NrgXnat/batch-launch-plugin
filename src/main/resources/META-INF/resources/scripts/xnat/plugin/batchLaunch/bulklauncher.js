@@ -144,7 +144,7 @@ console.log('bulklauncher.js');
                 divContent += '		    <button class="btn btn-sm" id="download">Download csv</button>				';
 
                 if (isDetails) {
-                    divContent += '		<a class="btn btn-sm pull-right" href="' +
+                    divContent += '		<a class="btn btn-sm" href="' +
                         window.location.href.replace(/\/job\/[^\/]*/,'')+'">Show all pipelines</a>';
                 }
 

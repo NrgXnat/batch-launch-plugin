@@ -208,7 +208,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
     XNAT.plugin.batchLaunch.addColumnToggle = function(showHideList, $container){
         // Toggle columns
         var $actionsRow = $container.find('.data-table-actionsrow');
-        var button = "button.show-hide-columns.pull-right";
+        var button = "button.show-hide-columns";
         var dropdown = "div.show-hide-columns-list.bl-dropdown-menu";
         var $button = $actionsRow.find(button);
         if ($button.length) {
