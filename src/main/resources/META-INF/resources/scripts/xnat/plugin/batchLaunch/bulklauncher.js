@@ -439,7 +439,12 @@ console.log('bulklauncher.js');
                     $('tbody#xnat-table-datarows-tbody').append(rowDataWithColumns);
 
                 });
-                if (!reload) addActions();
+                if (reload) {
+                    // Clear cached history info
+                    XNAT.plugin.batchLaunch.containerInfo = {};
+                } else {
+                    addActions();
+                }
                 XNAT.plugin.batchLaunch.resizeTableCols($container.find("table#" + tableId));
                 $('#searchRootElement').val(dataType);
                 $('#searchProjectId').val(XNAT.plugin.batchLaunch.projectId);

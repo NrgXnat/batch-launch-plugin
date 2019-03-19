@@ -108,11 +108,11 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
 
                     //details
                     $status_td.siblings("td.details").html(data['details'] || "");
+                }
 
-                    if (XNAT.plugin.batchLaunch.isWorkflowContainer(data)) {
-                        // Force reload of container details
-                        XNAT.plugin.batchLaunch.containerInfo[XNAT.plugin.batchLaunch.getContainerId(data)] = undefined;
-                    }
+                if (XNAT.plugin.batchLaunch.isWorkflowContainer(data)) {
+                    // Force reload of container details
+                    XNAT.plugin.batchLaunch.containerInfo[XNAT.plugin.batchLaunch.getContainerId(data)] = undefined;
                 }
             },
             error: function() {
