@@ -33,12 +33,13 @@ public class Workflow {
     private String  stepDescription;
     private String  percentageComplete;
     private String  jobId;
+    private Date    modTime;
 
     public Workflow() {};
     public Workflow(Integer wfid, String id, String label, Date itemTime, String externalId, String pipelineName, String dataType, String comments,
                     String details, String justification, String description, String src, String type, String category,
                     Date currentStepLaunchTime, Date launchTime, String currentStepId, String status, String createUser,
-                    String nextStepId, String stepDescription, String percentageComplete, String jobId) {
+                    String nextStepId, String stepDescription, String percentageComplete, String jobId, Date modTime) {
         this.wfid = wfid;
         this.id = id;
         this.label = label;
@@ -62,6 +63,7 @@ public class Workflow {
         this.stepDescription = stepDescription;
         this.percentageComplete = percentageComplete;
         this.jobId = jobId;
+        this.modTime = modTime;
     }
 
     public void setProperty(String propertyName, Object propertyValue, Class propertyClass) {
@@ -260,4 +262,11 @@ public class Workflow {
         this.jobId = jobId;
     }
 
+    @ApiModelProperty(value = "The workflow last modification")
+    public Date getModTime() {
+        return modTime;
+    }
+    public void setModTime(Date modTime) {
+        this.modTime = modTime;
+    }
 }

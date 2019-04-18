@@ -18,7 +18,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         getObject(XNAT.plugin.batchLaunch.workflowTable || {});
 
     XNAT.plugin.batchLaunch.workflowTable.tableId = "workflows-data-table";
-    var columnIds = ["externalId", "label", "itemTime", "status", "pipelineName", "launchTime", "details",
+    var columnIds = ["externalId", "label", "itemTime", "status", "pipelineName", "launchTime", "modTime", "details",
         "percentageComplete", "stepDescription"];
     var labelMap = {
         externalId: {label: "Project", show: true},
@@ -27,6 +27,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         status: {label: "Status", show: true},
         pipelineName: {label: "Name", show: true},
         launchTime: {label: "Launch time", show: true},
+        modTime: {label: "Last mod", show: true},
         details: {label: "Details", show: true},
         percentageComplete: {label: "&percnt;", show: true},
         stepDescription: {label: "Progress", show: true}
@@ -95,7 +96,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                 classes: "clean fixed-header selectable scrollable-table",
                 style: "width: auto;"
             },
-            sortable: 'externalId, label, itemTime, status, pipelineName, launchTime',
+            sortable: 'externalId, label, itemTime, status, pipelineName, launchTime, modTime',
             filter: 'externalId, label, status, pipelineName',
             sortAndFilterAjax: parseSortAndFilterParams,
             items: {
@@ -152,6 +153,13 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                     label: labelMap['launchTime']['label'],
                     apply: function(){
                         return new Date(this['launchTime']).toLocaleString();
+                    }
+                },
+                modTime: {
+                    th: {className: 'modTime'},
+                    label: labelMap['modTime']['label'],
+                    apply: function(){
+                        return new Date(this['modTime']).toLocaleString();
                     }
                 },
                 details: {

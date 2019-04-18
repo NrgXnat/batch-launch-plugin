@@ -1,13 +1,20 @@
 package org.nrg.xnat.bulk.repositories;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.ecs.xhtml.meta;
 import org.nrg.containers.services.impl.ContainerServiceImpl;
+import org.nrg.xdat.base.BaseElement;
+import org.nrg.xdat.om.WrkWorkflowdata;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xdat.schema.SchemaElement;
 import org.nrg.xdat.security.ElementSecurity;
 import org.nrg.xft.ItemI;
+import org.nrg.xft.XFTItem;
 import org.nrg.xft.collections.ItemCollection;
+import org.nrg.xft.exception.ElementNotFoundException;
+import org.nrg.xft.exception.FieldNotFoundException;
+import org.nrg.xft.exception.XFTInitException;
 import org.nrg.xft.schema.XFTManager;
 import org.nrg.xft.search.CriteriaCollection;
 import org.nrg.xft.search.ItemSearch;
@@ -32,6 +39,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.text.ParseException;
 import java.util.*;
 
 @SuppressWarnings({"SqlNoDataSourceInspection", "SqlResolve"})
@@ -62,9 +70,9 @@ public class WorkflowRepository implements PageableRepository {
             "wrk.status='Complete' GROUP BY pipeline_name";
 
     private static final List<String> ALLOWABLE_SORT_COLUMNS = Arrays.asList("label", "id", "externalid", "launch_time",
-            "item_time", "pipeline_name", "percentagecomplete", "status");
+            "last_modified", "item_time", "pipeline_name", "percentagecomplete", "status");
     private static final List<String> ALLOWABLE_FILTER_COLUMNS = Arrays.asList("label", "id", "externalid", "launch_time",
-            "item_time", "pipeline_name", "status");
+            "last_modified", "item_time", "pipeline_name", "status");
     private static final Map<String, ColumnDataType> COLUMN_INFO = ImmutableMap.<String, ColumnDataType>builder()
             .put("wrk_workflowdata_id", new ColumnDataType("wfid", int.class))
             .put("id", new ColumnDataType("id", String.class))
@@ -89,6 +97,7 @@ public class WorkflowRepository implements PageableRepository {
             .put("step_description", new ColumnDataType("stepDescription", String.class))
             .put("percentagecomplete", new ColumnDataType("percentageComplete", String.class))
             .put("jobid", new ColumnDataType("jobId", String.class))
+            .put("last_modified", new ColumnDataType("modTime", Timestamp.class))
             .build();
 
     private static final RowMapper<Workflow> WF_ROW_MAPPER = new RowMapper<Workflow>() {
@@ -115,33 +124,35 @@ public class WorkflowRepository implements PageableRepository {
     };
 
     // Pipelines for project or for entries within project (experiments, subjects, etc)
-    public static final String QUERY_PROJECT_WFS = "SELECT wrk_workflowData.*, wrk_workflowData.id AS label FROM " +
-            "wrk_workflowData WHERE id = :id OR (id = :arcId AND data_type = 'arc:project')";
+    public static final String QUERY_PROJECT_WFS = "SELECT wrk.*, wrk.id AS label, NULL as item_time, " +
+            "meta.last_modified FROM wrk_workflowData wrk LEFT JOIN wrk_workflowdata_meta_data meta " +
+            "ON wrk.workflowData_info=meta.meta_data_id WHERE id = :id OR (id = :arcId AND data_type = 'arc:project')";
 
     // SQL from WorkflowBasedHistoryBuilder
     // Pipelines on subject
-    public static final String QUERY_SUBJECT_WFS = "SELECT wrk.*, xnat_subjectdata.label, NULL AS item_time FROM " +
-            "(SELECT * FROM wrk_workflowData WHERE id = :id OR " +
-            "id IN (SELECT DISTINCT id FROM (SELECT sad.id FROM xnat_subjectassessordata sad " +
-            "WHERE subject_id=:id UNION " +
-            "SELECT iad.id FROM xnat_subjectassessordata sad LEFT JOIN xnat_imageassessordata iad " +
+    public static final String QUERY_SUBJECT_WFS = "SELECT wrk.*, xnat_subjectdata.label, NULL AS item_time, " +
+            "meta.last_modified FROM (SELECT * FROM wrk_workflowData WHERE id = :id OR " +
+            "id IN (SELECT DISTINCT id FROM (SELECT sad.id FROM xnat_subjectassessordata sad WHERE subject_id=:id " +
+            "UNION SELECT iad.id FROM xnat_subjectassessordata sad LEFT JOIN xnat_imageassessordata iad " +
             "ON sad.id=iad.imagesession_id WHERE iad.id IS NOT NULL AND subject_id=:id UNION " +
             "SELECT sad.id FROM xnat_subjectassessordata_history sad WHERE subject_id=:id UNION " +
             "SELECT iad.id FROM xnat_subjectassessordata sad LEFT JOIN xnat_imageassessordata_history iad " +
             "ON sad.id=iad.imagesession_id WHERE iad.id IS NOT NULL AND subject_id=:id UNION " +
             "SELECT iad.id FROM xnat_subjectassessordata_history sad LEFT JOIN xnat_imageassessordata_history iad " +
             "ON sad.id=iad.imagesession_id WHERE iad.id IS NOT NULL AND subject_id=:id) AS idq)) AS wrk INNER JOIN " +
-            "xnat_subjectdata ON wrk.id=xnat_subjectdata.id";
+            "xnat_subjectdata ON wrk.id=xnat_subjectdata.id LEFT JOIN wrk_workflowdata_meta_data meta " +
+            "ON wrk.workflowData_info=meta.meta_data_id";
 
     // Pipelines on experiment
     public static final String QUERY_EXPT_WFS = "SELECT wrk.*, xnat_experimentdata.label, " +
-            "xnat_experimentdata.date + xnat_experimentdata.time AS item_time FROM " +
+            "xnat_experimentdata.date + xnat_experimentdata.time AS item_time, meta.last_modified FROM " +
             "(SELECT * FROM wrk_workflowData WHERE id = :id OR " +
             "id IN (SELECT DISTINCT id FROM (SELECT iad.id FROM xnat_imageassessordata iad " +
             "WHERE iad.id IS NOT NULL AND iad.imagesession_id=:id UNION " +
             "SELECT iad.id FROM xnat_imageassessordata_history iad " +
             "WHERE iad.id IS NOT NULL AND iad.imagesession_id=:id) AS idq)) as wrk INNER JOIN " +
-            "xnat_experimentdata ON wrk.id=xnat_experimentdata.id";
+            "xnat_experimentdata ON wrk.id=xnat_experimentdata.id LEFT JOIN wrk_workflowdata_meta_data meta " +
+            "ON wrk.workflowData_info=meta.meta_data_id";
 
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
@@ -181,7 +192,8 @@ public class WorkflowRepository implements PageableRepository {
                 namedParams.addValue("userId", user.getID())
                         .addValue("username", user.getLogin());
                 // Pipelines user has launched and pipelines associated with project user can read
-                query = "SELECT wrk.* FROM (SELECT wrkSub.* FROM (" + buildQueryWithDataTypeLabels() + ") AS wrkSub " +
+                query = "SELECT wrk.* FROM (SELECT wrkSub.*, meta.last_modified FROM (" +
+                        buildQueryWithDataTypeLabels() + ") AS wrkSub " +
                         "LEFT JOIN wrk_workflowdata_meta_data meta ON wrkSub.workflowData_info = meta.meta_data_id " +
                         "WHERE meta.insert_user_xdat_user_id = :userId OR wrkSub.create_user = :username) AS wrk " +
                         "INNER JOIN xnat_projectdata proj ON wrk.externalId = proj.id OR wrk.externalId = proj.id " +
@@ -298,10 +310,19 @@ public class WorkflowRepository implements PageableRepository {
         Date cslt = (wrk.getCurrentStepLaunchTime() instanceof Date) ? (Date) wrk.getCurrentStepLaunchTime() : null;
         String label;
         Date itemTime;
+        Date lastMod = null;
+        try {
+            lastMod = ((WrkWorkflowdata) wrk).getItem().getMeta().getDateProperty("last_modified");
+        } catch (XFTInitException | ElementNotFoundException | FieldNotFoundException | ParseException e) {
+            // Ignore exceptions and just leave mod time null
+            log.error("Unable to retrieve last modified time from workflow meta data", e);
+        }
+
         switch(wrk.getDataType()) {
             case XnatProjectdata.SCHEMA_ELEMENT_NAME:
-                label = wrk.getId();
-                itemTime = null;
+                XnatProjectdata proj = XnatProjectdata.getXnatProjectdatasById(wrk.getId(), user, false);
+                label = proj.getId();
+                itemTime = proj.getInsertDate();
                 break;
             case XnatSubjectdata.SCHEMA_ELEMENT_NAME:
                 XnatSubjectdata subj = XnatSubjectdata.getXnatSubjectdatasById(wrk.getId(), user, false);
@@ -318,7 +339,8 @@ public class WorkflowRepository implements PageableRepository {
                 wrk.getPipelineName(), wrk.getDataType(),
                 wrk.getComments(), wrk.getDetails(), wrk.getJustification(), null, null, wrk.getType(),
                 wrk.getCategory(), cslt, wrk.getLaunchTimeDate(), wrk.getCurrentStepId(), wrk.getStatus(),
-                wrk.getCreateUser(), null, wrk.getStepDescription(), wrk.getPercentagecomplete(), null
+                wrk.getCreateUser(), null, wrk.getStepDescription(), wrk.getPercentagecomplete(),
+                null, lastMod
         );
         // Estimate % complete if not provided
         updateWorkflowProgress(wf);
