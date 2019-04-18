@@ -60,9 +60,6 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     private SiteConfigPreferences preferences;
     private WorkflowService workflowService;
 
-    // Constants
-    private final String ACCESSION_ID = "accessionid";
-
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
     public WorkflowMonitorApi(final SiteConfigPreferences preferences,
@@ -133,7 +130,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
         try {
-            return new ResponseEntity<>(workflowService.getWorkflowModelFromWorkflowI(wrk), HttpStatus.OK);
+            return new ResponseEntity<>(workflowService.getWorkflowModelFromWorkflowI(wrk, user), HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }

@@ -35,13 +35,13 @@ public class WorkflowService {
 
     public List<Workflow> getWorkflows(String id, String dataType, UserI user,
                                        String sortColumn, String sortDir, @Nullable Integer page, @Nullable Integer size,
-                                       @Nullable Map<String, String> filterMap) {
+                                       @Nullable Map<String, String> filterMap) throws Exception {
         return workflowRepository.getWorkflows(id, dataType, user,
                 new PageRequest(workflowRepository, sortColumn, sortDir, filterMap, page, size));
     }
 
-    public Workflow getWorkflowModelFromWorkflowI(PersistentWorkflowI wrk) {
-        return workflowRepository.getWorkflow(wrk);
+    public Workflow getWorkflowModelFromWorkflowI(PersistentWorkflowI wrk, UserI user) {
+        return workflowRepository.getWorkflow(wrk, user);
     }
 
     public String getContainerId(PersistentWorkflowI wrk) {
