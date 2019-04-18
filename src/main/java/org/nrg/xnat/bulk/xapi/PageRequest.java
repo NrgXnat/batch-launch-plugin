@@ -1,6 +1,7 @@
 package org.nrg.xnat.bulk.xapi;
 
 import org.nrg.xnat.bulk.repositories.PageableRepository;
+import org.nrg.xnat.bulk.utils.XAPISearchFilterHelper;
 
 import java.util.Arrays;
 import java.util.List;
@@ -37,10 +38,6 @@ public class PageRequest {
         return null;
     }
 
-    public String sanitizeFilterString(String uiValue) {
-        return uiValue.replaceAll("[^A-Za-z0-9_.\\-]", "");
-    }
-
     public String getQuerySuffix() {
         StringBuilder suffix = new StringBuilder();
 
@@ -50,6 +47,7 @@ public class PageRequest {
             for (String key : filterMap.keySet()) {
                 // From UI to DB column name
                 String column = getFilterColumnFromMapping(key);
+                Class columnClass = repo.getColumnMapping().get(column).dataType;
                 // Allowed to filter?
                 if (repo.getAllowableFilterColumns().contains(column)) {
                     if (needsWhere) {
@@ -58,7 +56,7 @@ public class PageRequest {
                     } else {
                         suffix.append(" AND ");
                     }
-                    suffix.append(String.format("%s ILIKE '%%%s%%'", column, sanitizeFilterString(filterMap.get(key))));
+                    suffix.append(XAPISearchFilterHelper.constructQueryFilter(columnClass, column, filterMap.get(key)));
                 }
             }
         }
