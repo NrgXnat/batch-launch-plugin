@@ -3,11 +3,15 @@ package org.nrg.xnat.bulk.xapi;
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.*;
 import org.nrg.action.ClientException;
 import org.nrg.action.ServerException;
 import org.nrg.xdat.security.helpers.Permissions;
+import org.nrg.xnat.bulk.exceptions.FilterException;
 import org.nrg.xnat.bulk.model.Workflow;
+import org.nrg.xnat.bulk.model.WorkflowFilter;
 import org.nrg.xnat.bulk.services.WorkflowService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -59,18 +63,21 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     private ContainerService containerService;
     private SiteConfigPreferences preferences;
     private WorkflowService workflowService;
+    private ObjectMapper mapper;
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
     public WorkflowMonitorApi(final SiteConfigPreferences preferences,
                               final ContainerService containerService,
                               final WorkflowService workflowService,
+                              final ObjectMapper mapper,
                               final UserManagementServiceI userManagementService,
                               final RoleHolder roleHolder) {
         super(userManagementService, roleHolder);
         this.preferences = preferences;
         this.containerService = containerService;
         this.workflowService = workflowService;
+        this.mapper = mapper;
     }
 
     @ApiOperation(value = "Returns a map of workflow models.", response = List.class, responseContainer = "List")
@@ -78,15 +85,15 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             @ApiResponse(code = 400, message = "Invalid request."),
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 500, message = "Unexpected error")})
-    @XapiRequestMapping(produces = {MediaType.APPLICATION_JSON_VALUE}, method = RequestMethod.POST)
+    @XapiRequestMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST)
     @ResponseBody
-    public ResponseEntity<List<Workflow>> getWorkflows(@RequestParam("id") String id,
-                                                       @RequestParam("data_type") String dataType,
+    public ResponseEntity<List<Workflow>> getWorkflows(@RequestParam("data_type") String dataType,
+                                                       @RequestParam(value = "id", required = false) String id,
                                                        @RequestParam(value = "sort_col", defaultValue = "launchTime") String sortColumn,
                                                        @RequestParam(value = "sort_dir", defaultValue = "DESC") String sortDir,
                                                        @RequestParam(value = "page", defaultValue = "1") int page,
                                                        @RequestParam(value = "size", defaultValue = "50") int size,
-                                                       @RequestParam(value = "filters", required = false) List<String> filters) {
+                                                       @RequestParam(value = "filters", required = false) String filtersJson) throws FilterException {
 
         if (page < 1 || size < 1) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -97,19 +104,19 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        // Split on # to get column name & val
-        Map<String, String> filterMap = null;
-        if (filters != null) {
-            filterMap = new HashMap<>();
-            for (String filter : filters) {
-                String[] parts = filter.split("#");
-                filterMap.put(parts[0], parts[1]);
+        Map<String, WorkflowFilter> filtersMap = null;
+        if (filtersJson != null) {
+            try {
+                filtersMap = mapper.readValue(filtersJson,
+                        new TypeReference<Map<String, WorkflowFilter>>() {});
+            } catch (IOException e) {
+                throw new FilterException(e);
             }
         }
 
         try {
             return new ResponseEntity<>(workflowService.getWorkflows(id, dataType, user,
-                    sortColumn, sortDir, page, size, filterMap), HttpStatus.OK);
+                    sortColumn, sortDir, page, size, filtersMap), HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }

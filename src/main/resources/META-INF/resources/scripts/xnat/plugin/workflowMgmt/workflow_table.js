@@ -21,33 +21,35 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
     var columnIds = ["externalId", "label", "itemTime", "status", "pipelineName", "launchTime", "modTime", "details",
         "percentageComplete", "stepDescription"];
     var labelMap = {
-        externalId: {label: "Project", show: true},
-        label: {label: "Label", show: true},
-        itemTime: {label: "Expt time", show: true},
-        status: {label: "Status", show: true},
-        pipelineName: {label: "Name", show: true},
-        launchTime: {label: "Launch time", show: true},
-        modTime: {label: "Last mod", show: true},
-        details: {label: "Details", show: true},
-        percentageComplete: {label: "&percnt;", show: true},
-        stepDescription: {label: "Progress", show: true}
+        externalId: {label: "Project", show: true, type: "string"},
+        label: {label: "Label", show: true, type: "string"},
+        itemTime: {label: "Expt time", show: true, type: "datetime"},
+        status: {label: "Status", show: true, type: "string"},
+        pipelineName: {label: "Name", show: true, type: "string"},
+        launchTime: {label: "Launch time", show: true, type: "datetime"},
+        modTime: {label: "Last mod", show: true, type: "datetime"},
+        details: {label: "Details", show: true, type: "string"},
+        percentageComplete: {label: "&percnt;", show: true, type: "number"},
+        stepDescription: {label: "Progress", show: true, type: "string"}
     };
     var $container;
 
     function parseSortAndFilterParams(sortOrFilter, column, value) {
         // Always pull filterMap from DOM; ignore column & value
-        var filterList = [];
+        var filters = {}, label;
         var $table = $("#" + XNAT.plugin.batchLaunch.workflowTable.tableId);
         $table.find("tr.filter").children().each(function(){
             var value = $(this).find("input.filter-data").val();
             if (value) {
-                filterList.push(this.id.replace("filter-by-", "") + "#" + value);
+                // TODO add support for date filtering to UI, already in backend
+                label = this.id.replace("filter-by-", "");
+                filters[label] = {like: value, type: labelMap[label].type};
             }
         });
-        if (filterList.length === 0) {
-            XNAT.plugin.batchLaunch.workflowTable.filterList = undefined;
+        if (filters.length === 0) {
+            XNAT.plugin.batchLaunch.workflowTable.filters = undefined;
         } else {
-            XNAT.plugin.batchLaunch.workflowTable.filterList = filterList;
+            XNAT.plugin.batchLaunch.workflowTable.filters = filters;
         }
 
         if (sortOrFilter === 'filter') {
@@ -274,14 +276,15 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         if (XNAT.plugin.batchLaunch.workflowTable.sortDir) {
             dataObj['sort_dir'] = XNAT.plugin.batchLaunch.workflowTable.sortDir;
         }
-        if (XNAT.plugin.batchLaunch.workflowTable.filterList) {
-            dataObj['filters'] = XNAT.plugin.batchLaunch.workflowTable.filterList.join(",");
+        if (XNAT.plugin.batchLaunch.workflowTable.filters) {
+            dataObj['filters'] = XNAT.plugin.batchLaunch.workflowTable.filters;
         }
 
         // API call
-        XNAT.xhr.post({
+        XNAT.xhr.postJSON({
             url: XNAT.url.restUrl('/xapi/workflows'),
-            data: dataObj,
+            data: JSON.stringify(dataObj),
+            contentType: "application/json",
             success: function (data) {
                 if (!XNAT.plugin.batchLaunch.workflowTable.tableBody) {
                     // First load

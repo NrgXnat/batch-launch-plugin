@@ -69,10 +69,10 @@ public class WorkflowRepository implements PageableRepository {
             "wrk_workflowData_meta_data meta ON wrk.workflowdata_info=meta.meta_data_id WHERE " +
             "wrk.status='Complete' GROUP BY pipeline_name";
 
-    private static final List<String> ALLOWABLE_SORT_COLUMNS = Arrays.asList("label", "id", "externalid", "launch_time",
-            "last_modified", "item_time", "pipeline_name", "percentagecomplete", "status");
-    private static final List<String> ALLOWABLE_FILTER_COLUMNS = Arrays.asList("label", "id", "externalid", "launch_time",
-            "last_modified", "item_time", "pipeline_name", "status");
+    private static final List<String> ALLOWABLE_SORT_COLUMNS = Arrays.asList("label", "id", "externalid",
+            "launch_time", "last_modified", "item_time", "pipeline_name", "percentagecomplete", "status");
+    private static final List<String> ALLOWABLE_FILTER_COLUMNS = Arrays.asList("wrk_workflowdata_id", "label", "id",
+            "externalid", "launch_time", "last_modified", "item_time", "pipeline_name", "status");
     private static final Map<String, ColumnDataType> COLUMN_INFO = ImmutableMap.<String, ColumnDataType>builder()
             .put("wrk_workflowdata_id", new ColumnDataType("wfid", int.class))
             .put("id", new ColumnDataType("id", String.class))

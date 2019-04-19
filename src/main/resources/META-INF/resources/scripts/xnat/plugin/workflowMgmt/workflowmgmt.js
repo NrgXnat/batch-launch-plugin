@@ -275,19 +275,15 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
     };
 
     XNAT.plugin.batchLaunch.viewWorkflowDetails = function(workflowId, containerId) {
-        function wfModal(workflowId) {
-            // rptModal in xdat.js
-            rptModal.call(this, workflowId, "wrk:workflowData", "wrk:workflowData.wrk_workflowData_id");
-        }
-        // Is container service installed and do we have a container id?
-        if (XNAT.plugin.containerService.historyTable && containerId) {
+        // Do we have a container id?
+        if (containerId) {
             XNAT.plugin.batchLaunch.getContainerInfo(containerId,
                 XNAT.plugin.containerService.historyTable.viewHistoryEntry,
-                function() {wfModal(workflowId);});
+                function() {XNAT.plugin.containerService.historyTable.workflowModal(workflowId);});
         } else {
             var loadingDialog = XNAT.ui.dialog.loading;
             loadingDialog.open();
-            wfModal(workflowId);
+            XNAT.plugin.containerService.historyTable.workflowModal(workflowId);
             loadingDialog.close();
         }
     };
