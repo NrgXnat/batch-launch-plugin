@@ -69,10 +69,6 @@ public class WorkflowRepository implements PageableRepository {
             "wrk_workflowData_meta_data meta ON wrk.workflowdata_info=meta.meta_data_id WHERE " +
             "wrk.status='Complete' GROUP BY pipeline_name";
 
-    private static final List<String> ALLOWABLE_SORT_COLUMNS = Arrays.asList("label", "id", "externalid",
-            "launch_time", "last_modified", "item_time", "pipeline_name", "percentagecomplete", "status");
-    private static final List<String> ALLOWABLE_FILTER_COLUMNS = Arrays.asList("wrk_workflowdata_id", "label", "id",
-            "externalid", "launch_time", "last_modified", "item_time", "pipeline_name", "status");
     private static final Map<String, ColumnDataType> COLUMN_INFO = ImmutableMap.<String, ColumnDataType>builder()
             .put("wrk_workflowdata_id", new ColumnDataType("wfid", int.class))
             .put("id", new ColumnDataType("id", String.class))
@@ -161,12 +157,13 @@ public class WorkflowRepository implements PageableRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public List<String> getAllowableSortColumns() {
-        return ALLOWABLE_SORT_COLUMNS;
+    public Set<String> getAllowableSortColumns() {
+        return COLUMN_INFO.keySet();
     }
-    public List<String> getAllowableFilterColumns() {
-        return ALLOWABLE_FILTER_COLUMNS;
+    public Set<String> getAllowableFilterColumns() {
+        return COLUMN_INFO.keySet();
     }
+
     public Map<String, ColumnDataType> getColumnMapping() {
         return COLUMN_INFO;
     }
@@ -184,7 +181,11 @@ public class WorkflowRepository implements PageableRepository {
     public List<Workflow> getWorkflows(String id, String dataType, UserI user,
                                        PageRequest request) throws Exception {
 
-        MapSqlParameterSource namedParams = new MapSqlParameterSource().addValue("id", id);
+        MapSqlParameterSource namedParams = new MapSqlParameterSource();
+
+        if (StringUtils.isNotBlank(id)) {
+            namedParams.addValue("id", id);
+        }
 
         String query;
         switch(dataType) {
@@ -216,7 +217,7 @@ public class WorkflowRepository implements PageableRepository {
                 break;
         }
         query = "SELECT * FROM (" + query + ") AS q"; //Allow for WHERE in query suffix
-        query += request.getQuerySuffix();
+        query += request.getQuerySuffix(namedParams);
 
         List<Workflow> wfs = jdbcTemplate.query(query, namedParams, WF_ROW_MAPPER);
 

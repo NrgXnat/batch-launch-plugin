@@ -5,6 +5,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public class FilterException extends Exception {
+    public FilterException() {
+        super();
+    }
+
     public FilterException(final String message) {
         super(message);
     }
@@ -14,6 +18,6 @@ public class FilterException extends Exception {
     }
 
     public FilterException(final Throwable cause) {
-            super(cause);
-        }
+        super(cause);
+    }
 }

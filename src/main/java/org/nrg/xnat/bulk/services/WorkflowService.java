@@ -1,6 +1,5 @@
 package org.nrg.xnat.bulk.services;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.nrg.xnat.bulk.model.Workflow;
 import org.nrg.xnat.bulk.model.WorkflowFilter;
 import org.nrg.xnat.bulk.repositories.WorkflowRepository;

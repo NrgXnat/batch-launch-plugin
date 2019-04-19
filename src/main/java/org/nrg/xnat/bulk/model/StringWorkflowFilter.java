@@ -3,6 +3,7 @@ package org.nrg.xnat.bulk.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.nrg.xnat.bulk.exceptions.FilterException;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import javax.annotation.Nullable;
 import java.util.regex.Pattern;
@@ -14,10 +15,11 @@ public class StringWorkflowFilter extends WorkflowFilter {
 
     @Override
     @JsonIgnore
-    public String constructQueryString(String dbColumnName) throws FilterException {
-        String notStr = (not == null || !not) ? "" : " NOT ";
+    public String constructQueryString(String dbColumnName, MapSqlParameterSource namedParams) throws FilterException {
+        String notStr = (not == null || !not) ? "" : " NOT";
         validate(like);
-        return String.format("%s %s ILIKE '%%%s%%'", dbColumnName, notStr, like);
+        namedParams.addValue(dbColumnName + "str", "%" + like + "%");
+        return dbColumnName + notStr + " ILIKE :" + dbColumnName + "str";
     }
 
     @Override

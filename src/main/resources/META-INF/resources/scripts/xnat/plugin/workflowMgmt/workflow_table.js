@@ -284,7 +284,6 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         XNAT.xhr.postJSON({
             url: XNAT.url.restUrl('/xapi/workflows'),
             data: JSON.stringify(dataObj),
-            contentType: "application/json",
             success: function (data) {
                 if (!XNAT.plugin.batchLaunch.workflowTable.tableBody) {
                     // First load

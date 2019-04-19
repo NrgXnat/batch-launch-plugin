@@ -4,8 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.xnat.bulk.exceptions.FilterException;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import javax.annotation.Nullable;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,22 +19,26 @@ public class NumericWorkflowFilter extends WorkflowFilter {
 
     @Override
     @JsonIgnore
-    public String constructQueryString(String dbColumnName) throws FilterException {
+    public String constructQueryString(String dbColumnName, MapSqlParameterSource namedParams) throws FilterException {
         if (gt != null && ge != null || lt != null && le != null) {
             throw new FilterException("Cannot have both *t and *e params");
         }
         List<String> filters = new ArrayList<>();
         if (gt != null) {
-            filters.add(dbColumnName + " > " + gt);
+            namedParams.addValue(dbColumnName + "gt", gt, Types.DECIMAL);
+            filters.add(dbColumnName + " > :" + dbColumnName + "gt");
         }
         if (ge != null) {
-            filters.add(dbColumnName + " >= '" + ge);
+            namedParams.addValue(dbColumnName +"ge", ge, Types.DECIMAL);
+            filters.add(dbColumnName + " >= :" + dbColumnName + "ge");
         }
         if (lt != null) {
-            filters.add(dbColumnName + " < '" + lt);
+            namedParams.addValue(dbColumnName +"lt", lt, Types.DECIMAL);
+            filters.add(dbColumnName + " < :" + dbColumnName + "lt");
         }
         if (le != null) {
-            filters.add(dbColumnName + " <= '" + le);
+            namedParams.addValue(dbColumnName + "le", le, Types.DECIMAL);
+            filters.add(dbColumnName + " <= :" + dbColumnName + "le");
         }
         return StringUtils.join(filters, " AND ");
     }

@@ -1,7 +1,7 @@
 package org.nrg.xnat.bulk.repositories;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface PageableRepository {
     class ColumnDataType {
@@ -12,8 +12,8 @@ public interface PageableRepository {
             this.dataType = dataType;
         }
     }
-    List<String> getAllowableSortColumns();
-    List<String> getAllowableFilterColumns();
+    Set<String> getAllowableSortColumns();
+    Set<String> getAllowableFilterColumns();
 
     Map<String,ColumnDataType> getColumnMapping();
 }

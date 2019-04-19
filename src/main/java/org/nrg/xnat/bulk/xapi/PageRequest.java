@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.nrg.xnat.bulk.exceptions.FilterException;
 import org.nrg.xnat.bulk.model.WorkflowFilter;
 import org.nrg.xnat.bulk.repositories.PageableRepository;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -36,15 +37,16 @@ public class PageRequest {
 
     /**
      * Construct query suffix with filters, sorting, and limits
+     * @param namedParams the named parameters object
      * @return query suffix
      * @throws FilterException if filter parameters are invalid
      */
-    public String getQuerySuffix() throws FilterException {
+    public String getQuerySuffix(MapSqlParameterSource namedParams) throws FilterException {
         StringBuilder suffix = new StringBuilder();
 
         //add filter
         if (filtersMap != null) {
-            addFilterSuffix(suffix);
+            addFilterSuffix(suffix, namedParams);
         }
 
         //add sort
@@ -84,9 +86,10 @@ public class PageRequest {
     /**
      * Append filters to query suffix
      * @param suffix string builder of query suffix
+     * @param namedParams the named params object
      * @throws FilterException if filter parameters are invalid
      */
-    private void addFilterSuffix(StringBuilder suffix) throws FilterException {
+    private void addFilterSuffix(StringBuilder suffix, MapSqlParameterSource namedParams) throws FilterException {
         boolean needsWhere = true;
         for (String key : filtersMap.keySet()) {
             // From UI to DB column name
@@ -100,7 +103,7 @@ public class PageRequest {
                     suffix.append(" AND ");
                 }
                 WorkflowFilter filter = filtersMap.get(key);
-                suffix.append(filter.constructQueryString(column));
+                suffix.append(filter.constructQueryString(column, namedParams));
             } else {
                 log.debug("Skipping filter on column {}, which is not allowed", column);
             }
