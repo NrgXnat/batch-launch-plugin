@@ -1,8 +1,10 @@
 package org.nrg.xnat.plugins.batchLaunchPlugin.plugin;
 
 import org.nrg.framework.annotations.XnatPlugin;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean;
 
 @XnatPlugin(value = "batchLaunchPlugin", 
 			name = "XNAT 1.7 Batch Launch Plugin", 
@@ -15,5 +17,13 @@ import lombok.extern.slf4j.Slf4j;
 public class BulkLaunchPlugin {
 	public BulkLaunchPlugin() {
 		log.info("Configuring batch launch plugin");
+	}
+
+	@Bean
+	public ThreadPoolExecutorFactoryBean threadPoolExecutorFactoryBean() {
+		ThreadPoolExecutorFactoryBean tBean = new ThreadPoolExecutorFactoryBean();
+		tBean.setCorePoolSize(5);
+		tBean.setThreadNamePrefix("batch-launch-");
+		return tBean;
 	}
 }
