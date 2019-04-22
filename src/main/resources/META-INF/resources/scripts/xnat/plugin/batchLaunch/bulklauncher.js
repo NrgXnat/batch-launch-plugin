@@ -641,13 +641,14 @@ console.log('bulklauncher.js');
                             dataType : 'json',
                             success: function(data){
                                 var messageContent = [],
-                                    totalAttempts = data.successes.concat(data.failures).length;
+                                    totalAttempts = data.successes.concat(data.failures).length,
+                                    successMsg = 'successfully queued to be terminated. If statuses don\'t update ' +
+                                        'shortly, your admin will need to review the logs to determine what went wrong.';
                                 if (data.failures.length > 0) {
-                                    messageContent.push( spawn('div.message', data.successes.length + ' of '+
-                                        totalAttempts+' containers successfully queued to be terminated.') );
+                                    messageContent.push( spawn('div.message', data.successes.length + ' of ' +
+                                        totalAttempts + ' containers ') );
                                 } else if(data.successes.length > 0) {
-                                    messageContent.push( spawn('div.success','All containers successfully queued ' +
-                                        'to be terminated.') );
+                                    messageContent.push( spawn('div.success','All containers ' + successMsg) );
                                 } else {
                                     messageContent.push( spawn('div.warning','No containers terminated.'));
                                 }
@@ -667,7 +668,7 @@ console.log('bulklauncher.js');
                                         {
                                             label: 'OK',
                                             isDefault: true,
-                                            close: true
+                                            close: XNAT.ui.dialog.closeAll()
                                         }
                                     ]
                                 });
@@ -680,7 +681,7 @@ console.log('bulklauncher.js');
                                         {
                                             label: 'OK',
                                             isDefault: true,
-                                            close: true
+                                            close: XNAT.ui.dialog.closeAll()
                                         }
                                     ]
                                 });
