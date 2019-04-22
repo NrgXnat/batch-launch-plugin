@@ -3,15 +3,12 @@ package org.nrg.xnat.bulk.xapi;
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.*;
 import org.nrg.action.ClientException;
 import org.nrg.action.ServerException;
 import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xnat.bulk.exceptions.FilterException;
 import org.nrg.xnat.bulk.model.Workflow;
-import org.nrg.xnat.bulk.model.WorkflowFilter;
 import org.nrg.xnat.bulk.model.WorkflowListingRequest;
 import org.nrg.xnat.bulk.services.WorkflowService;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +35,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Nullable;
@@ -47,13 +45,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @Slf4j
@@ -64,21 +60,21 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     private ContainerService containerService;
     private SiteConfigPreferences preferences;
     private WorkflowService workflowService;
-    private ObjectMapper mapper;
+    private final ExecutorService executorService;
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
     public WorkflowMonitorApi(final SiteConfigPreferences preferences,
                               final ContainerService containerService,
                               final WorkflowService workflowService,
-                              final ObjectMapper mapper,
+                              final ThreadPoolExecutorFactoryBean executorFactoryBean,
                               final UserManagementServiceI userManagementService,
                               final RoleHolder roleHolder) {
         super(userManagementService, roleHolder);
         this.preferences = preferences;
         this.containerService = containerService;
         this.workflowService = workflowService;
-        this.mapper = mapper;
+        this.executorService = executorFactoryBean.getObject();
     }
 
     @ApiOperation(value = "Returns a map of workflow models.", response = List.class, responseContainer = "List")
@@ -508,30 +504,65 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.APPLICATION_JSON_VALUE},
             produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    public ResponseEntity<String> killActive(@PathVariable String containerName,
+    public ResponseEntity<String> killActive(@PathVariable final String containerName,
                 @RequestParam("experiments[]") List<String> experiments) {
-        final UserI user = getSessionUser();
+
         try {
-            List<String> successMessages = new ArrayList<>();
-            List<String> failureMessages = new ArrayList<>();
-            for (String experimentId : experiments) {
-                boolean flag = false;
-                if (!checkAccess("edit", user, experimentId, "xnat:experimentData")) {
-                    failureMessages.add(experimentId + ": " + user.getLogin() + " doesn't have permission to edit");
-                }
-                for (PersistentWorkflowI wrk : WorkflowUtils.getOpenWorkflowsForPipeline(user, experimentId, containerName)) {
-                    flag = true;
-                    try {
-                        String containerId = killJob(wrk, user);
-                        successMessages.add(experimentId + ": " + wrk.getWorkflowId() + " (" + containerId + ")");
-                    } catch (ServerException|ClientException e) {
-                        failureMessages.add(experimentId + ": " + wrk.getWorkflowId() + " " + e.getMessage());
+            if (experiments.isEmpty()) {
+                return new ResponseEntity<>("No experiments specified", HttpStatus.BAD_REQUEST);
+            }
+
+            final UserI user = getSessionUser();
+            final List<String> successMessages = new ArrayList<>();
+            final List<String> failureMessages = new ArrayList<>();
+            boolean isFirstExp = true;
+            String errMsg = "";
+
+            String sampleExpId = experiments.get(0);
+
+            for (final String experimentId : experiments) {
+                if (isFirstExp) {
+                    isFirstExp = false;
+                    if (!checkAccess("edit", user, sampleExpId, "xnat:experimentData")) {
+                        failureMessages.add("Insufficient permissions to terminate " + containerName + " workflows for " +
+                                sampleExpId + ". It's likely that attempts to terminate other experiments will also fail.");
+                        errMsg = "; however, termination may fail due to permissions";
+                        continue;
                     }
                 }
-                if (!flag) {
-                    failureMessages.add(experimentId + ": no workflows in a state that can be terminated");
+
+                try {
+                    executorService.submit(new Runnable() {
+                        @Override
+                        public void run() {
+                            boolean flag = false;
+                            if (!checkAccess("edit", user, experimentId, "xnat:experimentData")) {
+                                log.error("User {} doesn't have edit permissions for {}", user.getLogin(), experimentId);
+                                return;
+                            }
+                            for (final PersistentWorkflowI wrk :
+                                    WorkflowUtils.getOpenWorkflowsForPipeline(user, experimentId, containerName)) {
+                                flag = true;
+                                try {
+                                    killJob(wrk, user);
+                                } catch (ServerException|ClientException e) {
+                                    log.error("Unable to kill {} workflow {}", experimentId, wrk.getWorkflowId(), e);
+                                }
+                            }
+                            if (!flag) {
+                                log.debug("Experiment {}: No {} workflows in a state that can be terminated",
+                                        experimentId, containerName);
+                            }
+                        }
+                    });
+                    successMessages.add(experimentId + ": queued for termination" + errMsg);
+                } catch (Exception e) {
+                    // Most exceptions will be logged, this will only reflect issues submitting to the executorService
+                    failureMessages.add(experimentId + ": unable to queue for termination due to " + e.getMessage());
+                    log.error(e.getMessage(), e);
                 }
             }
+
 
             //Write json
             JsonFactory jfactory = new JsonFactory();

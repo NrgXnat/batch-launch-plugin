@@ -643,15 +643,17 @@ console.log('bulklauncher.js');
                                 var messageContent = [],
                                     totalAttempts = data.successes.concat(data.failures).length;
                                 if (data.failures.length > 0) {
-                                    messageContent.push( spawn('div.message',data.successes.length + ' of '+totalAttempts+' containers successfully terminated.') );
+                                    messageContent.push( spawn('div.message', data.successes.length + ' of '+
+                                        totalAttempts+' containers successfully queued to be terminated.') );
                                 } else if(data.successes.length > 0) {
-                                    messageContent.push( spawn('div.success','All containers successfully terminated.') );
+                                    messageContent.push( spawn('div.success','All containers successfully queued ' +
+                                        'to be terminated.') );
                                 } else {
                                     messageContent.push( spawn('div.warning','No containers terminated.'));
                                 }
 
                                 if (data.failures.length > 0){
-                                    messageContent.push( spawn('h3',{'style': {'margin-top': '2em' }},'Failed termination attempts') );
+                                    messageContent.push( spawn('h3',{'style': {'margin-top': '2em' }}, 'Failed termination attempts') );
                                     data.failures.forEach(function(failure){
                                         messageContent.push( spawn('p',{ style: { 'font-weight': 'bold' }}, 'Error message:') );
                                         messageContent.push( spawn('pre.json', failure) );
