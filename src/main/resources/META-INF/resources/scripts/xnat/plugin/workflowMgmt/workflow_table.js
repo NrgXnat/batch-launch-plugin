@@ -18,33 +18,38 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         getObject(XNAT.plugin.batchLaunch.workflowTable || {});
 
     XNAT.plugin.batchLaunch.workflowTable.tableId = "workflows-data-table";
-    var columnIds = ["externalId", "id", "status", "pipelineName", "launchTime", "details", "percentageComplete", "stepDescription"];
+    var columnIds = ["externalId", "label", "itemTime", "status", "pipelineName", "launchTime", "modTime", "details",
+        "percentageComplete", "stepDescription"];
     var labelMap = {
-        externalId: {label: "Project", show: true},
-        id: {label: "ID", show: true},
-        status: {label: "Status", show: true},
-        pipelineName: {label: "Name", show: true},
-        launchTime: {label: "Launch time", show: true},
-        details: {label: "Details", show: true},
-        percentageComplete: {label: "&percnt;", show: true},
-        stepDescription: {label: "Progress", show: true}
+        externalId: {label: "Project", show: true, type: "string"},
+        label: {label: "Label", show: true, type: "string"},
+        itemTime: {label: "Expt time", show: true, type: "datetime"},
+        status: {label: "Status", show: true, type: "string"},
+        pipelineName: {label: "Name", show: true, type: "string"},
+        launchTime: {label: "Launch time", show: true, type: "datetime"},
+        modTime: {label: "Last mod", show: true, type: "datetime"},
+        details: {label: "Details", show: true, type: "string"},
+        percentageComplete: {label: "&percnt;", show: true, type: "number"},
+        stepDescription: {label: "Progress", show: true, type: "string"}
     };
     var $container;
 
     function parseSortAndFilterParams(sortOrFilter, column, value) {
         // Always pull filterMap from DOM; ignore column & value
-        var filterList = [];
+        var filters = {}, label;
         var $table = $("#" + XNAT.plugin.batchLaunch.workflowTable.tableId);
         $table.find("tr.filter").children().each(function(){
             var value = $(this).find("input.filter-data").val();
             if (value) {
-                filterList.push(this.id.replace("filter-by-", "") + "#" + value);
+                // TODO add support for date filtering to UI, already in backend
+                label = this.id.replace("filter-by-", "");
+                filters[label] = {like: value, type: labelMap[label].type};
             }
         });
-        if (filterList.length === 0) {
-            XNAT.plugin.batchLaunch.workflowTable.filterList = undefined;
+        if (filters.length === 0) {
+            XNAT.plugin.batchLaunch.workflowTable.filters = undefined;
         } else {
-            XNAT.plugin.batchLaunch.workflowTable.filterList = filterList;
+            XNAT.plugin.batchLaunch.workflowTable.filters = filters;
         }
 
         if (sortOrFilter === 'filter') {
@@ -93,8 +98,8 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                 classes: "clean fixed-header selectable scrollable-table",
                 style: "width: auto;"
             },
-            sortable: 'externalId, id, status, pipelineName, launchTime',
-            filter: 'externalId, id, status, pipelineName',
+            sortable: 'externalId, label, itemTime, status, pipelineName, launchTime, modTime',
+            filter: 'externalId, label, status, pipelineName',
             sortAndFilterAjax: parseSortAndFilterParams,
             items: {
                 // by convention, name 'custom' columns with ALL CAPS
@@ -112,15 +117,22 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                         }
                     }
                 },
-                id: {
-                    th: {className: 'id'},
-                    label: labelMap['id']['label'],
+                label: {
+                    th: {className: 'label'},
+                    label: labelMap['label']['label'],
                     apply: function(){
                         if (this['dataType']) {
-                            return spawn('a', {href: getDisplayUrl(this['dataType'], this['id'])}, this['id']);
+                            return spawn('a', {href: getDisplayUrl(this['dataType'], this['id'])}, this['label']);
                         } else {
-                            return this['id'];
+                            return this['label'];
                         }
+                    }
+                },
+                itemTime: {
+                    th: {className: 'itemTime'},
+                    label: labelMap['itemTime']['label'],
+                    apply: function(){
+                        return new Date(this['itemTime']).toLocaleString();
                     }
                 },
                 status: {
@@ -143,6 +155,13 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                     label: labelMap['launchTime']['label'],
                     apply: function(){
                         return new Date(this['launchTime']).toLocaleString();
+                    }
+                },
+                modTime: {
+                    th: {className: 'modTime'},
+                    label: labelMap['modTime']['label'],
+                    apply: function(){
+                        return new Date(this['modTime']).toLocaleString();
                     }
                 },
                 details: {
@@ -208,7 +227,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         loadingDialog.open();
 
         // What kind of page are we on? What kind of table do we want?
-        var id="", type="xdat:user", hide_proj = false, hide_id = false, title='History';
+        var id="", type="xdat:user", hide_proj = false, hide_label = false, title='History';
         if (XNAT.data && XNAT.data.context) {
             if (XNAT.plugin.batchLaunch.projectId) {
                 // processing dashboard
@@ -219,14 +238,15 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
             } else {
                 id = XNAT.data.context.ID || id;
                 type = XNAT.data.context.xsiType || type;
-                hide_proj = hide_id = id !== "";
+                hide_proj = hide_label = id !== "";
             }
         }
         if (hide_proj) {
             labelMap['externalId']['show'] = false;
         }
-        if (hide_id) {
-            labelMap['id']['show'] = false;
+        if (hide_label) {
+            labelMap['label']['show'] = false;
+            labelMap['itemTime']['show'] = false;
         }
 
         // Do we have a table yet?
@@ -256,14 +276,14 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         if (XNAT.plugin.batchLaunch.workflowTable.sortDir) {
             dataObj['sort_dir'] = XNAT.plugin.batchLaunch.workflowTable.sortDir;
         }
-        if (XNAT.plugin.batchLaunch.workflowTable.filterList) {
-            dataObj['filters'] = XNAT.plugin.batchLaunch.workflowTable.filterList.join(",");
+        if (XNAT.plugin.batchLaunch.workflowTable.filters) {
+            dataObj['filters'] = XNAT.plugin.batchLaunch.workflowTable.filters;
         }
 
         // API call
-        XNAT.xhr.post({
+        XNAT.xhr.postJSON({
             url: XNAT.url.restUrl('/xapi/workflows'),
-            data: dataObj,
+            data: JSON.stringify(dataObj),
             success: function (data) {
                 if (!XNAT.plugin.batchLaunch.workflowTable.tableBody) {
                     // First load

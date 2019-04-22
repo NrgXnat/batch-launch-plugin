@@ -1,6 +1,7 @@
 package org.nrg.xnat.bulk.services;
 
 import org.nrg.xnat.bulk.model.Workflow;
+import org.nrg.xnat.bulk.model.WorkflowFilter;
 import org.nrg.xnat.bulk.repositories.WorkflowRepository;
 import org.nrg.xnat.bulk.xapi.PageRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ import java.util.Map;
 @Service
 public class WorkflowService {
     private WorkflowRepository workflowRepository;
+
     public enum WorkflowType {
         CONTAINER,
         PIPELINE,
@@ -35,13 +37,13 @@ public class WorkflowService {
 
     public List<Workflow> getWorkflows(String id, String dataType, UserI user,
                                        String sortColumn, String sortDir, @Nullable Integer page, @Nullable Integer size,
-                                       @Nullable Map<String, String> filterMap) {
+                                       @Nullable Map<String, WorkflowFilter> filtersMap) throws Exception {
         return workflowRepository.getWorkflows(id, dataType, user,
-                new PageRequest(workflowRepository, sortColumn, sortDir, filterMap, page, size));
+                new PageRequest(workflowRepository, sortColumn, sortDir, filtersMap, page, size));
     }
 
-    public Workflow getWorkflowModelFromWorkflowI(PersistentWorkflowI wrk) {
-        return workflowRepository.getWorkflow(wrk);
+    public Workflow getWorkflowModelFromWorkflowI(PersistentWorkflowI wrk, UserI user) {
+        return workflowRepository.getWorkflow(wrk, user);
     }
 
     public String getContainerId(PersistentWorkflowI wrk) {
