@@ -192,16 +192,16 @@ public class WorkflowRepository implements PageableRepository {
             case "xdat:user":
                 namedParams.addValue("userId", user.getID())
                         .addValue("username", user.getLogin());
-                // Pipelines user has launched and pipelines associated with project user can read
-                query = "SELECT wrk.* FROM (SELECT wrkSub.*, meta.last_modified FROM (" +
-                        buildQueryWithDataTypeLabels() + ") AS wrkSub " +
-                        "LEFT JOIN wrk_workflowdata_meta_data meta ON wrkSub.workflowData_info = meta.meta_data_id " +
-                        "WHERE meta.insert_user_xdat_user_id = :userId OR wrkSub.create_user = :username) AS wrk " +
-                        "INNER JOIN xnat_projectdata proj ON wrk.externalId = proj.id OR wrk.externalId = proj.id " +
-                        "INNER JOIN xdat_usergroup ug ON ug.tag = proj.id " +
-                        "INNER JOIN xdat_user_groupid gid ON gid.xdat_user_groupid_id = ug.xdat_usergroup_id " +
-                        "INNER JOIN xdat_user u ON u.xdat_user_id = gid.groups_groupid_xdat_user_xdat_user_id " +
-                        "WHERE u.xdat_user_id = :userId";
+                // Pipelines user has launched and pipelines associated with projects user can read
+                query = "WITH subq AS (SELECT wrkSub.*, meta.last_modified, meta.insert_user_xdat_user_id FROM (" +
+                        buildQueryWithDataTypeLabels() + ") AS wrkSub LEFT JOIN wrk_workflowdata_meta_data meta ON " +
+                        "wrkSub.workflowData_info = meta.meta_data_id ) " +
+                        "SELECT subq.* FROM subq WHERE insert_user_xdat_user_id = :userId OR create_user = :username " +
+                        "UNION " +
+                        "SELECT subq.* FROM subq INNER JOIN (SELECT * FROM (SELECT * FROM xdat_user_groupid gid WHERE " +
+                        "groups_groupid_xdat_user_xdat_user_id = :userId) AS usrgrp " +
+                        "INNER JOIN xdat_usergroup ug ON usrgrp.groupid = ug.id) AS userq " +
+                        "ON userq.tag = subq.externalid OR userq.tag = subq.id";
                 break;
             case XnatProjectdata.SCHEMA_ELEMENT_NAME:
                 namedParams.addValue("arcId",
