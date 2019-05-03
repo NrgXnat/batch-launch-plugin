@@ -121,7 +121,7 @@ def vSwagger = '2.4.0'
 
 // TODO: This is a pretty minimal set of dependencies, so don't worry if you need to add more.
 dependencies {
-    compile("org.nrg:containers:2.0.1.RAD2") {
+    compile("org.nrg:containers:2.0.2-SNAPSHOT.RAD1") {
         exclude group: '*'
     }
     compile("org.nrg.xnat:web:${vXnatDev}") {
