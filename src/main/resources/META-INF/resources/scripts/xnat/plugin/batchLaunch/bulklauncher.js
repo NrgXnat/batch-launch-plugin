@@ -190,10 +190,6 @@ console.log('bulklauncher.js');
                             sessionLabelKey = d.key;
                         }
                         if (showColumn) {
-                            // Rename "MR ID" to Session
-                            if (header === "MR ID") {
-                                label = "Session";
-                            }
                             keyAndHeaderMap[header] = d.key;
                             columnsToShow[header] = {
                                 show: 0,
@@ -208,7 +204,7 @@ console.log('bulklauncher.js');
                 });
 
                 columnsToShow['Project']['show'] = 0; //Only called on given project, so no reason to display this column
-                columnsToShow['MR ID']['show'] = 1;
+                columnsToShow['Session']['show'] = 1;
                 columnsToShow['Subject']['show'] = 1;
 
                 var rows = responseData.ResultSet.Result;
@@ -367,7 +363,7 @@ console.log('bulklauncher.js');
 
                 // AddDataTableRows:
                 $.each(rows, function (i, d) {
-                    var session_id = d.session_id;
+                    var session_id = d.session_id || d.expt_id;
                     var subject_id = d.xnat_subjectdata_subjectid;
                     var session_project = d.project;
                     var sessionLabel = d[sessionLabelKey];
