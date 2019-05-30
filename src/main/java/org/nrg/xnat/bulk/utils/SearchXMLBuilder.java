@@ -140,7 +140,7 @@ public class SearchXMLBuilder {
 					header = header.substring(0,lastDot);
 				}
 
-				String pipelineEscaped = pipeline.replace(".", "_").replace("\\s+", "_");
+				String pipelineEscaped = pipeline.replace(".", "_").replaceAll("\\s+", "_");
 				sequence = addPipeline(pipelineEscaped, dataType, sb, sequence);
 			}
 		}else{
