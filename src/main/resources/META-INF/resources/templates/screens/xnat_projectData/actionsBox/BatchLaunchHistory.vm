@@ -9,23 +9,33 @@
 	    </li>
  		#end
 	#else
-	<li class="yuimenuitem  ProcessingGrouping" style="margin-bottom:2px">
-     	<a class="yuimenuitemlabel" href="#processingBoardbox"><div class="ic">&nbsp;</div><div class="ic_spacer">&nbsp;</div>Processing Dashboard</a>
-            <div id="#processingBoardbox" class="yuimenu">
-             <div class="bd">
-              <ul class="first-of-type">
- 				#foreach ($xsiTypeProc in $om.getExperimentCountByXSIType().keySet())
-     			<li class="yuimenuitem $!li_class">
-	                #set ( $batchLaunchHistoryUri = "/app/template/XDATScreen_bulk_action.vm/project/$om.getId()/dataType/$xsiTypeProc" )
-	        		<a href="$content.getURI($batchLaunchHistoryUri)">$data.getSession().getAttribute("userHelper").getBrowseableElementDisplay($xsiTypeProc).getBriefDescription()</a>
-                </li>
- 				#end
- 			  </ul>
- 			 </div>
- 			</div>
- 		</li>
+		#set($xsiTypes = [])
+		#foreach ($xsiTypeProc in $om.getExperimentCountByXSIType().keySet())
+			#if ($xsiTypeProc == "xnat:mrSessionData" || $xsiTypeProc == "xnat:petSessionData" || $xsiTypeProc == "xnat:ctSessionData")
+				#set($junk = $xsiTypes.add($xsiTypeProc))
+			#end
+		#end
+		#if (!$xsiTypes.isEmpty())
+			<li class="yuimenuitem  ProcessingGrouping" style="margin-bottom:2px">
+				<a class="yuimenuitemlabel" href="#processingBoardbox"><div class="ic">&nbsp;</div><div class="ic_spacer">&nbsp;</div>Processing Dashboard</a>
+				<div id="#processingBoardbox" class="yuimenu">
+				 <div class="bd">
+				  <ul class="first-of-type">
+					#foreach ($xsiTypeProc in $xsiTypes)
+						#set ( $batchLaunchHistoryTitle = $!data.getSession().getAttribute("userHelper").getBrowseableElementDisplay($!xsiTypeProc).getBriefDescription())
+						#if ($!batchLaunchHistoryTitle)
+							<li class="yuimenuitem $!li_class">
+								#set ( $batchLaunchHistoryUri = "/app/template/XDATScreen_bulk_action.vm/project/$om.getId()/dataType/$xsiTypeProc" )
+								<a href="$content.getURI($batchLaunchHistoryUri)">$!batchLaunchHistoryTitle</a>
+							</li>
+						#end
+					#end
+				  </ul>
+				 </div>
+				</div>
+			</li>
+		#end
 	#end
-    
 #end
 
 
