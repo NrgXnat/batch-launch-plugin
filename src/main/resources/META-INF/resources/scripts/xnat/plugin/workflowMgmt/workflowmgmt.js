@@ -35,7 +35,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
         return status === "Complete" || status.includes('(Dismissed)');
     };
     XNAT.plugin.batchLaunch.isWorkflowQueued = function(status) {
-        return status.includes("Queued") || status === "Created";
+        return status.includes("Queued");
     };
     XNAT.plugin.batchLaunch.isWorkflowContainer = function(entryMap) {
         return entryMap['justification'] === "Container launch" && entryMap['comments'];
@@ -134,7 +134,9 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
         if (XNAT.plugin.batchLaunch.isWorkflowContainer(entryMap)) {
             var contstr = '|data-containerid="' + entryMap['comments'] + '"';
             children.push(spawn(summary_str + contstr));
-            if (!XNAT.plugin.batchLaunch.isWorkflowFailed(entryMap['status']) && !XNAT.plugin.batchLaunch.isWorkflowComplete(entryMap['status'])) {
+            if (!XNAT.plugin.batchLaunch.isWorkflowFailed(entryMap['status']) &&
+                !XNAT.plugin.batchLaunch.isWorkflowComplete(entryMap['status']) &&
+                !XNAT.plugin.batchLaunch.isWorkflowQueued(entryMap['status'])) {
                 children.push(spawn('i.fa.fa-ban.wf-terminate|title="Terminate processing"' + idstr + contstr));
             }
         } else {
@@ -173,7 +175,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
         });
         $parent_element.on("click", ".wf-fail", function(){
             var $link = $(this), id = $(this).data("id");
-            XNAT.plugin.batchLaunch.dismissNotification($(this).data("id"), 'Failed',
+            XNAT.plugin.batchLaunch.dismissNotification($(this).data("id"), 'Failed (User-set)',
                 function(){XNAT.plugin.batchLaunch.refreshWorkflowRow($link, id);});
         });
     };
