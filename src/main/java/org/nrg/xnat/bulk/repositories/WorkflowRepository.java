@@ -1,23 +1,15 @@
 package org.nrg.xnat.bulk.repositories;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.ecs.xhtml.meta;
 import org.nrg.containers.services.impl.ContainerServiceImpl;
-import org.nrg.xdat.base.BaseElement;
 import org.nrg.xdat.om.WrkWorkflowdata;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xdat.schema.SchemaElement;
 import org.nrg.xdat.security.ElementSecurity;
-import org.nrg.xft.ItemI;
-import org.nrg.xft.XFTItem;
-import org.nrg.xft.collections.ItemCollection;
 import org.nrg.xft.exception.ElementNotFoundException;
 import org.nrg.xft.exception.FieldNotFoundException;
 import org.nrg.xft.exception.XFTInitException;
-import org.nrg.xft.schema.XFTManager;
-import org.nrg.xft.search.CriteriaCollection;
-import org.nrg.xft.search.ItemSearch;
 import org.nrg.xnat.bulk.model.Workflow;
 import org.nrg.xnat.bulk.xapi.PageRequest;
 import org.nrg.xnat.bulk.model.WorkflowDuration;
@@ -176,7 +168,8 @@ public class WorkflowRepository implements PageableRepository {
      * @param user      user (no permissions checking, just used if item type == xdat:user)
      * @param request   the request object
      * @return list of model
-     * @throws DataAccessException
+     * @throws DataAccessException for issues accessing data
+     * @throws Exception for issues retrieving xnat data types
      */
     public List<Workflow> getWorkflows(String id, String dataType, UserI user,
                                        PageRequest request) throws Exception {
