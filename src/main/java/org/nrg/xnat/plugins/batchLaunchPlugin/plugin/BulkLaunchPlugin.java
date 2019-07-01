@@ -19,8 +19,8 @@ public class BulkLaunchPlugin {
 		log.info("Configuring batch launch plugin");
 	}
 
-	@Bean
-	public ThreadPoolExecutorFactoryBean threadPoolExecutorFactoryBean() {
+	@Bean(name = "batchLaunchThreadPoolExecutorFactoryBean")
+	public ThreadPoolExecutorFactoryBean batchLaunchThreadPoolExecutorFactoryBean() {
 		ThreadPoolExecutorFactoryBean tBean = new ThreadPoolExecutorFactoryBean();
 		tBean.setCorePoolSize(5);
 		tBean.setThreadNamePrefix("batch-launch-");

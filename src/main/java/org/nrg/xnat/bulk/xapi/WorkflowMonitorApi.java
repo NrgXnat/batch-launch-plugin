@@ -31,6 +31,7 @@ import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.utils.WorkflowUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -67,14 +68,15 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     public WorkflowMonitorApi(final SiteConfigPreferences preferences,
                               final ContainerService containerService,
                               final WorkflowService workflowService,
-                              final ThreadPoolExecutorFactoryBean executorFactoryBean,
+                              @Qualifier("batchLaunchThreadPoolExecutorFactoryBean")
+                                  final ThreadPoolExecutorFactoryBean batchLaunchThreadPoolExecutorFactoryBean,
                               final UserManagementServiceI userManagementService,
                               final RoleHolder roleHolder) {
         super(userManagementService, roleHolder);
         this.preferences = preferences;
         this.containerService = containerService;
         this.workflowService = workflowService;
-        this.executorService = executorFactoryBean.getObject();
+        this.executorService = batchLaunchThreadPoolExecutorFactoryBean.getObject();
     }
 
     @ApiOperation(value = "Returns a map of workflow models.", response = List.class, responseContainer = "List")
