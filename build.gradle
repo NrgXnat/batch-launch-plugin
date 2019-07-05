@@ -16,7 +16,7 @@ version '0.2.5'
 // TODO: This is the minimum set of Gradle plugins required to build most XNAT plugins. You may include many others, including plugins for testing and test coverage, IDE integration, and more.
 buildscript {
     ext {
-        vXnat = '1.7.5'
+        vXnat = '1.7.6-SNAPSHOT'
     }
     repositories {
         mavenLocal()
@@ -112,8 +112,7 @@ repositories {
 
 // TODO: Keeping your versions as variables makes it easier to update versions when you have multiple libraries from the same framework that thus have the same version.
 // TODO: These versions will change over time as XNAT development continues. Check the latest version of the XNAT template plugin or the XNAT versioning matrix page.
-def vXnatDev = '1.7.5.6.RAD1'
-def vXnat = '1.7.5'
+def vXnatDev = '1.7.6.RAD-SNAPSHOT'
 def vJunit = '4.12'
 def vSpring = '4.2.9.RELEASE'
 def vLog4j = '1.2.17'
@@ -121,16 +120,16 @@ def vSwagger = '2.4.0'
 
 // TODO: This is a pretty minimal set of dependencies, so don't worry if you need to add more.
 dependencies {
-    compile("org.nrg:containers:2.0.2-SNAPSHOT.RAD8") {
+    compile("org.nrg:containers:2.0.2.RAD-SNAPSHOT") {
         exclude group: '*'
     }
     compile("org.nrg.xnat:web:${vXnatDev}") {
         exclude group: '*'
     }
-    compile("org.nrg.xnat:xnat-data-models:${vXnat}") {
+    compile("org.nrg.xnat:xnat-data-models:${vXnatDev}") {
         exclude group: '*'
     } 
-    compile("org.nrg.xdat:core:${vXnat}") {
+    compile("org.nrg.xdat:core:${vXnatDev}") {
     }
     compile "org.nrg:prefs:${vXnat}"
     compile "org.nrg:framework:${vXnat}"
