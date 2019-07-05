@@ -363,29 +363,37 @@ console.log('bulklauncher.js');
 
                 // AddDataTableRows:
                 $.each(rows, function (i, d) {
-                    var session_id = d.session_id || d.expt_id;
-                    var subject_id = d.xnat_subjectdata_subjectid;
-                    var session_project = d.project;
+                    var sessionId = d.session_id || d.expt_id;
+                    var subjectId = d.xnat_subjectdata_subjectid;
+                    var sessionProject = d.project;
                     var sessionLabel = d[sessionLabelKey];
                     var sessionWorkFlowStatus = {};
                     if (!XNAT.plugin.batchLaunch.projectId) {
                         XNAT.plugin.batchLaunch.projectId = d.project;
                     }
 
-                    var single_select_checkbox_id = "select-" + session_id;
-                    var id_json = '{&quot;accession-id&quot;:&quot;' + session_id + '&quot;,&quot;label&quot;:&quot;' +
-                        sessionLabel + '&quot;,&quot;project&quot;:&quot;' +
-                        session_project + '&quot;,&quot;xsiType&quot;:&quot;' + dataType + '&quot;}';
+                    var single_select_checkbox_id = "select-" + sessionId;
                     var session_url = 'app/action/DisplayItemAction/search_element/' + dataType + '/search_field/' +
-                        dataType + '.ID/search_value/' + session_id + '/popup/$popup';
+                        dataType + '.ID/search_value/' + sessionId + '/popup/$popup';
                     var subject_url = 'app/action/DisplayItemAction/search_element/xnat:subjectData/search_field/' +
-                        'xnat:subjectData.ID/search_value/' + subject_id + '/popup/$popup';
+                        'xnat:subjectData.ID/search_value/' + subjectId + '/popup/$popup';
 
-                    var rowDataWithColumns = '<tr valign="top" id="session-' + session_id + '">';
+                    var rowDataWithColumns = '<tr valign="top" id="session-' + sessionId + '">';
                     rowDataWithColumns += '<td class="session-actions-controls session-selector center" ' +
                         'style="width: 45px;">';
-                    rowDataWithColumns += '<input type="checkbox" class="selectable-select-one" id="' +
-                        single_select_checkbox_id + '" value="' + id_json + '"/>';
+                    var inputCk = spawn('input', {
+                        type: "checkbox",
+                        className: "selectable-select-one",
+                        id: single_select_checkbox_id,
+                        value: JSON.stringify({
+                            uri: '/archive/experiments/' + sessionId,
+                            id: sessionId,
+                            label: sessionLabel,
+                            project: sessionProject,
+                            xsiType: dataType
+                        })
+                    });
+                    rowDataWithColumns += inputCk.html;
                     rowDataWithColumns += '</td>';
 
                     for (var hdr in columnsToShow) {
@@ -393,15 +401,15 @@ console.log('bulklauncher.js');
                             var key = keyAndHeaderMap[hdr];
                             label = columnsToShow[hdr]['label'];
                             labelClean = columnsToShow[hdr]['labelClean'];
-                            if (hdr == 'Project') {
-                                rowDataWithColumns += '<td class="' + labelClean + ' session-' + session_id + '-' +
+                            if (hdr === 'Project') {
+                                rowDataWithColumns += '<td class="' + labelClean + ' session-' + sessionId + '-' +
                                     d[key] + '"><span  title="' + label + '">' + d[key] + '</span></td>';
-                            } else if (key == sessionLabelKey) {
+                            } else if (key === sessionLabelKey) {
                                 var url = XNAT.url.rootUrl(session_url);
                                 rowDataWithColumns += '<td class="' + labelClean + '" ><a href="' + url +
                                     '"  target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
 
-                            } else if (key == subjectLabelKey) {
+                            } else if (key === subjectLabelKey) {
                                 var url = XNAT.url.rootUrl(subject_url);
                                 rowDataWithColumns += '<td class="' + labelClean + '" ><a href="' + url +
                                     '" target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
@@ -524,13 +532,14 @@ console.log('bulklauncher.js');
                 responseData.forEach(function (availableCommand) {
                     var pipelineName = availableCommand['wrapper-name'];
                     if (availableCommand.enabled) {
-                        $('#actionsDropdown').append(
-                            '<option value="{&quot;root-element-name&quot;:&quot;' + availableCommand['root-element-name'] +
-                            '&quot;,&quot;wrapper-id&quot;:&quot;' + availableCommand['wrapper-id'] +
-                            '&quot;,&quot;command-id&quot;:&quot;' + availableCommand['command-id'] +
-                            '&quot;,&quot;wrapper-name&quot;:&quot;' + availableCommand['wrapper-name'] +
-                            '&quot;}">' + pipelineName + '</option>'
-                        );
+                        $('#actionsDropdown').append(spawn('option', {
+                            value: JSON.stringify({
+                                'root-element-name': availableCommand['root-element-name'],
+                                'wrapper-id': availableCommand['wrapper-id'],
+                                'command-id': availableCommand['command-id'],
+                                'wrapper-name': availableCommand['wrapper-name']
+                            })
+                        }, pipelineName).html);
                     } else {
                         var info = columnsToShow[pipelineName];
                         var currentJob=$('span#currentJob').text();
@@ -568,7 +577,7 @@ console.log('bulklauncher.js');
         $('input.selectable-select-one:checkbox:checked').each(function() {
             // Get the JSON
             var jsonData = JSON.parse($(this).val());
-            sel['targets'].push(jsonData['accession-id']);
+            sel['targets'].push(jsonData['uri']);
             sel['targetLabels'].push(jsonData['label']);
         });
         return sel;
@@ -747,3 +756,4 @@ console.log('bulklauncher.js');
         return sessionsBeingProcessed;
     }
 }));
+

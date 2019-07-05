@@ -14,8 +14,8 @@ import org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean;
 	"org.nrg.xnat.bulk.*"
 })
 @Slf4j
-public class BulkLaunchPlugin {
-	public BulkLaunchPlugin() {
+public class BatchLaunchPlugin {
+	public BatchLaunchPlugin() {
 		log.info("Configuring batch launch plugin");
 	}
 

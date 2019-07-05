@@ -1,4 +1,4 @@
-#if ($item.canEdit($user))
+#if($data.getSession().getAttribute("userHelper").canEdit("xnat:experimentData/project","$om.getId()"))
 	#if ($om.getExperimentCountByXSIType().size()==0)
 	
 	#elseif ($om.getExperimentCountByXSIType().size()==1)
