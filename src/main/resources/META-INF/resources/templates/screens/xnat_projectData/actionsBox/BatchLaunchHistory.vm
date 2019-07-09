@@ -11,7 +11,7 @@
 	#else
 		#set($xsiTypes = [])
 		#foreach ($xsiTypeProc in $om.getExperimentCountByXSIType().keySet())
-			#if ($xsiTypeProc == "xnat:mrSessionData" || $xsiTypeProc == "xnat:petSessionData" || $xsiTypeProc == "xnat:ctSessionData")
+			#if ($xsiTypeProc == "xnat:mrSessionData" || $xsiTypeProc == "xnat:petSessionData" || $xsiTypeProc == "xnat:ctSessionData" || $xsiTypeProc == "xnat:otherDicomSessionData")
 				#set($junk = $xsiTypes.add($xsiTypeProc))
 			#end
 		#end

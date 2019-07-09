@@ -26,18 +26,12 @@ import com.google.common.collect.Lists;
 public class SearchXMLBuilder {
 	public String execute(final List<String> projects, final String dataType, final UserI user, final String whereClause, String specificJob,List<String> resources, List<String> scan_types){
 		String projIdField;
-		switch (dataType) {
-			case "xnat:mrSessionData":
-				projIdField = "MR_PROJECT_IDENTIFIER";
-				break;
-			case "xnat:ctSessionData":
-				projIdField = "XNAT_CTSESSIONDATA_PROJECT_IDENTIFIER";
-				break;
-			case "xnat:petSessionData":
-				projIdField = "XNAT_PETSESSIONDATA_PROJECT_IDENTIFIER";
-				break;
-			default:
-				projIdField = "PROJECT_IDENTIFIER";
+		if ("xnat:mrSessionData".equals(dataType)) {
+			projIdField = "MR_PROJECT_IDENTIFIER";
+		} else if (dataType != null) {
+			projIdField = dataType.replaceFirst(":", "_").toUpperCase() + "_PROJECT_IDENTIFIER";
+		} else {
+			projIdField = "PROJECT_IDENTIFIER";
 		}
 		StringBuilder sb=new StringBuilder();
 		sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
