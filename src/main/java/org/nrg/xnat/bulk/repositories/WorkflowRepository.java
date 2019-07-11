@@ -112,9 +112,8 @@ public class WorkflowRepository implements PageableRepository {
     };
 
     // Pipelines for project or for entries within project (experiments, subjects, etc)
-    public static final String QUERY_PROJECT_WFS = "SELECT wrk.*, wrk.id AS label, NULL as item_time, " +
-            "meta.last_modified FROM wrk_workflowData wrk LEFT JOIN wrk_workflowdata_meta_data meta " +
-            "ON wrk.workflowData_info=meta.meta_data_id WHERE id = :id OR (id = :arcId AND data_type = 'arc:project')";
+    public static final String QUERY_PROJECT_WFS = "SELECT wrk.*, wrk.id AS label, NULL as item_time " +
+            "FROM wrk_workflowData wrk WHERE id = :id OR (id = :arcId AND data_type = 'arc:project')";
 
     // SQL from WorkflowBasedHistoryBuilder
     // Pipelines on subject
@@ -200,7 +199,9 @@ public class WorkflowRepository implements PageableRepository {
                 namedParams.addValue("arcId",
                         XnatProjectdata.getXnatProjectdatasById(id, user, false)
                                 .getArcSpecification().getId());
-                query = buildQueryWithDataTypeLabels(QUERY_PROJECT_WFS, "externalid = :id");
+                query = "SELECT wrkSub.*, meta.last_modified FROM (" +
+                        buildQueryWithDataTypeLabels(QUERY_PROJECT_WFS, "externalid = :id") + ") AS wrkSub " +
+                        "LEFT JOIN wrk_workflowdata_meta_data meta ON wrkSub.workflowData_info = meta.meta_data_id";
                 break;
             case XnatSubjectdata.SCHEMA_ELEMENT_NAME:
                 query = QUERY_SUBJECT_WFS;
