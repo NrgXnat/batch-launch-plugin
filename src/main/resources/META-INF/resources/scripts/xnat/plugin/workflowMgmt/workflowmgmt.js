@@ -84,7 +84,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
     };
 
     XNAT.plugin.batchLaunch.refreshWorkflowRow = function($link, workflowId) {
-        var $status_td = $link.parents("td");
+        var $status_td = $link.closest("td");
         var $perc = $status_td.siblings("td.percentageComplete");
         var single_cell = $perc.length === 0;
 
