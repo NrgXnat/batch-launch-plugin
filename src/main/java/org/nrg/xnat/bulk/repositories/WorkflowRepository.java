@@ -367,7 +367,13 @@ public class WorkflowRepository implements PageableRepository {
             constraints = " AND " + StringUtils.join(addlConstraints," AND ");
         }
 
-        List<String> dataTypes = ElementSecurity.GetNonXDATElementNames();
+        List<String> dataTypes = jdbcTemplate.query("SELECT DISTINCT(data_type) FROM wrk_workflowData",
+                new RowMapper<String>() {
+                    @Override
+                    public String mapRow(ResultSet resultSet, int rowNum) throws SQLException {
+                        return resultSet.getString("data_type");
+                    }
+                });
         String experimentTable = SchemaElement.GetElement(XnatExperimentdata.SCHEMA_ELEMENT_NAME).getSQLName();
         String experimentDateStr = ", xnat_experimentdata.date + xnat_experimentdata.time AS item_time";
         for (int i = 0; i < dataTypes.size(); i++) {
