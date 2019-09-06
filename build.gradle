@@ -112,7 +112,7 @@ repositories {
 
 // TODO: Keeping your versions as variables makes it easier to update versions when you have multiple libraries from the same framework that thus have the same version.
 // TODO: These versions will change over time as XNAT development continues. Check the latest version of the XNAT template plugin or the XNAT versioning matrix page.
-def vXnatDev = '1.7.5'
+def vXnatDev = '1.7.5.6.RAD1'
 def vXnat = '1.7.5'
 def vJunit = '4.12'
 def vSpring = '4.2.9.RELEASE'
@@ -124,18 +124,18 @@ dependencies {
     compile("org.nrg:containers:2.0.2-SNAPSHOT.RAD8") {
         exclude group: '*'
     }
-    compile("org.nrg.xnat:web:${vXnatDev}.RAD10") {
+    compile("org.nrg.xnat:web:${vXnatDev}") {
         exclude group: '*'
     }
-    compile("org.nrg.xnat:xnat-data-models:${vXnatDev}") {
+    compile("org.nrg.xnat:xnat-data-models:${vXnat}") {
         exclude group: '*'
     } 
-    compile("org.nrg.xdat:core:${vXnatDev}") {
+    compile("org.nrg.xdat:core:${vXnat}") {
     }
-    compile "org.nrg:prefs:${vXnatDev}"
-    compile "org.nrg:framework:${vXnatDev}"
-    compile "org.nrg:framework:${vXnatDev}"
-    compile "org.nrg:config:${vXnatDev}"
+    compile "org.nrg:prefs:${vXnat}"
+    compile "org.nrg:framework:${vXnat}"
+    compile "org.nrg:framework:${vXnat}"
+    compile "org.nrg:config:${vXnat}"
 
     compile(group: 'turbine', name: 'turbine', version: '2.3.3') {
         exclude group: '*'
