@@ -1,0 +1,11 @@
+<script>
+if(!XNAT.app.typeBasedListingOptions){
+	XNAT.app.typeBasedListingOptions = {};
+}	
+	
+if(!XNAT.app.typeBasedListingOptions["xnat:mrSessionData"]){
+	XNAT.app.typeBasedListingOptions["xnat:mrSessionData"]=[];
+}
+XNAT.app.typeBasedListingOptions["xnat:mrSessionData"].push({action:'BulkLaunchAction',display:'Processing Dashboard'});
+
+</script>
