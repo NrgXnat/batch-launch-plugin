@@ -36,6 +36,8 @@ public class SearchXMLBuilder {
 		} else {
 			projIdField = "PROJECT_IDENTIFIER";
 		}
+		
+		
 		StringBuilder sb=new StringBuilder();
 		sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
 		sb.append("<xdat:bundle ID=\"\" allow-diff-columns=\"0\" secure=\"0\" brief-description=\"Sessions\" xmlns:arc=\"http://nrg.wustl.edu/arc\" xmlns:val=\"http://nrg.wustl.edu/val\" xmlns:pipe=\"http://nrg.wustl.edu/pipe\" xmlns:wrk=\"http://nrg.wustl.edu/workflow\" xmlns:scr=\"http://nrg.wustl.edu/scr\" xmlns:xdat=\"http://nrg.wustl.edu/security\" xmlns:cat=\"http://nrg.wustl.edu/catalog\" xmlns:prov=\"http://www.nbirn.net/prov\" xmlns:xnat=\"http://nrg.wustl.edu/xnat\" xmlns:xnat_a=\"http://nrg.wustl.edu/xnat_assessments\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://nrg.wustl.edu/workflow https://imagingdb.blackthornrx.com/schemas/workflow.xsd http://nrg.wustl.edu/catalog https://imagingdb.blackthornrx.com/schemas/catalog.xsd http://nrg.wustl.edu/pipe https://imagingdb.blackthornrx.com/schemas/repository.xsd http://nrg.wustl.edu/scr https://imagingdb.blackthornrx.com/schemas/screeningAssessment.xsd http://nrg.wustl.edu/arc https://imagingdb.blackthornrx.com/schemas/project.xsd http://nrg.wustl.edu/val https://imagingdb.blackthornrx.com/schemas/protocolValidation.xsd http://nrg.wustl.edu/xnat https://imagingdb.blackthornrx.com/schemas/xnat.xsd http://nrg.wustl.edu/xnat_assessments https://imagingdb.blackthornrx.com/schemas/assessments.xsd http://www.nbirn.net/prov https://imagingdb.blackthornrx.com/schemas/birnprov.xsd http://nrg.wustl.edu/security https://imagingdb.blackthornrx.com/schemas/security.xsd\">");
@@ -47,22 +49,41 @@ public class SearchXMLBuilder {
 		sb.append("<xdat:type>string</xdat:type>");
 		sb.append("<xdat:header>Project</xdat:header>");
 		sb.append("</xdat:search_field>");
-		sb.append("<xdat:search_field>");
-		sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
-		sb.append("<xdat:field_ID>").append(projIdField).append("=").append(projects.get(0)).append("</xdat:field_ID>");
-		sb.append("<xdat:sequence>0</xdat:sequence>");
-		sb.append("<xdat:type>string</xdat:type>");
-		sb.append("<xdat:header>Session</xdat:header>");
-		sb.append("<xdat:value>").append(projects.get(0)).append("</xdat:value>");
-		sb.append("</xdat:search_field>");
-		sb.append("<xdat:search_field>");
-		sb.append("<xdat:element_name>xnat:subjectData</xdat:element_name>");
-		sb.append("<xdat:field_ID>SUB_PROJECT_IDENTIFIER=").append(projects.get(0)).append("</xdat:field_ID>");
-		sb.append("<xdat:sequence>2</xdat:sequence>");
-		sb.append("<xdat:type>string</xdat:type>");
-		sb.append("<xdat:header>Subject</xdat:header>");
-		sb.append("<xdat:value>").append(projects.get(0)).append("</xdat:value>");
-		sb.append("</xdat:search_field>");
+		if(projects.size()>1){
+			//if more then 1 project is in scope, then show default project label
+			sb.append("<xdat:search_field>");
+			sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
+			sb.append("<xdat:field_ID>LABEL</xdat:field_ID>");
+			sb.append("<xdat:sequence>0</xdat:sequence>");
+			sb.append("<xdat:type>string</xdat:type>");
+			sb.append("<xdat:header>Session</xdat:header>");
+			sb.append("</xdat:search_field>");
+			sb.append("<xdat:search_field>");
+			sb.append("<xdat:element_name>xnat:subjectData</xdat:element_name>");
+			sb.append("<xdat:field_ID>SUBJECT_LABEL</xdat:field_ID>");
+			sb.append("<xdat:sequence>2</xdat:sequence>");
+			sb.append("<xdat:type>string</xdat:type>");
+			sb.append("<xdat:header>Subject</xdat:header>");
+			sb.append("</xdat:search_field>");
+		}else{
+			//if only 1 project is in scope, show that project's 
+			sb.append("<xdat:search_field>");
+			sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
+			sb.append("<xdat:field_ID>").append(projIdField).append("=").append(projects.get(0)).append("</xdat:field_ID>");
+			sb.append("<xdat:sequence>0</xdat:sequence>");
+			sb.append("<xdat:type>string</xdat:type>");
+			sb.append("<xdat:header>Session</xdat:header>");
+			sb.append("<xdat:value>").append(projects.get(0)).append("</xdat:value>");
+			sb.append("</xdat:search_field>");
+			sb.append("<xdat:search_field>");
+			sb.append("<xdat:element_name>xnat:subjectData</xdat:element_name>");
+			sb.append("<xdat:field_ID>SUB_PROJECT_IDENTIFIER=").append(projects.get(0)).append("</xdat:field_ID>");
+			sb.append("<xdat:sequence>2</xdat:sequence>");
+			sb.append("<xdat:type>string</xdat:type>");
+			sb.append("<xdat:header>Subject</xdat:header>");
+			sb.append("<xdat:value>").append(projects.get(0)).append("</xdat:value>");
+			sb.append("</xdat:search_field>");
+		}
 		sb.append("<xdat:search_field>");
 		sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
 		sb.append("<xdat:field_ID>VISIT</xdat:field_ID>");
