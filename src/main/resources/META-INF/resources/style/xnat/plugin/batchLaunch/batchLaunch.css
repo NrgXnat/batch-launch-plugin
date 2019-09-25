@@ -19,6 +19,10 @@
     width: -webkit-max-content; /* Chrome */
 }
 
+.scrollable-table td {
+    word-break: break-word;
+}
+
 .scrollable-table td.launchTime {
     white-space: nowrap;
 }
