@@ -44,7 +44,7 @@ console.log('bulklauncher.js');
             return $(this).find('td.' + name).containsNC(val).length;
         }).removeClass(filterClass);
     }
-    
+
     function updateAfterFiltering($table) {
         XNAT.plugin.batchLaunch.resizeTableCols($table);
         setStateSelectAllToggle($('.selectable-select-all'));
@@ -137,9 +137,9 @@ console.log('bulklauncher.js');
                 divContent += '	          </select>									';
                 divContent += '	        </span>										';
                 divContent += ' 	    <button class="btn btn-sm data-table-action disabled" id="launch-container">' +
-                    'Launch container</button>	';
+                    'Launch job</button>	';
                 divContent += '		    <button class="btn btn-sm text-error data-table-action disabled" id="kill-container">' +
-                    '<strong>Terminate container</strong></button>				';
+                    '<strong>Terminate job</strong></button>				';
                 divContent += '		    <button class="btn btn-sm" type="submit" id="reload">Reload</button>';
                 divContent += '		    <button class="btn btn-sm" id="download">Download csv</button>				';
 
@@ -219,6 +219,7 @@ console.log('bulklauncher.js');
                             if (keyAndHeaderMap.hasOwnProperty(wrk_col)) {
                                 var key = keyAndHeaderMap[wrk_col];
                                 if (wrk_col != 'Project' && key != sessionLabelKey && key != subjectLabelKey) {
+                                    if (d[key] !=null) {
                                     var workFlowStatusIndx = d[key].indexOf("#");
                                     var workFlowStatus = d[key].substring(0, workFlowStatusIndx);
                                     if (workFlowStatus || key.startsWith("res_file") || key.startsWith("wrk_status_launch")
@@ -227,6 +228,7 @@ console.log('bulklauncher.js');
                                         columnsToShow[wrk_col]['show'] = 1;
                                         return false;
                                     }
+								  }
                                 }
                             }
                         }
@@ -520,7 +522,7 @@ console.log('bulklauncher.js');
             .find('option')
             .remove()
             .end()
-            .append('<option value="Select" selected="true">Select container</option>');
+            .append('<option value="Select" selected="true">Select job</option>');
         var data_type_val = $('#searchRootElement').val();
         var projectId = XNAT.plugin.batchLaunch.projectId;
         var loadingDialog = XNAT.ui.dialog.loading;
@@ -570,6 +572,68 @@ console.log('bulklauncher.js');
                 });
             }
         });
+		//Load configured pipelines
+		XNAT.xhr.getJSON({
+            url: XNAT.url.rootUrl('/data/archive/projects/'+projectId+'/pipelines?format=json'),
+	    success: function(responseData) {
+			responseData.ResultSet.Result.forEach(function(configuredPipeline) {
+	        		   var pipelineName = configuredPipeline['Name'];
+	        		   console.log("Adding " + pipelineName);
+	        		   $('#actionsDropdown').append(spawn('option', {
+			                            value: JSON.stringify({
+			                                'pipeline_name': pipelineName,
+			                                'pipeline_path': configuredPipeline['Path']
+			                            })
+                        }, pipelineName).html);
+	        });
+	    },
+	    error : function(o) {
+			console.log("Encouneterd error " + o);
+			alert('/data/archive/projects/'+projectId+'/pipelines?format=json');
+		    XNAT.dialog.open({
+	    		    title: 'Error!',
+	    		    content: 'Could not get pipelines associated encounetered ' + o,
+	    		    width: 400,
+	    		    buttons: [
+	    			{
+	    			    label: 'OK',
+	    			    isDefault: true,
+	    			    close: true
+	    			}
+	    		    ]
+		    });
+	    }
+	});
+		//Load site wide configured pipelines
+/*		XNAT.xhr.getJSON({
+            url: XNAT.url.rootUrl('/data/archive/projects/'+projectId+'/pipelines?additional=true&format=json'),
+	    success: function(responseData) {
+			responseData.ResultSet.Result.forEach(function(configuredPipeline) {
+	        		   var pipelineName = configuredPipeline['Name'];
+	        		   console.log("Setting " + pipelineName);
+	        		   $('#actionsDropdown').append(spawn('option', {
+			                            value: JSON.stringify({
+			                                'pipeline_name': pipelineName,
+			                                'pipeline_path': configuredPipeline['Path']
+			                            })
+                        }, pipelineName).html);
+	        });
+	    },
+	    error : function(o) {
+		    XNAT.dialog.open({
+	    		    title: 'Error!',
+	    		    content: 'Could not get additional pipelines associated with ' + data_type_val + ' encounetered ' + o,
+	    		    width: 400,
+	    		    buttons: [
+	    			{
+	    			    label: 'OK',
+	    			    isDefault: true,
+	    			    close: true
+	    			}
+	    		    ]
+		    });
+	    }
+	}); */
     }
 
     function getSelectedExperiments() {
@@ -604,10 +668,111 @@ console.log('bulklauncher.js');
         return JSON.parse(commandDetails);
     }
 
-    function killContainer() {
-        // Container
+	function killContainer() {
         var commandDetailsJsonObj = getSelectedContainer();
         if (!commandDetailsJsonObj) return false;
+
+		if (pipelineIsSelected(commandDetailsJsonObj)) {
+			killPipelineJob(commandDetailsJsonObj);
+		}else {
+			killXnatContainer(commandDetailsJsonObj);
+		}
+	}
+
+    function killPipelineJob(commandDetailsJsonObj) {
+        var projectId = XNAT.plugin.batchLaunch.projectId;
+        var pipelineName = commandDetailsJsonObj['pipeline_name'];
+	    var pipelinePath = commandDetailsJsonObj['pipeline_path'];
+
+        // Experiments
+        var sel = getSelectedExperiments();
+        var targets = sel['targets'], targetLabels = sel['targetLabels'];
+
+        XNAT.ui.dialog.open({
+            title: 'Terminate process confirmation',
+            content: spawn('div', {}, [
+                spawn('p', {}, 'Are you SURE you want to terminate the <strong>' + pipelineName +
+                    '</strong> job for the following <strong>' + targets.length +
+                    '</strong> experiments?'),
+                spawn('p', {}, '<em>Note: REVIEW THEM, this cannot be undone!</em>'),
+                spawn('ul', {}, $.map(targetLabels, function(e){return spawn('li', {}, e);}))
+            ]),
+            buttons: [
+                {
+                    label: 'Cancel',
+                    isDefault: false,
+                    close: true
+                },
+                {
+                    label: 'Yes',
+                    isDefault: true,
+                    close: true,
+                    action: function() {
+                        if (!targets || targets.length === 0) return false;
+                        $.post({
+                            beforeSend: function() {
+                                XNAT.ui.dialog.alert("Jobs are being terminated in the background. " +
+                                    "You may continue to work, refreshing the dashboard to see updated progress.");
+                                return true;
+                            },
+                            url: XNAT.url.restUrl('/xapi/pipelines/'+pipelineName+'/'+projectId+'/terminate'),
+                            data: {'experiments': targets, 'pipelinePath':pipelinePath},
+                            dataType : 'json',
+                            success: function(data){
+                                var messageContent = [],
+                                    totalAttempts = data.successes.concat(data.failures).length,
+                                    successMsg = 'successfully queued to be terminated. If statuses don\'t update ' +
+                                        'shortly, your admin will need to review the logs to determine what went wrong.';
+                                if (data.failures.length > 0) {
+                                    messageContent.push( spawn('div.message', data.successes.length + ' of ' +
+                                        totalAttempts + ' containers ') );
+                                } else if(data.successes.length > 0) {
+                                    messageContent.push( spawn('div.success','All containers ' + successMsg) );
+                                } else {
+                                    messageContent.push( spawn('div.warning','No containers terminated.'));
+                                }
+
+                                if (data.failures.length > 0){
+                                    messageContent.push( spawn('h3',{'style': {'margin-top': '2em' }}, 'Failed termination attempts') );
+                                    data.failures.forEach(function(failure){
+                                        messageContent.push( spawn('p',{ style: { 'font-weight': 'bold' }}, 'Error message:') );
+                                        messageContent.push( spawn('pre.json', failure) );
+                                    });
+                                }
+
+                                XNAT.ui.dialog.open({
+                                    title: 'Job termination report',
+                                    content: spawn('div', messageContent ),
+                                    buttons: [
+                                        {
+                                            label: 'OK',
+                                            isDefault: true,
+                                            close: XNAT.ui.dialog.closeAll()
+                                        }
+                                    ]
+                                });
+                            },
+                            error: function(e) {
+                                XNAT.ui.dialog.open({
+                                    title: 'Job termination failed',
+                                    content: spawn("p", {}, e.status + " error: " + e.responseText),
+                                    buttons: [
+                                        {
+                                            label: 'OK',
+                                            isDefault: true,
+                                            close: XNAT.ui.dialog.closeAll()
+                                        }
+                                    ]
+                                });
+                            }
+                        });
+                    }
+                }
+            ]
+        });
+	}
+
+    function killXnatContainer(commandDetailsJsonObj) {
         var pipelineName = commandDetailsJsonObj['wrapper-name'];
 
         // Experiments
@@ -698,10 +863,20 @@ console.log('bulklauncher.js');
         });
     }
 
-    function launchContainer() {
-        // Container
-        var commandDetailsJsonObj = getSelectedContainer();
-        if (!commandDetailsJsonObj) return false;
+    function pipelineIsSelected(commandDetailsJsonObj) {
+        var pipelineName = commandDetailsJsonObj['pipeline_name'];
+        var pipelinePath = commandDetailsJsonObj['pipeline_path'];
+		if (pipelineName == null && pipelinePath == null) {
+			return false;
+		}else if (pipelineName != null && pipelinePath != null) {
+			return true;
+		}else {
+		    return false;
+		}
+	}
+
+    function launchXnatContainer(commandDetailsJsonObj) {
+       if (!commandDetailsJsonObj) return false;
         // Experiments
         var sel = getSelectedExperiments();
         var targets = sel['targets'], targetLabels = sel['targetLabels'];
@@ -737,7 +912,55 @@ console.log('bulklauncher.js');
             XNAT.plugin.containerService.launcher.bulkLaunchDialog(wrapperId,
                 rootElementName, targets, targetLabels, projectId, commandId);
         }
-    }
+	}
+
+    function launchXnatPipeline(commandDetailsJsonObj) {
+       if (!commandDetailsJsonObj) return false;
+        // Experiments
+        var sel = getSelectedExperiments();
+        var targets = sel['targets'], targetLabels = sel['targetLabels'];
+
+        var projectId = XNAT.plugin.batchLaunch.projectId;
+        var pipelineName = commandDetailsJsonObj['pipeline_name'];
+        var pipelinePath = commandDetailsJsonObj['pipeline_path'];
+
+        //Are there any sessions in the selected list which are in any state other than Failed or Complete?
+        //If this change the selected sessions
+        var sessionsBeingProcessed = checkSelectedSessions(targetLabels, pipelineName);
+        if (sessionsBeingProcessed && sessionsBeingProcessed.length > 0) {
+            var sessionList = "";
+            sessionsBeingProcessed.forEach(function (sessionId) {
+                sessionList += "<p>" + sessionId + "</p>";
+            });
+            XNAT.dialog.open({
+                title: 'Error!',
+                content: 'The following session(s) can not be processed currently ' + sessionList +
+                    ' please exclude the above session(s) and relaunch.',
+                width: 400,
+                buttons: [
+                    {
+                        label: 'OK',
+                        isDefault: true,
+                        close: true
+                    }
+                ]
+            });
+        } else {
+            XNAT.plugin.pipelineLaunchService.launcher.bulkLaunchPipelineDialog(pipelineName, targets, targetLabels, projectId);
+        }
+	}
+
+
+    function launchContainer() {
+		//At this point we decide if the user selected a container or a pipeline to launch
+        // Container
+        var commandDetailsJsonObj = getSelectedContainer();
+        if (pipelineIsSelected(commandDetailsJsonObj)) {
+			launchXnatPipeline(commandDetailsJsonObj)
+		}else {
+			launchXnatContainer(commandDetailsJsonObj);
+		}
+     }
 
     function checkSelectedSessions(targets, pipelineName) {
         var sessionsBeingProcessed = [];

@@ -26,6 +26,7 @@
 #set($hide=true)
 #parse("/screens/workflow_table.vm")
 <script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/batchLaunch/bulklauncher.js")"></script>
+<script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/batchLaunch/pipelineLauncher.js")"></script>
 
 <div id="processing_tabs" class="yui-navset"></div>
 <script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/batchLaunch/batchLaunch-tabs.js")"></script>
