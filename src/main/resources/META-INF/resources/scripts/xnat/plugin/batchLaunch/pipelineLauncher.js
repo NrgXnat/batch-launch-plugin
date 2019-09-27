@@ -515,6 +515,7 @@ var XNAT = getObject(XNAT || {});
 				    renderInput(input, $form);
 				}else if (typeof inputSchemaLink !== 'undefined' && inputSchemaLink != null) {
 					input.type = 'hidden';
+					input.name='xnatschemaLink-' + input.name;
 					input.value = inputSchemaLink;
 				    renderInput(input, $form);
 				}

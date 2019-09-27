@@ -687,7 +687,9 @@ console.log('bulklauncher.js');
         // Experiments
         var sel = getSelectedExperiments();
         var targets = sel['targets'], targetLabels = sel['targetLabels'];
-
+	    var dataToPost = {};
+	    dataToPost['Experiments']=JSON.stringify(targets);
+	    dataToPost['pipelinePath']=pipelinePath;
         XNAT.ui.dialog.open({
             title: 'Terminate process confirmation',
             content: spawn('div', {}, [
@@ -715,8 +717,8 @@ console.log('bulklauncher.js');
                                     "You may continue to work, refreshing the dashboard to see updated progress.");
                                 return true;
                             },
-                            url: XNAT.url.restUrl('/xapi/pipelines/'+pipelineName+'/'+projectId+'/terminate'),
-                            data: {'experiments': targets, 'pipelinePath':pipelinePath},
+                            url: XNAT.url.restUrl('/xapi/pipelines/terminate/'+pipelineName+'/'+projectId),
+                            data: JSON.stringify(dataToPost),
                             dataType : 'json',
                             success: function(data){
                                 var messageContent = [],
