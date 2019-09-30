@@ -54,18 +54,20 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
     // });
     // processingTabs.addTab(containersTab);
 
-    // All history
-    var historyTab = new YAHOO.widget.Tab({
-        label: 'All processing history',
-        content: '<div class="tab-container"><div class="data-table-container" id="workflows-data-table-container" ></div></div>'
-    });
-    historyTab.addListener('activeChange', function (e) {
-        if (e.newValue && !allHistoryLoaded) {
-            XNAT.plugin.batchLaunch.workflowTable.load();
-            allHistoryLoaded = true;
-        }
-    });
-    processingTabs.addTab(historyTab);
+    // All project history, only show if we have a single project
+    if (XNAT.plugin.batchLaunch.projectId) {
+        var historyTab = new YAHOO.widget.Tab({
+            label: 'All processing history',
+            content: '<div class="tab-container"><div class="data-table-container" id="workflows-data-table-container" ></div></div>'
+        });
+        historyTab.addListener('activeChange', function (e) {
+            if (e.newValue && !allHistoryLoaded) {
+                XNAT.plugin.batchLaunch.workflowTable.load();
+                allHistoryLoaded = true;
+            }
+        });
+        processingTabs.addTab(historyTab);
+    }
 
     XNAT.plugin.batchLaunch.launchTable.init();
 }));
