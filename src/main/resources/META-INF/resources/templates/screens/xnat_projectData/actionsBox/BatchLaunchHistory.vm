@@ -1,3 +1,5 @@
+## Copyright 2019 Radiologics, Inc
+
 #if($data.getSession().getAttribute("userHelper").canEdit("xnat:experimentData/project","$om.getId()"))
 	#if ($om.getExperimentCountByXSIType().size()==0)
 	

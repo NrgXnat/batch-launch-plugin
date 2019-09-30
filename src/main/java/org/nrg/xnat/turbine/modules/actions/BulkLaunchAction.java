@@ -1,30 +1,22 @@
+// Copyright 2019 Radiologics, Inc
+// Developer: Mohana Ramaratnam <mohana@radiologics.com>
+
 package org.nrg.xnat.turbine.modules.actions;
 
-import java.io.File;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.net.URLDecoder;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
-import org.nrg.containers.model.command.auto.CommandSummaryForContext;
-import org.nrg.containers.services.CommandService;
-import org.nrg.xdat.XDAT;
 import org.nrg.xdat.exceptions.InvalidSearchException;
 import org.nrg.xdat.om.XdatStoredSearch;
 import org.nrg.xdat.search.DisplaySearch;
 import org.nrg.xdat.turbine.modules.actions.DisplaySearchAction;
-import org.nrg.xdat.turbine.modules.actions.SearchA;
-import org.nrg.xdat.turbine.modules.actions.SearchA.SearchTimeoutException;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.XFTItem;
 import org.nrg.xft.db.PoolDBUtils;
@@ -34,18 +26,11 @@ import org.nrg.xft.exception.XFTInitException;
 import org.nrg.xft.schema.Wrappers.XMLWrapper.SAXReader;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.bulk.utils.SearchXMLBuilder;
-import org.nrg.xnat.turbine.utils.ArcSpecManager;
-import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.xml.sax.InputSource;
 
 import com.google.common.collect.Lists;
 
-import org.nrg.xdat.om.*;
-import org.nrg.xdat.model.*;
-
 @SuppressWarnings("unused")
-
-
 public class BulkLaunchAction extends DisplaySearchAction {
 	   static Logger logger = Logger.getLogger(BulkLaunchAction.class);
 

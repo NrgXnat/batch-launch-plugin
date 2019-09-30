@@ -1,3 +1,7 @@
+/*
+ * Copyright 2019 Radiologics, Inc
+ */
+
 console.log('batchLaunch-tabs.js');
 
 var XNAT = getObject(XNAT || {});
