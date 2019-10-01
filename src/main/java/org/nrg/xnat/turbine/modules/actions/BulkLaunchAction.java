@@ -50,16 +50,14 @@ public class BulkLaunchAction extends DisplaySearchAction {
 		    search_xml = URLDecoder.decode(search_xml, "UTF-8");
 		    search_xml = StringUtils.replace(search_xml, ".close.", "/");
 
-		    final int startWhere=search_xml.indexOf("<xdat:search_where");
-		    final int endWhere=search_xml.indexOf("</xdat:bundle") -1;
-		    String whereClause;
-		    if(startWhere==-1){
-		    	whereClause="";
-		    }else{
-		    	whereClause=search_xml.substring(startWhere, endWhere);
-		    }
-		    
-		    
+		    final String startTag = "<xdat:search_where";
+		    final String endTag = "</xdat:search_where>";
+		    String whereClause = StringUtils.defaultIfBlank(StringUtils.substringBetween(search_xml, startTag, endTag),
+					"");
+		    if (StringUtils.isNotBlank(whereClause)) {
+		    	whereClause = startTag + whereClause + endTag;
+			}
+
 			context.put("xss",this.buildNewSearchXML(search_xml, user, whereClause,data));
 			super.doPreliminaryProcessing(data, context);
 			data.setScreenTemplate(getScreenTemplate());

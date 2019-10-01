@@ -46,7 +46,7 @@ public class SearchXMLBuilder {
 
 		StringBuilder sb=new StringBuilder();
 		sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
-		sb.append("<xdat:bundle ID=\"\" allow-diff-columns=\"0\" secure=\"0\" brief-description=\"Sessions\" xmlns:arc=\"http://nrg.wustl.edu/arc\" xmlns:val=\"http://nrg.wustl.edu/val\" xmlns:pipe=\"http://nrg.wustl.edu/pipe\" xmlns:wrk=\"http://nrg.wustl.edu/workflow\" xmlns:scr=\"http://nrg.wustl.edu/scr\" xmlns:xdat=\"http://nrg.wustl.edu/security\" xmlns:cat=\"http://nrg.wustl.edu/catalog\" xmlns:prov=\"http://www.nbirn.net/prov\" xmlns:xnat=\"http://nrg.wustl.edu/xnat\" xmlns:xnat_a=\"http://nrg.wustl.edu/xnat_assessments\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://nrg.wustl.edu/workflow https://imagingdb.blackthornrx.com/schemas/workflow.xsd http://nrg.wustl.edu/catalog https://imagingdb.blackthornrx.com/schemas/catalog.xsd http://nrg.wustl.edu/pipe https://imagingdb.blackthornrx.com/schemas/repository.xsd http://nrg.wustl.edu/scr https://imagingdb.blackthornrx.com/schemas/screeningAssessment.xsd http://nrg.wustl.edu/arc https://imagingdb.blackthornrx.com/schemas/project.xsd http://nrg.wustl.edu/val https://imagingdb.blackthornrx.com/schemas/protocolValidation.xsd http://nrg.wustl.edu/xnat https://imagingdb.blackthornrx.com/schemas/xnat.xsd http://nrg.wustl.edu/xnat_assessments https://imagingdb.blackthornrx.com/schemas/assessments.xsd http://www.nbirn.net/prov https://imagingdb.blackthornrx.com/schemas/birnprov.xsd http://nrg.wustl.edu/security https://imagingdb.blackthornrx.com/schemas/security.xsd\">");
+		sb.append("<xdat:bundle ID=\"\" allow-diff-columns=\"0\" secure=\"0\" brief-description=\"Sessions\" xmlns:arc=\"http://nrg.wustl.edu/arc\" xmlns:val=\"http://nrg.wustl.edu/val\" xmlns:pipe=\"http://nrg.wustl.edu/pipe\" xmlns:wrk=\"http://nrg.wustl.edu/workflow\" xmlns:scr=\"http://nrg.wustl.edu/scr\" xmlns:xdat=\"http://nrg.wustl.edu/security\" xmlns:cat=\"http://nrg.wustl.edu/catalog\" xmlns:prov=\"http://www.nbirn.net/prov\" xmlns:xnat=\"http://nrg.wustl.edu/xnat\" xmlns:xnat_a=\"http://nrg.wustl.edu/xnat_assessments\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://nrg.wustl.edu/workflow " + XDAT.getSiteUrl() + "/schemas/workflow.xsd http://nrg.wustl.edu/catalog " + XDAT.getSiteUrl() + "/schemas/catalog.xsd http://nrg.wustl.edu/pipe " + XDAT.getSiteUrl() + "/schemas/repository.xsd http://nrg.wustl.edu/scr " + XDAT.getSiteUrl() + "/schemas/screeningAssessment.xsd http://nrg.wustl.edu/arc " + XDAT.getSiteUrl() + "/schemas/project.xsd http://nrg.wustl.edu/val " + XDAT.getSiteUrl() + "/schemas/protocolValidation.xsd http://nrg.wustl.edu/xnat " + XDAT.getSiteUrl() + "/schemas/xnat.xsd http://nrg.wustl.edu/xnat_assessments " + XDAT.getSiteUrl() + "/schemas/assessments.xsd http://www.nbirn.net/prov " + XDAT.getSiteUrl() + "/schemas/birnprov.xsd http://nrg.wustl.edu/security " + XDAT.getSiteUrl() + "/schemas/security.xsd\">");
 		sb.append("<xdat:root_element_name>").append(dataType).append("</xdat:root_element_name>");
 		sb.append("<xdat:search_field>");
 		sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
@@ -227,9 +227,9 @@ public class SearchXMLBuilder {
 				sequence++;
 			}
 		}
-        
+
 		sb.append(whereClause);
-		
+
 		sb.append("</xdat:bundle>");
 		
 		return sb.toString();
