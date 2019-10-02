@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ xnat-data-models: /Users/rherrick/Development/XNAT/1.7/plugins/xnat-data-models/src/main/resources/schemas/xnat/display/mrSessionData_display.xml
-  ~ XNAT http://www.xnat.org
-  ~ Copyright (c) 2017, Washington University School of Medicine
-  ~ All Rights Reserved
-  ~
-  ~ Released under the Simplified BSD.
+  ~ Copyright 2019 Radiologics, Inc
   -->
 <Displays xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xdat/display.xsd" schema-element="xnat:petSessionData" full-description="PET Session" brief-description="PET Session">
 	<DisplayField id="WRK_STATUS" header="STATUS" visible="true" searchable="false" data-type="string" xsi:type="SubQueryField">

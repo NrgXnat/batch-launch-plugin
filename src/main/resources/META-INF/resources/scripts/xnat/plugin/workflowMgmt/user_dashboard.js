@@ -1,3 +1,7 @@
+/*
+ * Copyright 2019 Radiologics, Inc
+ */
+
 $(document).ready(function() {
     var style_string = "color: white;\n" +
         "    font-size: 26px;\n" +

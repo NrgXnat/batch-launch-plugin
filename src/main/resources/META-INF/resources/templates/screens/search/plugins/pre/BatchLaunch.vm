@@ -1,11 +1,15 @@
-<script>
-if(!XNAT.app.typeBasedListingOptions){
-	XNAT.app.typeBasedListingOptions = {};
-}	
-	
-if(!XNAT.app.typeBasedListingOptions["xnat:mrSessionData"]){
-	XNAT.app.typeBasedListingOptions["xnat:mrSessionData"]=[];
-}
-XNAT.app.typeBasedListingOptions["xnat:mrSessionData"].push({action:'BulkLaunchAction',display:'Processing Dashboard'});
+## Copyright 2019 Radiologics, Inc
 
+<script type="text/javascript">
+	if(!XNAT.app.typeBasedListingOptions){
+		XNAT.app.typeBasedListingOptions = {};
+	}
+
+	#set ($xsiTypes = ["xnat:mrSessionData", "xnat:petSessionData", "xnat:ctSessionData", "xnat:otherDicomSessionData"])
+	#foreach ($xsiType in $xsiTypes)
+		if(!XNAT.app.typeBasedListingOptions["$xsiType"]){
+			XNAT.app.typeBasedListingOptions["$xsiType"]=[];
+		}
+		XNAT.app.typeBasedListingOptions["$xsiType"].push({action:'BulkLaunchAction', display:'Processing Dashboard'});
+	#end
 </script>

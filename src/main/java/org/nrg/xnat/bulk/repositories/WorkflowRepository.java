@@ -1,3 +1,6 @@
+// Copyright 2019 Radiologics, Inc
+// Developer: Kate Alpert <kate@radiologics.com>
+
 package org.nrg.xnat.bulk.repositories;
 
 import com.google.common.collect.ImmutableMap;
@@ -379,7 +382,7 @@ public class WorkflowRepository implements PageableRepository {
         for (int i = 0; i < dataTypes.size(); i++) {
             String type = dataTypes.get(i);
             String tableName = null;
-            String timeStr = ", NULL AS item_time";
+            String timeStr = ", NULL::timestamp AS item_time";
             String outname = "wrk" + i;
 
             qb.append(unionStr);

@@ -1,3 +1,6 @@
+// Copyright 2019 Radiologics, Inc
+// Developer: Mohana Ramaratnam <mohana@radiologics.com>
+
 package org.nrg.xnat.bulk.utils;
 
 import java.io.File;
@@ -24,7 +27,14 @@ import org.nrg.xnat.turbine.utils.ArcSpecManager;
 import com.google.common.collect.Lists;
 
 public class SearchXMLBuilder {
-	public String execute(final List<String> projects, final String dataType, final UserI user, final String whereClause, String specificJob,List<String> resources, List<String> scan_types){
+	public String execute(final List<String> projects,
+						  final String dataType,
+						  final UserI user,
+						  final String whereClause,
+						  String specificJob,
+						  List<String> resources,
+						  List<String> scan_types){
+
 		String projIdField;
 		if ("xnat:mrSessionData".equals(dataType)) {
 			projIdField = "MR_PROJECT_IDENTIFIER";
@@ -33,11 +43,10 @@ public class SearchXMLBuilder {
 		} else {
 			projIdField = "PROJECT_IDENTIFIER";
 		}
-		
-		
+
 		StringBuilder sb=new StringBuilder();
 		sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
-		sb.append("<xdat:bundle ID=\"\" allow-diff-columns=\"0\" secure=\"0\" brief-description=\"Sessions\" xmlns:arc=\"http://nrg.wustl.edu/arc\" xmlns:val=\"http://nrg.wustl.edu/val\" xmlns:pipe=\"http://nrg.wustl.edu/pipe\" xmlns:wrk=\"http://nrg.wustl.edu/workflow\" xmlns:scr=\"http://nrg.wustl.edu/scr\" xmlns:xdat=\"http://nrg.wustl.edu/security\" xmlns:cat=\"http://nrg.wustl.edu/catalog\" xmlns:prov=\"http://www.nbirn.net/prov\" xmlns:xnat=\"http://nrg.wustl.edu/xnat\" xmlns:xnat_a=\"http://nrg.wustl.edu/xnat_assessments\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://nrg.wustl.edu/workflow https://imagingdb.blackthornrx.com/schemas/workflow.xsd http://nrg.wustl.edu/catalog https://imagingdb.blackthornrx.com/schemas/catalog.xsd http://nrg.wustl.edu/pipe https://imagingdb.blackthornrx.com/schemas/repository.xsd http://nrg.wustl.edu/scr https://imagingdb.blackthornrx.com/schemas/screeningAssessment.xsd http://nrg.wustl.edu/arc https://imagingdb.blackthornrx.com/schemas/project.xsd http://nrg.wustl.edu/val https://imagingdb.blackthornrx.com/schemas/protocolValidation.xsd http://nrg.wustl.edu/xnat https://imagingdb.blackthornrx.com/schemas/xnat.xsd http://nrg.wustl.edu/xnat_assessments https://imagingdb.blackthornrx.com/schemas/assessments.xsd http://www.nbirn.net/prov https://imagingdb.blackthornrx.com/schemas/birnprov.xsd http://nrg.wustl.edu/security https://imagingdb.blackthornrx.com/schemas/security.xsd\">");
+		sb.append("<xdat:bundle ID=\"\" allow-diff-columns=\"0\" secure=\"0\" brief-description=\"Sessions\" xmlns:arc=\"http://nrg.wustl.edu/arc\" xmlns:val=\"http://nrg.wustl.edu/val\" xmlns:pipe=\"http://nrg.wustl.edu/pipe\" xmlns:wrk=\"http://nrg.wustl.edu/workflow\" xmlns:scr=\"http://nrg.wustl.edu/scr\" xmlns:xdat=\"http://nrg.wustl.edu/security\" xmlns:cat=\"http://nrg.wustl.edu/catalog\" xmlns:prov=\"http://www.nbirn.net/prov\" xmlns:xnat=\"http://nrg.wustl.edu/xnat\" xmlns:xnat_a=\"http://nrg.wustl.edu/xnat_assessments\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://nrg.wustl.edu/workflow " + XDAT.getSiteUrl() + "/schemas/workflow.xsd http://nrg.wustl.edu/catalog " + XDAT.getSiteUrl() + "/schemas/catalog.xsd http://nrg.wustl.edu/pipe " + XDAT.getSiteUrl() + "/schemas/repository.xsd http://nrg.wustl.edu/scr " + XDAT.getSiteUrl() + "/schemas/screeningAssessment.xsd http://nrg.wustl.edu/arc " + XDAT.getSiteUrl() + "/schemas/project.xsd http://nrg.wustl.edu/val " + XDAT.getSiteUrl() + "/schemas/protocolValidation.xsd http://nrg.wustl.edu/xnat " + XDAT.getSiteUrl() + "/schemas/xnat.xsd http://nrg.wustl.edu/xnat_assessments " + XDAT.getSiteUrl() + "/schemas/assessments.xsd http://www.nbirn.net/prov " + XDAT.getSiteUrl() + "/schemas/birnprov.xsd http://nrg.wustl.edu/security " + XDAT.getSiteUrl() + "/schemas/security.xsd\">");
 		sb.append("<xdat:root_element_name>").append(dataType).append("</xdat:root_element_name>");
 		sb.append("<xdat:search_field>");
 		sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
@@ -63,7 +72,7 @@ public class SearchXMLBuilder {
 			sb.append("<xdat:header>Subject</xdat:header>");
 			sb.append("</xdat:search_field>");
 		}else{
-			//if only 1 project is in scope, show that project's 
+			//if only 1 project is in scope, show that project's
 			sb.append("<xdat:search_field>");
 			sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
 			sb.append("<xdat:field_ID>").append(projIdField).append("=").append(projects.get(0)).append("</xdat:field_ID>");
@@ -125,15 +134,15 @@ public class SearchXMLBuilder {
 		    		 }
 				}
 	        }
-			
+
 	    	//Get configured containers
 			try {
 	    		List<String> cmmds = containerWrappersForDataType(projects,dataType,user);
 	    		configuredPipelinesOrContainers.addAll(cmmds);
 			}catch(Exception nsbe) {
-	
+
 			}
-	       
+
 	        for (String pipeline:configuredPipelinesOrContainers) {
 				int lastSlash = pipeline.lastIndexOf(File.separator);
 				String header = pipeline;
@@ -161,7 +170,7 @@ public class SearchXMLBuilder {
 		}else{
 			//user is working on one specific pipeline
 			sequence = addPipeline(specificJob, dataType, sb, sequence);
-			
+
 			String pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
 					"<xdat:field_ID>WRK_STATUS_LAUNCH="+ specificJob +"</xdat:field_ID>" +
 					"<xdat:sequence>"+sequence+"</xdat:sequence>" +
@@ -171,7 +180,7 @@ public class SearchXMLBuilder {
 					"</xdat:search_field>";
 			sb.append(pipelineDisplay);
 			sequence++;
-			
+
 			pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
 					"<xdat:field_ID>WRK_STATUS_LASTMOD="+ specificJob +"</xdat:field_ID>" +
 					"<xdat:sequence>"+sequence+"</xdat:sequence>" +
@@ -181,7 +190,7 @@ public class SearchXMLBuilder {
 					"</xdat:search_field>";
 			sb.append(pipelineDisplay);
 			sequence++;
-			
+
 			pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
 					"<xdat:field_ID>WRK_STATUS_NUMRUNS="+ specificJob +"</xdat:field_ID>" +
 					"<xdat:sequence>"+sequence+"</xdat:sequence>" +
@@ -191,7 +200,7 @@ public class SearchXMLBuilder {
 					"</xdat:search_field>";
 			sb.append(pipelineDisplay);
 			sequence++;
-			
+
 			for(String resource:getOuputResourceLabelsForContainer(specificJob,dataType,user)){
 				pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
 						"<xdat:field_ID>RES_FILE_COUNT="+ resource +"</xdat:field_ID>" +
@@ -203,8 +212,8 @@ public class SearchXMLBuilder {
 				sb.append(pipelineDisplay);
 				sequence++;
 			}
-		}        
-		
+		}
+
 		if(resources!=null){
 			for(String resource: resources){
 				String pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
@@ -218,14 +227,14 @@ public class SearchXMLBuilder {
 				sequence++;
 			}
 		}
-        
+
 		sb.append(whereClause);
-		
+
 		sb.append("</xdat:bundle>");
-		
+
 		return sb.toString();
 	}
-	
+
 	private List<String> getOuputResourceLabelsForContainer(String containerName, String xsiType,UserI user){
 		final List<String> resources= Lists.newArrayList();
 		if(StringUtils.isNotEmpty(containerName)){
@@ -244,7 +253,7 @@ public class SearchXMLBuilder {
 				//ignore
 			}
 		}
-		
+
 		return resources;
 	}
 

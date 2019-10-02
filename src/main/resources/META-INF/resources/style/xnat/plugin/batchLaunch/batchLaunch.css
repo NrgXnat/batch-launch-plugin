@@ -1,3 +1,7 @@
+/*
+ * Copyright 2019 Radiologics, Inc
+ */
+
 .pull-right {
     float: right;
 }
@@ -13,6 +17,10 @@
     width: max-content;
     width: -moz-max-content;    /* Firefox/Gecko */
     width: -webkit-max-content; /* Chrome */
+}
+
+.scrollable-table td {
+    word-break: break-word;
 }
 
 .scrollable-table td.launchTime {

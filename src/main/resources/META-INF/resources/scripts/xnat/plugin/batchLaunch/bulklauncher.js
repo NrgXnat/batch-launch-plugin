@@ -1,3 +1,7 @@
+/*
+ * Copyright 2019 Radiologics, Inc
+ */
+
 var XNAT = getObject(XNAT || {});
 XNAT.plugin = getObject(XNAT.plugin || {});
 XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
@@ -170,9 +174,9 @@ console.log('bulklauncher.js');
                 divContent += '	</div>																		';
                 $container.append(divContent);
 
-                var dataType = responseData.ResultSet.rootElementName;
-                var opts = responseData.ResultSet.Columns;
-                $.each(opts, function (i, d) {
+                var dataType;
+                XNAT.plugin.batchLaunch.dataType = dataType = responseData.ResultSet.rootElementName;
+                $.each(responseData.ResultSet.Columns, function (i, d) {
                     var header, label;
                     header = label = d.header;
                     if (header) {
@@ -364,14 +368,21 @@ console.log('bulklauncher.js');
                     $.map(filterCssList, function(e){ return "tr." + e + "{display:none;}"})));
 
                 // AddDataTableRows:
+                var multipleProjects = false;
                 $.each(rows, function (i, d) {
                     var sessionId = d.session_id || d.expt_id;
                     var subjectId = d.xnat_subjectdata_subjectid;
                     var sessionProject = d.project;
                     var sessionLabel = d[sessionLabelKey];
                     var sessionWorkFlowStatus = {};
-                    if (!XNAT.plugin.batchLaunch.projectId) {
-                        XNAT.plugin.batchLaunch.projectId = d.project;
+
+                    if (!multipleProjects) {
+                        if (XNAT.plugin.batchLaunch.projectId && d.project !== XNAT.plugin.batchLaunch.projectId) {
+                            multipleProjects = true;
+                            XNAT.plugin.batchLaunch.projectId = '';
+                        } else {
+                            XNAT.plugin.batchLaunch.projectId = sessionProject;
+                        }
                     }
 
                     var single_select_checkbox_id = "select-" + sessionId;
@@ -452,8 +463,6 @@ console.log('bulklauncher.js');
                     addActions();
                 }
                 XNAT.plugin.batchLaunch.resizeTableCols($container.find("table#" + tableId));
-                $('#searchRootElement').val(dataType);
-                $('#searchProjectId').val(XNAT.plugin.batchLaunch.projectId);
                 populateBreadCrumbs();
                 // Now get the actions associated with the datatype
                 renderActionOptions();
@@ -500,6 +509,7 @@ console.log('bulklauncher.js');
 
     function populateBreadCrumbs() {
         var projectId = XNAT.plugin.batchLaunch.projectId;
+        if (!projectId) return;
 
         // wrap it up to keep things
         // out of global scope
@@ -523,12 +533,18 @@ console.log('bulklauncher.js');
             .remove()
             .end()
             .append('<option value="Select" selected="true">Select job</option>');
-        var data_type_val = $('#searchRootElement').val();
-        var projectId = XNAT.plugin.batchLaunch.projectId;
+        var data = {xsiType: XNAT.plugin.batchLaunch.dataType};
+        var url = '/xapi/commands/available';
+        if (XNAT.plugin.batchLaunch.projectId) {
+            data['project'] = XNAT.plugin.batchLaunch.projectId;
+        } else {
+            url += '/site';
+        }
         var loadingDialog = XNAT.ui.dialog.loading;
         loadingDialog.open();
         XNAT.xhr.getJSON({
-            url: XNAT.url.rootUrl('/xapi/commands/available?project=' + projectId + '&xsiType=' + data_type_val),
+            url: XNAT.url.rootUrl(url),
+            data: data,
             success: function (responseData) {
                 loadingDialog.close();
                 responseData.forEach(function (availableCommand) {
@@ -560,7 +576,8 @@ console.log('bulklauncher.js');
                 loadingDialog.close();
                 XNAT.dialog.open({
                     title: 'Error!',
-                    content: 'Could not get actions associated with ' + data_type_val + ' encountered ' + o,
+                    content: 'Could not get actions associated with ' + XNAT.plugin.batchLaunch.dataType + ': '
+                        + o.responseText,
                     width: 400,
                     buttons: [
                         {
@@ -589,7 +606,6 @@ console.log('bulklauncher.js');
 	    },
 	    error : function(o) {
 			console.log("Encouneterd error " + o);
-			alert('/data/archive/projects/'+projectId+'/pipelines?format=json');
 		    XNAT.dialog.open({
 	    		    title: 'Error!',
 	    		    content: 'Could not get pipelines associated encounetered ' + o,

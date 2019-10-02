@@ -1,3 +1,5 @@
+// Copyright 2019 Radiologics, Inc
+
 package org.nrg.xnat.plugins.batchLaunchPlugin.plugin;
 
 import org.nrg.framework.annotations.XnatPlugin;

@@ -1,3 +1,6 @@
+// Copyright 2019 Radiologics, Inc
+// Developer: Kate Alpert <kate@radiologics.com>
+
 package org.nrg.xnat.turbine.modules.screens;
 
 import org.apache.turbine.util.RunData;

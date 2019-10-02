@@ -1,3 +1,7 @@
+/*
+ * Copyright 2019 Radiologics, Inc
+ */
+
 var XNAT = getObject(XNAT || {});
 XNAT.plugin = getObject(XNAT.plugin || {});
 XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
@@ -549,6 +553,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
             $bodyCells = $table.find("tbody tr:not(:hidden):first").children(":not(:hidden)");
 
         // Set common width for thead & tbody cells (needed for scrollable tbody)
+        var colWidths = [];
         $bodyCells.each(function (i, v) {
             var wid = Math.max(
                 XNAT.plugin.batchLaunch.cssToNumber($(v), "width"),
@@ -557,6 +562,13 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
             $(v).css("width", wid);
             $($headerCells[i]).css("width", wid);
             $($filterCells[i]).css("width", wid);
+            colWidths.push(wid);
+        });
+
+        $table.find("tbody tr").each(function(rind, row) {
+            $(row).children(":not(:hidden)").each(function (i, v) {
+                $(v).css("width", colWidths[i]);
+            });
         });
     };
 }));

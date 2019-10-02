@@ -1,3 +1,6 @@
+// Copyright 2019 Radiologics, Inc
+// Developer: Mohana Ramaratnam <mohana@radiologics.com>
+
 package org.nrg.xnat.bulk.xapi;
 
 import java.io.BufferedWriter;
@@ -40,11 +43,6 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-
-/**
- * @author Mohana Ramaratnam
- *
- */
 
 @XapiRestController
 @RequestMapping(value = "/bulkaction")

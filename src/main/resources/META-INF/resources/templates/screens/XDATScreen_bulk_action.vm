@@ -1,3 +1,5 @@
+## Copyright 2019 Radiologics, Inc
+
 #* @vtlvariable name="user" type="org.nrg.xdat.security.XDATUser" *#
 #* @vtlvariable name="siteConfig" type="org.nrg.xdat.preferences.SiteConfigPreferences" *#
 #* @vtlvariable name="turbineUtils" type="org.nrg.xdat.turbine.utils.TurbineUtils" *#
@@ -30,9 +32,6 @@
 
 <div id="processing_tabs" class="yui-navset"></div>
 <script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/batchLaunch/batchLaunch-tabs.js")"></script>
-
-<input id="searchRootElement" type="hidden" />
-<input id="searchProjectId" type="hidden" />
 
 <script type="text/javascript" src="$content.getURI("scripts/xnat/app/scanTable/selectableTableBehavior.js")"></script>
 <script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/containerService/commandUiLauncher.js")"></script>

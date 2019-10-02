@@ -1,3 +1,6 @@
+// Copyright 2019 Radiologics, Inc
+// Developer: Kate Alpert <kate@radiologics.com>
+
 package org.nrg.xnat.bulk.services;
 
 import org.nrg.xnat.bulk.model.Workflow;

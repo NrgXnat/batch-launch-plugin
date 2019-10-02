@@ -1,17 +1,15 @@
+// Copyright 2019 Radiologics, Inc
+// Developer: Kate Alpert <kate@radiologics.com>
+
 package org.nrg.xnat.bulk.xapi;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.nrg.xnat.bulk.exceptions.FilterException;
 import org.nrg.xnat.bulk.model.WorkflowFilter;
 import org.nrg.xnat.bulk.repositories.PageableRepository;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
