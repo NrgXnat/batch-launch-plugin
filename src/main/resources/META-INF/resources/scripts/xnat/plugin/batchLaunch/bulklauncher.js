@@ -386,6 +386,16 @@ console.log('bulklauncher.js');
                     }
 
                     var single_select_checkbox_id = "select-" + sessionId;
+                    // var id_json = '{&quot;accession-id&quot;:&quot;' + session_id + '&quot;,&quot;label&quot;:&quot;' +
+                    //     sessionLabel + '&quot;,&quot;project&quot;:&quot;' +
+                    //     session_project + '&quot;,&quot;xsiType&quot;:&quot;' + dataType + '&quot;}';
+                    var id_json = JSON.stringify({
+                        uri: '/archive/experiments/' + sessionId,
+                        id: sessionId,
+                        label: sessionLabel,
+                        project: sessionProject,
+                        xsiType: dataType
+                    });
                     var session_url = 'app/action/DisplayItemAction/search_element/' + dataType + '/search_field/' +
                         dataType + '.ID/search_value/' + sessionId + '/popup/$popup';
                     var subject_url = 'app/action/DisplayItemAction/search_element/xnat:subjectData/search_field/' +

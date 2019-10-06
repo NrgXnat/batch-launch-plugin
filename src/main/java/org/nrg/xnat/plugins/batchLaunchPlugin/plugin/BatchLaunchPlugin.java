@@ -9,9 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean;
 
 @XnatPlugin(value = "batchLaunchPlugin", 
-			name = "XNAT 1.7 Batch Launch Plugin", 
-			description = "Enabled launching Containers/Pipelines in bulk",
-			log4jPropertiesFile = "/META-INF/resources/log4j.properties")
+			name = "XNAT 1.7 Batch Launch Plugin",
+			logConfigurationFile = "/META-INF/resources/batch_launch-logback.xml",
+			description = "Enabled launching Containers/Pipelines in bulk")
 
 @ComponentScan({
 	"org.nrg.xnat.bulk.*"

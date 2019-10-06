@@ -11,12 +11,12 @@ import org.gradle.internal.jvm.Jvm
 
 // TODO: Change the group and version to values appropriate for your plugin project.
 group 'org.nrg.xnat.plugins'
-version '0.2.5.1'
+version '0.2.6'
 
 // TODO: This is the minimum set of Gradle plugins required to build most XNAT plugins. You may include many others, including plugins for testing and test coverage, IDE integration, and more.
 buildscript {
     ext {
-        vXnat = '1.7.5'
+        vXnat = '1.7.6-SNAPSHOT'
     }
     repositories {
         mavenLocal()
@@ -112,28 +112,24 @@ repositories {
 
 // TODO: Keeping your versions as variables makes it easier to update versions when you have multiple libraries from the same framework that thus have the same version.
 // TODO: These versions will change over time as XNAT development continues. Check the latest version of the XNAT template plugin or the XNAT versioning matrix page.
-def vXnatDev = '1.7.5.6.RAD1'
-def vXnat = '1.7.5'
+def vXnatDev = '1.7.6.RAD-SNAPSHOT'
 def vJunit = '4.12'
-def vSpring = '4.2.9.RELEASE'
-def vLog4j = '1.2.17'
 def vSwagger = '2.4.0'
 
 // TODO: This is a pretty minimal set of dependencies, so don't worry if you need to add more.
 dependencies {
-    compile("org.nrg:containers:2.0.2-SNAPSHOT.RAD8") {
+    compile("org.nrg:containers:2.0.2.RAD-SNAPSHOT") {
         exclude group: '*'
     }
     compile("org.nrg.xnat:web:${vXnatDev}") {
         exclude group: '*'
     }
-    compile("org.nrg.xnat:xnat-data-models:${vXnat}") {
+    compile("org.nrg.xnat:xnat-data-models:${vXnatDev}") {
         exclude group: '*'
     } 
-    compile("org.nrg.xdat:core:${vXnat}") {
+    compile("org.nrg.xdat:core:${vXnatDev}") {
     }
     compile "org.nrg:prefs:${vXnat}"
-    compile "org.nrg:framework:${vXnat}"
     compile "org.nrg:framework:${vXnat}"
     compile "org.nrg:config:${vXnat}"
 
@@ -147,12 +143,13 @@ dependencies {
     compile group: 'commons-fileupload', name: 'commons-fileupload', version: '1.2.1'
 
     compile group: 'ecs', name: 'ecs', version: '1.4.2'
-    compile "org.springframework:spring-core:${vSpring}"
-    compile "org.springframework:spring-context:${vSpring}"
-    compile "org.springframework:spring-tx:${vSpring}"
-    compile "org.springframework:spring-web:${vSpring}"
-    compile "log4j:log4j:${vLog4j}"
+    compile "org.springframework:spring-core"
+    compile "org.springframework:spring-context"
+    compile "org.springframework:spring-tx"
+    compile "org.springframework:spring-web"
     compile "io.springfox:springfox-swagger2:${vSwagger}"
+    compile "org.slf4j:slf4j-api"
+    compile "org.slf4j:slf4j-log4j12"
 }
 configurations {
     compile.exclude group: 'javax.sql'
