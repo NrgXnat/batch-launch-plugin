@@ -46,15 +46,19 @@ var XNAT = getObject(XNAT || {});
         getObject(XNAT.plugin.pipelineLaunchService.launcher || {});
 
     function getPipelineDetailsUrl(projectId,pipelineName){
-        return csrfUrl('/REST/projects/'+projectId+'/pipelines/'+pipelineName);
+		var postfix = '';
+		if (projectId) {
+		  postfix += '&project=' + projectId;
+		}
+        return csrfUrl('/xapi/pipelines/parameters?pipelinename='+pipelineName + postfix);
     }
 
-	function bulkLaunchUrl(pipelineName,project){
-		return csrfUrl('/REST/projects/'+project+'/pipelines/'+pipelineName);
-	}
-
-	function getBatchPipelineLaunchUrl(pipelineName,project) {
-		return csrfUrl('/xapi/pipelines/launch/'+pipelineName + '/'+project);
+	function getBatchPipelineLaunchUrl(pipelineName,projectId) {
+		var postfix = '';
+		if (projectId) {
+		  postfix += 'project=' + projectId;
+		}
+		return csrfUrl('/xapi/pipelines/launch/'+pipelineName + '?'+postfix);
 	}
 
 

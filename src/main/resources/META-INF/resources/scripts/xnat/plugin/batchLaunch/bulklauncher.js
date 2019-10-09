@@ -599,9 +599,10 @@ console.log('bulklauncher.js');
                 });
             }
         });
-		//Load configured pipelines
+
+		//Load site wide pipelines for the datatype
 		XNAT.xhr.getJSON({
-            url: XNAT.url.rootUrl('/data/archive/projects/'+projectId+'/pipelines?format=json'),
+            url: XNAT.url.rootUrl('/xapi/pipelines/site?xsiType='+XNAT.plugin.batchLaunch.dataType),
 	    success: function(responseData) {
 			responseData.ResultSet.Result.forEach(function(configuredPipeline) {
 	        		   var pipelineName = configuredPipeline['Name'];
@@ -630,36 +631,6 @@ console.log('bulklauncher.js');
 		    });
 	    }
 	});
-		//Load site wide configured pipelines
-/*		XNAT.xhr.getJSON({
-            url: XNAT.url.rootUrl('/data/archive/projects/'+projectId+'/pipelines?additional=true&format=json'),
-	    success: function(responseData) {
-			responseData.ResultSet.Result.forEach(function(configuredPipeline) {
-	        		   var pipelineName = configuredPipeline['Name'];
-	        		   console.log("Setting " + pipelineName);
-	        		   $('#actionsDropdown').append(spawn('option', {
-			                            value: JSON.stringify({
-			                                'pipeline_name': pipelineName,
-			                                'pipeline_path': configuredPipeline['Path']
-			                            })
-                        }, pipelineName).html);
-	        });
-	    },
-	    error : function(o) {
-		    XNAT.dialog.open({
-	    		    title: 'Error!',
-	    		    content: 'Could not get additional pipelines associated with ' + data_type_val + ' encounetered ' + o,
-	    		    width: 400,
-	    		    buttons: [
-	    			{
-	    			    label: 'OK',
-	    			    isDefault: true,
-	    			    close: true
-	    			}
-	    		    ]
-		    });
-	    }
-	}); */
     }
 
     function getSelectedExperiments() {
