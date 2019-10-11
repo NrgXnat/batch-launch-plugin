@@ -714,9 +714,8 @@ console.log('bulklauncher.js');
                                     "You may continue to work, refreshing the dashboard to see updated progress.");
                                 return true;
                             },
-                            url: XNAT.url.restUrl('/xapi/pipelines/terminate/'+pipelineName+'/'+projectId),
+                            url: XNAT.url.restUrl('/xapi/pipelines/terminate/'+pipelineName+'/project/'+projectId),
                             data: JSON.stringify(dataToPost),
-                            dataType : 'json',
                             success: function(data){
                                 var messageContent = [],
                                     totalAttempts = data.successes.concat(data.failures).length,
