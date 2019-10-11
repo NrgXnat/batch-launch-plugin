@@ -716,6 +716,7 @@ console.log('bulklauncher.js');
                             },
                             url: XNAT.url.restUrl('/xapi/pipelines/terminate/'+pipelineName+'/project/'+projectId),
                             data: JSON.stringify(dataToPost),
+                            contentType:"application/json; charset=utf-8",
                             success: function(data){
                                 var messageContent = [],
                                     totalAttempts = data.successes.concat(data.failures).length,
