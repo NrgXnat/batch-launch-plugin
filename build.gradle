@@ -113,6 +113,7 @@ repositories {
 // TODO: Keeping your versions as variables makes it easier to update versions when you have multiple libraries from the same framework that thus have the same version.
 // TODO: These versions will change over time as XNAT development continues. Check the latest version of the XNAT template plugin or the XNAT versioning matrix page.
 def vXnatDev = '1.7.6.RAD-SNAPSHOT'
+def vXnatDevDataModel = '1.7.6.RAD-SNAPSHOT-PIPELINE'
 def vJunit = '4.12'
 def vSwagger = '2.4.0'
 
@@ -124,7 +125,7 @@ dependencies {
     compile("org.nrg.xnat:web:${vXnatDev}") {
         exclude group: '*'
     }
-    compile("org.nrg.xnat:xnat-data-models:${vXnatDev}") {
+    compile("org.nrg.xnat:xnat-data-models:${vXnatDevDataModel}") {
         exclude group: '*'
     } 
     compile("org.nrg.xdat:core:${vXnatDev}") {
