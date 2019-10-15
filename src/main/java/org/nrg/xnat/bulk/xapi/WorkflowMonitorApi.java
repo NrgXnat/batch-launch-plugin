@@ -10,6 +10,7 @@ import io.swagger.annotations.*;
 import org.nrg.action.ClientException;
 import org.nrg.action.ServerException;
 import org.nrg.xdat.security.helpers.Permissions;
+import org.nrg.xnat.archive.ResourceData;
 import org.nrg.xnat.bulk.exceptions.FilterException;
 import org.nrg.xnat.bulk.model.Workflow;
 import org.nrg.xnat.bulk.model.WorkflowListingRequest;
@@ -32,6 +33,8 @@ import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.ItemI;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.security.UserI;
+import org.nrg.xnat.services.archive.CatalogService;
+import org.nrg.xnat.turbine.utils.ArchivableItem;
 import org.nrg.xnat.utils.WorkflowUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -64,6 +67,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     private ContainerService containerService;
     private SiteConfigPreferences preferences;
     private WorkflowService workflowService;
+    private final CatalogService catalogService;
     private final ExecutorService executorService;
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
@@ -71,6 +75,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     public WorkflowMonitorApi(final SiteConfigPreferences preferences,
                               final ContainerService containerService,
                               final WorkflowService workflowService,
+                              final CatalogService catalogService,
                               @Qualifier("batchLaunchThreadPoolExecutorFactoryBean")
                                   final ThreadPoolExecutorFactoryBean batchLaunchThreadPoolExecutorFactoryBean,
                               final UserManagementServiceI userManagementService,
@@ -79,6 +84,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
         this.preferences = preferences;
         this.containerService = containerService;
         this.workflowService = workflowService;
+        this.catalogService = catalogService;
         this.executorService = batchLaunchThreadPoolExecutorFactoryBean.getObject();
     }
 
@@ -145,7 +151,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
      * @return T/F
      */
     private boolean checkAccess(String accessType, UserI user, String id, String dataType) {
-        ItemI item;
+        ArchivableItem item;
         switch (dataType) {
             case "xdat:user":
                 return true;
@@ -159,9 +165,22 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
                 item = XnatExperimentdata.getXnatExperimentdatasById(id, user, false);
                 break;
         }
+        return checkAccess(accessType, user, item);
+    }
+
+    /**
+     * Check if user can access item, swallowing exceptions
+     *
+     * @param accessType    the type of access (read or edit)
+     * @param user          the user
+     * @param item          the item
+     * @return T/F
+     */
+    private boolean checkAccess(String accessType, UserI user, ArchivableItem item) {
         try {
             return Permissions.can(user, item, accessType);
         } catch (Exception e) {
+            log.error("Exception checking access for user {} on item {}", user.getLogin(), item.getId(), e);
             return false;
         }
     }
@@ -523,14 +542,13 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             boolean isFirstExp = true;
             String errMsg = "";
 
-            String sampleExpId = experiments.get(0);
-
-            for (final String experimentId : experiments) {
+            for (final String uri : experiments) {
                 if (isFirstExp) {
                     isFirstExp = false;
-                    if (!checkAccess("edit", user, sampleExpId, "xnat:experimentData")) {
+                    ResourceData resourceData = catalogService.getResourceDataFromUri(uri);
+                    if (!checkAccess("edit", user, resourceData.getItem())) {
                         failureMessages.add("Insufficient permissions to terminate " + containerName + " workflows for " +
-                                sampleExpId + ". It's likely that attempts to terminate other experiments will also fail.");
+                                uri + ". It's likely that attempts to terminate other experiments will also fail.");
                         errMsg = "; however, termination may fail due to permissions";
                         continue;
                     }
@@ -541,29 +559,37 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
                         @Override
                         public void run() {
                             boolean flag = false;
-                            if (!checkAccess("edit", user, experimentId, "xnat:experimentData")) {
-                                log.error("User {} doesn't have edit permissions for {}", user.getLogin(), experimentId);
+                            ArchivableItem item;
+                            try {
+                                ResourceData resourceData = catalogService.getResourceDataFromUri(uri);
+                                item = resourceData.getItem();
+                                if (!checkAccess("edit", user, item)) {
+                                    log.error("User {} doesn't have edit permissions for {}", user.getLogin(), uri);
+                                    return;
+                                }
+                            } catch (ClientException e) {
+                                log.error("Cannot determine security item for {}", uri);
                                 return;
                             }
-                            for (final PersistentWorkflowI wrk :
-                                    WorkflowUtils.getOpenWorkflowsForPipeline(user, experimentId, containerName)) {
+                            for (final PersistentWorkflowI wrk : WorkflowUtils.getOpenWorkflowsForPipeline(user,
+                                    item.getId(), item.getXSIType(), containerName)) {
                                 flag = true;
                                 try {
                                     killJob(wrk, user);
                                 } catch (ServerException|ClientException e) {
-                                    log.error("Unable to kill {} workflow {}", experimentId, wrk.getWorkflowId(), e);
+                                    log.error("Unable to kill {} workflow {}", uri, wrk.getWorkflowId(), e);
                                 }
                             }
                             if (!flag) {
                                 log.debug("Experiment {}: No {} workflows in a state that can be terminated",
-                                        experimentId, containerName);
+                                        uri, containerName);
                             }
                         }
                     });
-                    successMessages.add(experimentId + ": queued for termination" + errMsg);
+                    successMessages.add(uri + ": queued for termination" + errMsg);
                 } catch (Exception e) {
                     // Most exceptions will be logged, this will only reflect issues submitting to the executorService
-                    failureMessages.add(experimentId + ": unable to queue for termination due to " + e.getMessage());
+                    failureMessages.add(uri + ": unable to queue for termination due to " + e.getMessage());
                     log.error(e.getMessage(), e);
                 }
             }
@@ -594,8 +620,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
      */
     private String killJob(String workflowId, UserI user) throws Exception {
         PersistentWorkflowI wrkFlow = getWorkflowById(workflowId, user); //Throws exception if null
-        String projectId = wrkFlow.getExternalid();
-        if (!checkAccess("edit", user, projectId, "xnat:projectData")) {
+        if (!checkAccess("edit", user, wrkFlow.getId(), wrkFlow.getDataType())) {
             throw new ClientException("Insufficient privilege");
         }
         return killJob(wrkFlow, user);

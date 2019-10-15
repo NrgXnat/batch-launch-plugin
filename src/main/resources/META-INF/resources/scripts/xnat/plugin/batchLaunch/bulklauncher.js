@@ -678,7 +678,7 @@ console.log('bulklauncher.js');
                                         'shortly, your admin will need to review the logs to determine what went wrong.';
                                 if (data.failures.length > 0) {
                                     messageContent.push( spawn('div.message', data.successes.length + ' of ' +
-                                        totalAttempts + ' containers ') );
+                                        totalAttempts + ' containers queued to be terminated') );
                                 } else if(data.successes.length > 0) {
                                     messageContent.push( spawn('div.success','All containers ' + successMsg) );
                                 } else {
