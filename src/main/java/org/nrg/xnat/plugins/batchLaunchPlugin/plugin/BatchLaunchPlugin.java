@@ -10,7 +10,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean;
 
 @XnatPlugin(value = "batchLaunchPlugin", 
 			name = "XNAT 1.7 Batch Launch Plugin",
-			logConfigurationFile = "/META-INF/resources/batch_launch-logback.xml",
+			logConfigurationFile = "META-INF/resources/batch_launch-logback.xml",
 			description = "Enabled launching Containers/Pipelines in bulk")
 
 @ComponentScan({
