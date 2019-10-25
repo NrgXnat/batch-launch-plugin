@@ -41,6 +41,15 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
     XNAT.plugin.batchLaunch.isWorkflowQueued = function(status) {
         return status.includes("Queued");
     };
+    XNAT.plugin.batchLaunch.isWorkflowFinalizing = function(status) {
+        return status.includes("Finalizing") || status.includes("Waiting");
+    };
+    XNAT.plugin.batchLaunch.canTerminateWorkflow = function(status) {
+        return !XNAT.plugin.batchLaunch.isWorkflowQueued(status) &&
+            !XNAT.plugin.batchLaunch.isWorkflowFinalizing(status) &&
+            !XNAT.plugin.batchLaunch.isWorkflowComplete(status) &&
+            !XNAT.plugin.batchLaunch.isWorkflowFailed(status);
+    };
     XNAT.plugin.batchLaunch.isWorkflowContainer = function(entryMap) {
         return entryMap['justification'] === "Container launch" && entryMap['comments'];
     };
@@ -366,9 +375,9 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
         var confirmation_message =
             '<p>Are you sure you want to change the status of this ' +
             'workflow to "<b>' + st + '</b>"?</p>' +
-            '<div class="message" style="margin-top:20px;"><b>Note:</b> ' +
-            'This will not affect the actual pipeline. If the pipeline ' +
-            'is still running, it may change the status.</div>';
+            '<div class="warning" style="margin-top:20px;"><b>Warning:</b> This does not affect the actual job. If the ' +
+            'job is still running, it will continue running and change the status back. You should first attempt to ' +
+            'terminate the job, and only mark as failed if you are confident it is no longer active.</div>';
 
         XNAT.ui.dialog.confirm({
             content: confirmation_message,

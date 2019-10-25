@@ -492,8 +492,8 @@ console.log('bulklauncher.js');
             },
             error: function (o) {
                 XNAT.dialog.open({
-                    title: 'Error!',
-                    content: 'Could not GET the search results encounetered ' + o.responseText,
+                    title: 'Error',
+                    content: 'Could not GET the search results: ' + o.responseText,
                     width: 400,
                     buttons: [
                         {
@@ -598,7 +598,7 @@ console.log('bulklauncher.js');
             error: function (o) {
                 loadingDialog.close();
                 XNAT.dialog.open({
-                    title: 'Error!',
+                    title: 'Error',
                     content: 'Could not get actions associated with ' + XNAT.plugin.batchLaunch.dataType + ': '
                         + o.responseText,
                     width: 400,
@@ -631,8 +631,8 @@ console.log('bulklauncher.js');
 	    error : function(o) {
 			console.log("Encouneterd error " + o);
 		    XNAT.dialog.open({
-	    		    title: 'Error!',
-	    		    content: 'Could not get pipelines associated encounetered ' + o,
+	    		    title: 'Error',
+	    		    content: 'Could not get pipelines for data type: ' + o,
 	    		    width: 400,
 	    		    buttons: [
 	    			{
@@ -787,7 +787,6 @@ console.log('bulklauncher.js');
     function killXnatContainer(commandDetailsJsonObj) {
         var pipelineName = commandDetailsJsonObj['wrapper-name'];
 
-        // Experiments
         var sel = getSelectedExperiments();
         var targets = sel['targets'], targetLabels = sel['targetLabels'];
 
@@ -812,6 +811,30 @@ console.log('bulklauncher.js');
                     close: true,
                     action: function() {
                         if (!targets || targets.length === 0) return false;
+
+                        // Experiments
+                        var cannotTerminate = checkSelectedSessionsForTermination(targetLabels, pipelineName);
+                        if (cannotTerminate && cannotTerminate.length > 0) {
+                            var sessionList = "";
+                            cannotTerminate.forEach(function (sessionId) {
+                                sessionList += "<p>" + sessionId + "</p>";
+                            });
+                            XNAT.dialog.open({
+                                title: 'Error',
+                                content: 'Containers for the following session(s) are not in a state that can be terminated:<br/><br/>' +
+                                    sessionList + 'Please exclude them and try again.',
+                                width: 400,
+                                buttons: [
+                                    {
+                                        label: 'OK',
+                                        isDefault: true,
+                                        close: true
+                                    }
+                                ]
+                            });
+                            return false;
+                        }
+
                         $.post({
                             beforeSend: function() {
                                 XNAT.ui.dialog.alert("Containers are being terminated in the background. " +
@@ -901,16 +924,16 @@ console.log('bulklauncher.js');
 
         //Are there any sessions in the selected list which are in any state other than Failed or Complete?
         //If this change the selected sessions
-        var sessionsBeingProcessed = checkSelectedSessions(targetLabels, pipelineName);
+        var sessionsBeingProcessed = checkSelectedSessionsForLaunch(targetLabels, pipelineName);
         if (sessionsBeingProcessed && sessionsBeingProcessed.length > 0) {
             var sessionList = "";
             sessionsBeingProcessed.forEach(function (sessionId) {
                 sessionList += "<p>" + sessionId + "</p>";
             });
             XNAT.dialog.open({
-                title: 'Error!',
-                content: 'The following session(s) can not be processed currently ' + sessionList +
-                    ' please exclude the above session(s) and relaunch.',
+                title: 'Error',
+                content: 'The following sessions cannot be launched because they are already actively running this job:<br/><br/>'
+                    + sessionList + 'Please exclude them and relaunch.',
                 width: 400,
                 buttons: [
                     {
@@ -938,16 +961,16 @@ console.log('bulklauncher.js');
 
         //Are there any sessions in the selected list which are in any state other than Failed or Complete?
         //If this change the selected sessions
-        var sessionsBeingProcessed = checkSelectedSessions(targetLabels, pipelineName);
+        var sessionsBeingProcessed = checkSelectedSessionsForLaunch(targetLabels, pipelineName);
         if (sessionsBeingProcessed && sessionsBeingProcessed.length > 0) {
             var sessionList = "";
             sessionsBeingProcessed.forEach(function (sessionId) {
                 sessionList += "<p>" + sessionId + "</p>";
             });
             XNAT.dialog.open({
-                title: 'Error!',
-                content: 'The following session(s) can not be processed currently ' + sessionList +
-                    ' please exclude the above session(s) and relaunch.',
+                title: 'Error',
+                content: 'The following sessions cannot be launched because they are already actively running this job:<br/><br/>'
+                    + sessionList + 'Please exclude them and relaunch.',
                 width: 400,
                 buttons: [
                     {
@@ -974,7 +997,7 @@ console.log('bulklauncher.js');
 		}
      }
 
-    function checkSelectedSessions(targets, pipelineName) {
+    function checkSelectedSessionsForLaunch(targets, pipelineName) {
         var sessionsBeingProcessed = [];
         targets.forEach(function (sessionId) {
             if (sessionPipelineWorkFlowStatus.hasOwnProperty(sessionId)) {
@@ -989,6 +1012,22 @@ console.log('bulklauncher.js');
             }
         });
         return sessionsBeingProcessed;
+    }
+
+    function checkSelectedSessionsForTermination(targets, pipelineName) {
+        var interminableSessions = [];
+        targets.forEach(function (sessionId) {
+            if (sessionPipelineWorkFlowStatus.hasOwnProperty(sessionId)) {
+                var wrkFlowStatus = sessionPipelineWorkFlowStatus[sessionId];
+                if (wrkFlowStatus && wrkFlowStatus.hasOwnProperty(pipelineName)) {
+                    var status = wrkFlowStatus[pipelineName];
+                    if (status && !XNAT.plugin.batchLaunch.canTerminateWorkflow(status)) {
+                        interminableSessions.push(sessionId);
+                    }
+                }
+            }
+        });
+        return interminableSessions;
     }
 
     XNAT.plugin.batchLaunch.launchTable.showAllJobsBtnAction = function() {
