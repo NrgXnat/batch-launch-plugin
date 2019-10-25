@@ -16,10 +16,7 @@ import org.nrg.containers.services.CommandService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.ArcProjectDescendantI;
 import org.nrg.xdat.model.ArcProjectDescendantPipelineI;
-import org.nrg.xdat.om.ArcPipelinedata;
-import org.nrg.xdat.om.ArcProject;
-import org.nrg.xdat.om.ArcProjectDescendant;
-import org.nrg.xdat.om.ArcProjectDescendantPipeline;
+import org.nrg.xdat.om.*;
 import org.nrg.xft.exception.ElementNotFoundException;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.turbine.utils.ArcSpecManager;
@@ -36,7 +33,7 @@ public class SearchXMLBuilder {
 						  List<String> scan_types){
 
 		String projIdField;
-		if ("xnat:mrSessionData".equals(dataType)) {
+		if (XnatMrsessiondata.SCHEMA_ELEMENT_NAME.equals(dataType)) {
 			projIdField = "MR_PROJECT_IDENTIFIER";
 		} else if (dataType != null) {
 			projIdField = dataType.replaceFirst(":", "_").toUpperCase() + "_PROJECT_IDENTIFIER";

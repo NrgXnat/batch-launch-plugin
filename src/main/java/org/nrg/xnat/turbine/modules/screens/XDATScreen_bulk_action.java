@@ -24,12 +24,41 @@ public class  XDATScreen_bulk_action  extends SecureScreen {
 	    @Override
 	    protected void doBuildTemplate(RunData data, Context context) throws Exception {
 		    UserI user = TurbineUtils.getUser(data);
-			//context.put("xss", data.getParameters().get("xss"));
-	    	if(context.get("xss")!=null){
-	    		//search already configured
-	    		context.put("preventRefresh", true);
-	    		return;
-	    	}
+
+			String job = (String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("job",data);
+			if (org.apache.commons.lang3.StringUtils.isNotEmpty(job) && PoolDBUtils.HackCheck(job)) {
+				throw new Exception("Invalid value submitted.");
+			}else if(org.apache.commons.lang3.StringUtils.isNotEmpty(job)){
+				context.put("job", job);
+			}
+
+			String resources = (String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("resources",data);
+			if (org.apache.commons.lang3.StringUtils.isNotEmpty(resources) && PoolDBUtils.HackCheck(resources)) {
+				throw new Exception("Invalid value submitted.");
+			}
+
+			java.util.List<String> resourceList=null;
+			if(org.apache.commons.lang3.StringUtils.isNotEmpty(resources)){
+				if(resources.indexOf(",")>0){
+					resourceList=java.util.Arrays.asList(resources.split(","));
+				}else{
+					resourceList=Lists.newArrayList(resources);
+				}
+			}
+
+			String scans = (String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("scan_types",data);
+			if (org.apache.commons.lang3.StringUtils.isNotEmpty(scans) && PoolDBUtils.HackCheck(scans)) {
+				throw new Exception("Invalid value submitted.");
+			}
+
+			java.util.List<String> typesList=null;
+			if(org.apache.commons.lang3.StringUtils.isNotEmpty(scans)){
+				if(scans.indexOf(",")>0){
+					typesList=java.util.Arrays.asList(scans.split(","));
+				}else{
+					typesList=Lists.newArrayList(scans);
+				}
+			}
 	    	
 	    	if(TurbineUtils.HasPassedParameter("project", data) && TurbineUtils.HasPassedParameter("dataType", data)){
 	    		final String project=(String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("project",data);
@@ -51,44 +80,8 @@ public class  XDATScreen_bulk_action  extends SecureScreen {
 				sb.append("</xdat:child_set>");
 				sb.append("</xdat:search_where>");
 	    		
-				String job = (String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("job",data);
-	            if (org.apache.commons.lang3.StringUtils.isNotEmpty(job) && PoolDBUtils.HackCheck(job)) {
-	            	throw new Exception("Invalid value submitted.");
-	            }else if(org.apache.commons.lang3.StringUtils.isNotEmpty(job)){
-	            	context.put("job", job);
-	            }
-	            
-	            
-	            String resources = (String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("resources",data);
-	            if (org.apache.commons.lang3.StringUtils.isNotEmpty(resources) && PoolDBUtils.HackCheck(resources)) {
-	            	throw new Exception("Invalid value submitted.");
-	            }
-	            
-	            java.util.List<String> resourceList=null;
-	            if(org.apache.commons.lang3.StringUtils.isNotEmpty(resources)){
-	            	if(resources.indexOf(",")>0){
-	            		resourceList=java.util.Arrays.asList(resources.split(","));
-	            	}else{
-	            		resourceList=Lists.newArrayList(resources);
-	            	}
-	            }
-	            
-	            String scans = (String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("scan_types",data);
-	            if (org.apache.commons.lang3.StringUtils.isNotEmpty(scans) && PoolDBUtils.HackCheck(scans)) {
-	            	throw new Exception("Invalid value submitted.");
-	            }
-	            
-	            java.util.List<String> typesList=null;
-	            if(org.apache.commons.lang3.StringUtils.isNotEmpty(scans)){
-	            	if(scans.indexOf(",")>0){
-	            		typesList=java.util.Arrays.asList(scans.split(","));
-	            	}else{
-	            		typesList=Lists.newArrayList(scans);
-	            	}
-	            }
-	            
-	            
-	    		context.put("xss", (new SearchXMLBuilder()).execute(Lists.newArrayList(project), dataType, user, sb.toString(),job,resourceList,typesList));
+
+	    		context.put("xss", (new SearchXMLBuilder()).execute(Lists.newArrayList(project), dataType, user, sb.toString(), job, resourceList, typesList));
 	    		context.put("preventRefresh", false);
 				context.put("timezoneOffset", Calendar.getInstance().getTimeZone().getOffset(Calendar.getInstance().getTimeInMillis()));
 	    	}

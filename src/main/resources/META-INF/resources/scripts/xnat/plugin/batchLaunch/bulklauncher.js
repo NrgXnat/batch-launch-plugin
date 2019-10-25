@@ -121,10 +121,10 @@ console.log('bulklauncher.js');
         $dataRows = [];
         $container = $('#selectable-table-bulk');
 
-        var xml = document.getElementById("xss").value;
+        var xml = $('#xss').val();
         var subjectLabelKey = "";
         var sessionLabelKey = "";
-        var isDetails = window.location.href.match(/\/job\/[^\/]*$/);
+        var currentJob = $('span#currentJob').text();
 
         XNAT.xhr.post({
             url: XNAT.url.csrfUrl('REST/search?format=json'),
@@ -147,9 +147,9 @@ console.log('bulklauncher.js');
                 divContent += '		    <button class="btn btn-sm" type="submit" id="reload">Reload</button>';
                 divContent += '		    <button class="btn btn-sm" id="download">Download csv</button>				';
 
-                if (isDetails) {
-                    divContent += '		<a class="btn btn-sm" href="' +
-                        window.location.href.replace(/\/job\/[^\/]*/,'')+'">Show all pipelines</a>';
+                if (currentJob) {
+                    divContent += '<a class="btn btn-sm" href="#" ' +
+                        'onclick="XNAT.plugin.batchLaunch.launchTable.showAllJobsBtnAction()">Show all jobs</a>';
                 }
 
                 divContent += '	    </div>													';
@@ -344,11 +344,24 @@ console.log('bulklauncher.js');
 
                         //Toggle columns checkbox list
                         var dropdownItemContents = XNAT.plugin.batchLaunch.addColumnToggleContents(labelClean, label, true);
-                        if (!isDetails && columnsToShow[header_col]['pipeline']) {
+                        if (!currentJob && columnsToShow[header_col]['pipeline']) {
                             dropdownItemContents.push("&nbsp;");
-                            dropdownItemContents.push($.spawn('a|href="' +
-                                window.location.href.replace(/\/job\/[^\/]*/,'') + '/job/' + label + '"',
-                                {}, "[More details]"));
+                            dropdownItemContents.push($.spawn('a', {
+                                id: label,
+                                onclick: function() {
+                                    var url = window.location.pathname;
+                                    var job = $(this).prop('id');
+                                    if (url.indexOf('BulkLaunchAction') > -1) {
+                                        XNAT.plugin.batchLaunch.fakeFormPost(url, {
+                                            job: job,
+                                            search_xml: $('#xss').val()
+                                        });
+                                    } else {
+                                        window.location.href = window.location.href.replace(/\/job\/[^\/]*/,'') +
+                                        '/job/' + job;
+                                    }
+                                }
+                            }, '[More details]'));
                         }
                         showHideList.push($.spawn("span.bl-dropdown-item", {}, dropdownItemContents));
                     }
@@ -570,7 +583,7 @@ console.log('bulklauncher.js');
                         }, pipelineName).html);
                     } else {
                         var info = columnsToShow[pipelineName];
-                        var currentJob=$('span#currentJob').text();
+                        var currentJob = $('span#currentJob').text();
                         if (info && info['show']===1 && !currentJob) {
                             //Hide this column
                             //$('.show-hide-columns-list input#show-' + info['labelClean']).prop("checked", false);
@@ -976,6 +989,32 @@ console.log('bulklauncher.js');
             }
         });
         return sessionsBeingProcessed;
+    }
+
+    XNAT.plugin.batchLaunch.launchTable.showAllJobsBtnAction = function() {
+        var url = window.location.pathname;
+        if (url.indexOf('BulkLaunchAction') > -1) {
+            XNAT.plugin.batchLaunch.fakeFormPost(url, {
+                search_xml: $('#xss').val()
+            });
+        } else {
+            window.location.href = window.location.href.replace(/\/job\/[^\/]*/,'');
+        }
+    };
+
+    XNAT.plugin.batchLaunch.fakeFormPost = function(url, fields) {
+        var $form = $('<form>', {
+            action: XNAT.url.csrfUrl(url),
+            method: 'post'
+        });
+        $.each(fields, function(key, val) {
+            $('<input>').attr({
+                type: "hidden",
+                name: key,
+                value: val
+            }).appendTo($form);
+        });
+        $form.appendTo('body').submit();
     }
 }));
 

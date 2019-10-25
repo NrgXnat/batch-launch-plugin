@@ -58,7 +58,7 @@ public class BulkLaunchAction extends DisplaySearchAction {
 		    	whereClause = startTag + whereClause + endTag;
 			}
 
-			context.put("xss",this.buildNewSearchXML(search_xml, user, whereClause,data));
+			context.put("xss",this.buildNewSearchXML(search_xml, user, whereClause, data));
 			super.doPreliminaryProcessing(data, context);
 			data.setScreenTemplate(getScreenTemplate());
 
@@ -122,7 +122,7 @@ public class BulkLaunchAction extends DisplaySearchAction {
             if (job!=null && PoolDBUtils.HackCheck(job)) {
             	throw new Exception("Invalid value submitted.");
             }
-            
+
             String resources = data.getParameters().getString("resources");
             if (resources!=null && PoolDBUtils.HackCheck(resources)) {
             	throw new Exception("Invalid value submitted.");

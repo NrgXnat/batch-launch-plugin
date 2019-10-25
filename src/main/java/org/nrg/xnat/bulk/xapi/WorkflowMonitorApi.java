@@ -613,7 +613,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     }
 
     /**
-     * Kill running container, perform permissions check against project
+     * Kill running container, perform permissions check against item
      * @param workflowId    id for corresponding workflow
      * @param user          user
      * @return string status
