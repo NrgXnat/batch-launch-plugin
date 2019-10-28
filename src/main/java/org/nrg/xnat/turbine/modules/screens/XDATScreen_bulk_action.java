@@ -25,6 +25,9 @@ public class  XDATScreen_bulk_action  extends SecureScreen {
 	    protected void doBuildTemplate(RunData data, Context context) throws Exception {
 		    UserI user = TurbineUtils.getUser(data);
 
+			context.put("timezoneOffset",
+					Calendar.getInstance().getTimeZone().getOffset(Calendar.getInstance().getTimeInMillis()));
+
 			String job = (String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("job",data);
 			if (org.apache.commons.lang3.StringUtils.isNotEmpty(job) && PoolDBUtils.HackCheck(job)) {
 				throw new Exception("Invalid value submitted.");
@@ -59,31 +62,29 @@ public class  XDATScreen_bulk_action  extends SecureScreen {
 					typesList=Lists.newArrayList(scans);
 				}
 			}
-	    	
+
+			// The below section is skipped if a search is passed in, ensure that everything else you need is in-context
 	    	if(TurbineUtils.HasPassedParameter("project", data) && TurbineUtils.HasPassedParameter("dataType", data)){
 	    		final String project=(String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("project",data);
 	    		final String dataType=(String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("dataType",data);
-	    		
-	    		StringBuilder sb = new StringBuilder();
-	    		sb.append("<xdat:search_where method=\"AND\">");
-				sb.append("<xdat:child_set method=\"OR\">");
-				sb.append("<xdat:criteria override_value_formatting=\"0\">");
-				sb.append("<xdat:schema_field>").append(dataType).append("/sharing/share/project</xdat:schema_field>");
-				sb.append("<xdat:comparison_type>=</xdat:comparison_type>");
-				sb.append("<xdat:value>").append(project).append("</xdat:value>");
-				sb.append("</xdat:criteria>");
-				sb.append("<xdat:criteria override_value_formatting=\"0\">");
-				sb.append("<xdat:schema_field>").append(dataType).append("/PROJECT</xdat:schema_field>");
-				sb.append("<xdat:comparison_type>=</xdat:comparison_type>");
-				sb.append("<xdat:value>").append(project).append("</xdat:value>");
-				sb.append("</xdat:criteria>");
-				sb.append("</xdat:child_set>");
-				sb.append("</xdat:search_where>");
-	    		
 
-	    		context.put("xss", (new SearchXMLBuilder()).execute(Lists.newArrayList(project), dataType, user, sb.toString(), job, resourceList, typesList));
-	    		context.put("preventRefresh", false);
-				context.put("timezoneOffset", Calendar.getInstance().getTimeZone().getOffset(Calendar.getInstance().getTimeInMillis()));
+				String sb = "<xdat:search_where method=\"AND\">" +
+						"<xdat:child_set method=\"OR\">" +
+						"<xdat:criteria override_value_formatting=\"0\">" +
+						"<xdat:schema_field>" + dataType + "/sharing/share/project</xdat:schema_field>" +
+						"<xdat:comparison_type>=</xdat:comparison_type>" +
+						"<xdat:value>" + project + "</xdat:value>" +
+						"</xdat:criteria>" +
+						"<xdat:criteria override_value_formatting=\"0\">" +
+						"<xdat:schema_field>" + dataType + "/PROJECT</xdat:schema_field>" +
+						"<xdat:comparison_type>=</xdat:comparison_type>" +
+						"<xdat:value>" + project + "</xdat:value>" +
+						"</xdat:criteria>" +
+						"</xdat:child_set>" +
+						"</xdat:search_where>";
+
+				context.put("xss", (new SearchXMLBuilder()).execute(Lists.newArrayList(project), dataType, user, sb,
+						job, resourceList, typesList));
 	    	}
 	    	
 	}
