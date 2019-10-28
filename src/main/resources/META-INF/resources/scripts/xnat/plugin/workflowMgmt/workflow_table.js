@@ -219,6 +219,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
     };
 
     XNAT.plugin.batchLaunch.workflowTable.load = function(){
+        var modalId = 'workflow_table';
         // Don't rerun on concurrent scrolling
         if (XNAT.plugin.batchLaunch.workflowTable.loading) {
             return;
@@ -227,8 +228,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         }
 
         // Add loading indicator
-        var loadingDialog = XNAT.ui.dialog.loading;
-        loadingDialog.open();
+        openModalPanel(modalId, 'Loading processing history');
 
         // What kind of page are we on? What kind of table do we want?
         var id="", type="xdat:user", hide_proj = false, hide_label = false, title='History';
@@ -347,7 +347,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                 $content.html('Issue loading history.');
             },
             complete: function() {
-                loadingDialog.close();
+                closeModalPanel(modalId);
                 XNAT.plugin.batchLaunch.workflowTable.loading = false;
             }
         });
