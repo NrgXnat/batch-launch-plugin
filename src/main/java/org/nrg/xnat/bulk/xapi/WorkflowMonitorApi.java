@@ -210,7 +210,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
      * @return T/F
      */
     private boolean checkAccess(String accessType, UserI user, PersistentWorkflowI wrk, @Nullable String pathStr,
-                                    @Nullable Container container) {
+                                @Nullable Container container) {
         // Get item (to ensure user has access)
         String id = wrk.getId();
         String dataType = wrk.getDataType();

@@ -138,7 +138,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
         if (!entryMap['wfid']) {
             return spawn("span.inline-actions", []);
         }
-        var idstr = '|data-id="' + entryMap['wfid'] + '"';
+        var idstr = '|data-id="' + entryMap['wfid'] + '"|data-curstatus="' + entryMap['status'] + '"';
         var children = [
             spawn('i.fa.fa-download.wf-builddir|title="View build directory' + idstr)
         ];
@@ -147,10 +147,8 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
         if (XNAT.plugin.batchLaunch.isWorkflowContainer(entryMap)) {
             var contstr = '|data-containerid="' + entryMap['comments'] + '"';
             children.push(spawn(summary_str + contstr));
-            if (!XNAT.plugin.batchLaunch.isWorkflowFailed(entryMap['status']) &&
-                !XNAT.plugin.batchLaunch.isWorkflowComplete(entryMap['status']) &&
-                !XNAT.plugin.batchLaunch.isWorkflowQueued(entryMap['status'])) {
-                children.push(spawn('i.fa.fa-ban.wf-terminate|title="Terminate processing"' + idstr + contstr));
+            if (XNAT.plugin.batchLaunch.canTerminateWorkflow(entryMap['status'])) {
+                children.push(spawn('i.fa.fa-ban.wf-terminate|title="Terminate job"' + idstr + contstr));
             }
         } else {
             children.push(spawn(summary_str));
@@ -178,17 +176,17 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
         });
         $parent_element.on("click", ".wf-terminate", function(){
             var $link = $(this), id = $(this).data("id");
-            XNAT.plugin.batchLaunch.killProcess($(this).data("id"),
+            XNAT.plugin.batchLaunch.killProcess(id,
                 function(){XNAT.plugin.batchLaunch.refreshWorkflowRow($link, id);});
         });
         $parent_element.on("click", ".wf-dismiss", function(){
-            var $link = $(this), id = $(this).data("id");
-            XNAT.plugin.batchLaunch.dismissNotification($(this).data("id"), 'Failed (Dismissed)',
+            var $link = $(this), id = $(this).data("id"), curStatus = $(this).data("curstatus");
+            XNAT.plugin.batchLaunch.dismissNotification(id, curStatus, 'Failed (Dismissed)',
                 function(){XNAT.plugin.batchLaunch.refreshWorkflowRow($link, id);});
         });
         $parent_element.on("click", ".wf-fail", function(){
-            var $link = $(this), id = $(this).data("id");
-            XNAT.plugin.batchLaunch.dismissNotification($(this).data("id"), 'Failed (User-set)',
+            var $link = $(this), id = $(this).data("id"), curStatus = $(this).data("curstatus");
+            XNAT.plugin.batchLaunch.dismissNotification(id, curStatus, 'Failed (User-set)',
                 function(){XNAT.plugin.batchLaunch.refreshWorkflowRow($link, id);});
         });
     };
@@ -306,8 +304,8 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
     XNAT.plugin.batchLaunch.killProcess = function(workflowId, callback) {
         callback = isFunction(callback) ? callback : function(){};
         XNAT.ui.dialog.open({
-            title: 'Terminate process confirmation',
-            content: 'Are you sure you want to terminate the process?',
+            title: 'Terminate job confirmation',
+            content: 'Are you sure you want to terminate the job?',
             buttons: [
                 {
                     label: 'Cancel',
@@ -324,13 +322,13 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
 
                         function killProcessOK(data, status, o) {
                             loadingDialog.close();
-                            XNAT.ui.dialog.message('Success', 'Successfully terminated process; note that status may not update immediately');
+                            XNAT.ui.dialog.message('Success', 'Successfully terminated job; note that status may not update immediately');
                             callback();
                         }
 
                         function killProcessFailed(o, status, error) {
                             loadingDialog.close();
-                            XNAT.ui.dialog.message('Error', 'An unexpected error has occurred while killing process ' + workflowId + '. Please contact your administrator.');
+                            XNAT.ui.dialog.message('Error', 'An unexpected error has occurred while killing job ' + workflowId + '. Please contact your administrator.');
                         }
 
                         XNAT.xhr.post({
@@ -344,7 +342,8 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
         });
     };
 
-    XNAT.plugin.batchLaunch.dismissNotification = function(id, st, callback) {
+    XNAT.plugin.batchLaunch.dismissNotification = function(id, curStatus, newStatus, callback) {
+        var afterShowFn = function(){};
         callback = isFunction(callback) ? callback : function(){};
         function workflowUpdate() {
             var loadingDialog = XNAT.ui.dialog.loading;
@@ -352,7 +351,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
 
             function workflowUpdateOK() {
                 loadingDialog.close();
-                XNAT.ui.dialog.message('Success', 'Successfully updated workflow status to "<b>' + st + '</b>".');
+                XNAT.ui.dialog.message('Success', 'Successfully updated workflow status to "<b>' + newStatus + '</b>".');
                 callback();
             }
 
@@ -362,7 +361,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
                 console.log('Status: ' + status + '. Error: ' + error);
             }
 
-            var url = '/data/workflows/' + id + '?' + 'wrk:workflowData/status=' + st;
+            var url = '/data/workflows/' + id + '?' + 'wrk:workflowData/status=' + newStatus;
 
             jQuery.ajax({
                 type: 'PUT',
@@ -372,19 +371,40 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
             });
         }
 
-        var confirmation_message =
-            '<p>Are you sure you want to change the status of this ' +
-            'workflow to "<b>' + st + '</b>"?</p>' +
-            '<div class="warning" style="margin-top:20px;"><b>Warning:</b> This does not affect the actual job. If the ' +
-            'job is still running, it will continue running and change the status back. You should first attempt to ' +
-            'terminate the job, and only mark as failed if you are confident it is no longer active.</div>';
+        var confirmP = spawn('p', {style: 'margin-bottom:20px'},
+            'Are you <b>sure</b> you want to change the status of this workflow to "<b>' + newStatus + '</b>"?');
+        var confirmation;
+        if (XNAT.plugin.batchLaunch.canTerminateWorkflow(curStatus)) {
+            var terminateLinkId = 'terminate-' + id;
+            var terminateLink = spawn('a', {id: terminateLinkId}, 'terminate the job');
+            confirmation = spawn('div', {style: 'margin-bottom:20px'}, [
+                spawn('div.warning', {style: 'margin-bottom:20px'}, ['<b>Warning:</b> Your job is in a state that can ' +
+                    'be terminated. You should first attempt to ', terminateLink, ', and only mark as failed if you ' +
+                    'are confident it is no longer active.']),
+                confirmP
+            ]);
+            afterShowFn = function() {
+                $(document).off('click', '#' + terminateLinkId); // remove any previous
+                $(document).on('click', '#' + terminateLinkId, function(){
+                    XNAT.ui.dialog.close();
+                    XNAT.plugin.batchLaunch.killProcess(id, callback);
+                });
+            };
+        } else {
+            confirmation = spawn('div', {style: 'margin-bottom:20px'}, [
+                confirmP,
+                spawn('div.message', {}, '<b>Note:</b> This does <b>not</b> affect the actual ' +
+                    'job; it merely changes the displayed status. If the job is able to run, it will do so, and may ' +
+                    'change the status back.')
+            ]);
+        }
 
         XNAT.ui.dialog.confirm({
-            content: confirmation_message,
+            content: confirmation,
+            afterShow: afterShowFn,
             okAction: workflowUpdate,
             cancelAction: function () {},
-            width: 420,
-            height: 240
+            width: 420
         });
     };
 

@@ -222,8 +222,7 @@ console.log('bulklauncher.js');
                         if (columnsToShow[wrk_col]['show'] === 0) {
                             if (keyAndHeaderMap.hasOwnProperty(wrk_col)) {
                                 var key = keyAndHeaderMap[wrk_col];
-                                if (wrk_col != 'Project' && key != sessionLabelKey && key != subjectLabelKey) {
-                                    if (d[key] !=null) {
+                                if (wrk_col != 'Project' && key != sessionLabelKey && key != subjectLabelKey && d[key]) {
                                     var workFlowStatusIndx = d[key].indexOf("#");
                                     var workFlowStatus = d[key].substring(0, workFlowStatusIndx);
                                     if (workFlowStatus || key.startsWith("res_file") || key.startsWith("wrk_status_launch")
@@ -232,7 +231,6 @@ console.log('bulklauncher.js');
                                         columnsToShow[wrk_col]['show'] = 1;
                                         return false;
                                     }
-								  }
                                 }
                             }
                         }
