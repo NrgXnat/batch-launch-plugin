@@ -33,6 +33,14 @@ buildscript {
             url 'https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot'
             name 'XNAT Snapshot Repository'
         }
+        maven {
+            url "https://maven.radiologics.com/repository/snapshots"
+            name "Radiologics Snapshot Repository"
+        }
+        maven {
+            url "https://maven.radiologics.com/repository/internal"
+            name "Radiologics Release Repository"
+        }
     }
     dependencies {
         gradleApi()
@@ -46,6 +54,7 @@ apply plugin: 'maven'
 apply plugin: 'maven-publish'
 apply plugin: 'eclipse'
 apply plugin: 'io.franzbecker.gradle-lombok'
+apply plugin: 'io.spring.dependency-management'
 
 // TODO: As of the 1.7.x release, XNAT is built as a Java 7-compatible (i.e. JDK 1.7) application. All plugins must be 1.7 compatible as well.
 sourceCompatibility = 1.7
@@ -108,12 +117,23 @@ repositories {
         url 'https://nrgxnat.jfrog.io/nrgxnat/ext-release'
         name 'XNAT External Release Repository'
     }
+    maven {
+        url "https://maven.radiologics.com/repository/snapshots"
+        name "Radiologics Snapshot Repository"
+    }
+    maven {
+        url "https://maven.radiologics.com/repository/internal"
+        name "Radiologics Release Repository"
+    }
+}
+
+def vXnatDev = "1.7.6.RAD-SNAPSHOT"
+dependencyManagement.imports {
+    mavenBom "org.nrg:parent:${vXnatDev}"
 }
 
 // TODO: Keeping your versions as variables makes it easier to update versions when you have multiple libraries from the same framework that thus have the same version.
 // TODO: These versions will change over time as XNAT development continues. Check the latest version of the XNAT template plugin or the XNAT versioning matrix page.
-def vXnatDev = '1.7.6.RAD-SNAPSHOT'
-//def vXnatDevDataModel = '1.7.6.RAD-SNAPSHOT-PIPELINE'
 def vJunit = '4.12'
 def vSwagger = '2.4.0'
 
@@ -122,17 +142,17 @@ dependencies {
     compile("org.nrg:containers:2.0.2.RAD-SNAPSHOT") {
         exclude group: '*'
     }
-    compile("org.nrg.xnat:web:${vXnatDev}") {
+    compile("org.nrg.xnat:web") {
         exclude group: '*'
     }
-    compile("org.nrg.xnat:xnat-data-models:${vXnatDev}") {
+    compile("org.nrg.xnat:xnat-data-models") {
         exclude group: '*'
     } 
-    compile("org.nrg.xdat:core:${vXnatDev}") {
+    compile("org.nrg.xdat:core") {
     }
-    compile "org.nrg:prefs:${vXnat}"
-    compile "org.nrg:framework:${vXnat}"
-    compile "org.nrg:config:${vXnat}"
+    compile "org.nrg:prefs"
+    compile "org.nrg:framework"
+    compile "org.nrg:config"
 
     compile(group: 'turbine', name: 'turbine', version: '2.3.3') {
         exclude group: '*'
