@@ -335,7 +335,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                             XNAT.plugin.batchLaunch.workflowTable.tableBody.append(this.get$().find("tbody.table-body").children());
 
                             XNAT.plugin.batchLaunch.applyColumnToggle($container);
-                            XNAT.plugin.batchLaunch.resizeTableCols($(XNAT.plugin.batchLaunch.workflowTable.tableBody).parents("table"));
+                            XNAT.plugin.batchLaunch.resizeTableCols($(XNAT.plugin.batchLaunch.workflowTable.tableBody).parent("table"));
                         });
                     } else {
                         // Stop trying, no more results
