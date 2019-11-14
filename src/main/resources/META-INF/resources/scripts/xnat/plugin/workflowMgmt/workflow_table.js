@@ -213,7 +213,9 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
 
     XNAT.plugin.batchLaunch.workflowTable.reload = function() {
         XNAT.plugin.batchLaunch.containerInfo = {};
-        XNAT.plugin.batchLaunch.workflowTable.tableBody.find("tr").remove();
+        if (XNAT.plugin.batchLaunch.workflowTable.tableBody) {
+            XNAT.plugin.batchLaunch.workflowTable.tableBody.find("tr").remove();
+        }
         XNAT.plugin.batchLaunch.workflowTable.page = 0;
         XNAT.plugin.batchLaunch.workflowTable.load();
     };
@@ -256,7 +258,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         // Do we have a table yet?
         var div_id = "workflows-data-table-container-content";
         $container = $('#workflows-data-table-container');
-        if (!XNAT.plugin.batchLaunch.workflowTable.tableBody) {
+        if (!XNAT.plugin.batchLaunch.workflowTable.tableBody && !XNAT.plugin.batchLaunch.workflowTable.emptyTable) {
             $container.append([
                 $('<div class="data-table-titlerow"><h3 class="data-table-title">'+title+'</h3></div>'),
                 $('<div class="data-table-actionsrow clearfix">' +
@@ -344,6 +346,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                 }
             },
             error: function() {
+                XNAT.plugin.batchLaunch.workflowTable.emptyTable = true;
                 $content.html('Issue loading history.');
             },
             complete: function() {
