@@ -118,7 +118,7 @@ repositories {
     }
 }
 
-def vXnatDev = "1.7.6.RAD-SNAPSHOT"
+def vXnatDev = "1.7.6.RAD"
 dependencyManagement.imports {
     mavenBom "org.nrg:parent:${vXnatDev}"
 }
