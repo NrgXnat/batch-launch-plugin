@@ -7,7 +7,7 @@ version '0.2.7'
 // TODO: This is the minimum set of Gradle plugins required to build most XNAT plugins. You may include many others, including plugins for testing and test coverage, IDE integration, and more.
 buildscript {
     ext {
-        vXnat = '1.7.6.RAD'
+        vXnat = '1.7.7.RAD-SNAPSHOT'
     }
     repositories {
         mavenLocal()
@@ -118,9 +118,8 @@ repositories {
     }
 }
 
-def vXnatDev = "1.7.6.RAD"
 dependencyManagement.imports {
-    mavenBom "org.nrg:parent:${vXnatDev}"
+    mavenBom "org.nrg:parent:${vXnat}"
 }
 
 // TODO: Keeping your versions as variables makes it easier to update versions when you have multiple libraries from the same framework that thus have the same version.
