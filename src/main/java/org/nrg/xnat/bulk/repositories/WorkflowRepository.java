@@ -115,12 +115,20 @@ public class WorkflowRepository implements PageableRepository {
     };
 
     // Pipelines for project or for entries within project (experiments, subjects, etc)
-    public static final String QUERY_PROJECT_WFS = "SELECT wrk.*, wrk.id AS label, NULL as item_time " +
-            "FROM wrk_workflowData wrk WHERE id = :id OR (id = :arcId AND data_type = 'arc:project')";
+    public static final String QUERY_PROJECT_WFS = "SELECT wrk.*, p.id AS label, md.insert_date as item_time FROM " +
+            "wrk_workflowData wrk INNER JOIN xnat_projectdata p ON p.id = wrk.id LEFT JOIN " +
+            "xnat_projectdata_meta_data md ON p.projectdata_info = md.meta_data_id WHERE " +
+            "wrk.id = :id AND wrk.data_type = '" +
+            XnatProjectdata.SCHEMA_ELEMENT_NAME+ "' UNION " +
+            "SELECT wrk.*, p.id AS label, md.insert_date as item_time FROM " +
+            "wrk_workflowData wrk INNER JOIN arc_project a ON a.arc_project_id::varchar = wrk.id " +
+            "INNER JOIN xnat_projectdata p ON p.id = a.id LEFT JOIN " +
+            "xnat_projectdata_meta_data md ON p.projectdata_info = md.meta_data_id WHERE " +
+            "wrk.id = :arcId AND wrk.data_type = 'arc:project'";
 
     // SQL from WorkflowBasedHistoryBuilder
     // Pipelines on subject
-    public static final String QUERY_SUBJECT_WFS = "SELECT wrk.*, xnat_subjectdata.label, NULL AS item_time, " +
+    public static final String QUERY_SUBJECT_WFS = "SELECT wrk.*, s.label, md.insert_date AS item_time, " +
             "meta.last_modified FROM (SELECT * FROM wrk_workflowData WHERE id = :id OR " +
             "id IN (SELECT DISTINCT id FROM (SELECT sad.id FROM xnat_subjectassessordata sad WHERE subject_id=:id " +
             "UNION SELECT iad.id FROM xnat_subjectassessordata sad LEFT JOIN xnat_imageassessordata iad " +
@@ -130,13 +138,14 @@ public class WorkflowRepository implements PageableRepository {
             "ON sad.id=iad.imagesession_id WHERE iad.id IS NOT NULL AND subject_id=:id UNION " +
             "SELECT iad.id FROM xnat_subjectassessordata_history sad LEFT JOIN xnat_imageassessordata_history iad " +
             "ON sad.id=iad.imagesession_id WHERE iad.id IS NOT NULL AND subject_id=:id) AS idq)) AS wrk INNER JOIN " +
-            "xnat_subjectdata ON wrk.id=xnat_subjectdata.id LEFT JOIN wrk_workflowdata_meta_data meta " +
-            "ON wrk.workflowData_info=meta.meta_data_id";
+            "xnat_subjectdata s ON wrk.id=s.id LEFT JOIN xnat_subjectdata_meta_data md " +
+            "ON s.subjectdata_info = md.meta_data_id LEFT JOIN wrk_workflowdata_meta_data meta " +
+            "ON wrk.workflowData_info = meta.meta_data_id";
 
     // Pipelines on experiment
     public static final String QUERY_EXPT_WFS = "SELECT wrk.*, xnat_experimentdata.label, " +
-            "xnat_experimentdata.date + xnat_experimentdata.time AS item_time, meta.last_modified FROM " +
-            "(SELECT * FROM wrk_workflowData WHERE id = :id OR " +
+            "concat_ws(' ', xnat_experimentdata.date, xnat_experimentdata.time)::timestamp AS item_time, " +
+            "meta.last_modified FROM (SELECT * FROM wrk_workflowData WHERE id = :id OR " +
             "id IN (SELECT DISTINCT id FROM (SELECT iad.id FROM xnat_imageassessordata iad " +
             "WHERE iad.id IS NOT NULL AND iad.imagesession_id=:id UNION " +
             "SELECT iad.id FROM xnat_imageassessordata_history iad " +
@@ -378,32 +387,40 @@ public class WorkflowRepository implements PageableRepository {
                     }
                 });
         String experimentTable = SchemaElement.GetElement(XnatExperimentdata.SCHEMA_ELEMENT_NAME).getSQLName();
-        String experimentDateStr = ", xnat_experimentdata.date + xnat_experimentdata.time AS item_time";
+        String experimentDateStr = ", concat_ws(' ', xnat_experimentdata.date, xnat_experimentdata.time)::timestamp " +
+                "AS item_time";
         for (int i = 0; i < dataTypes.size(); i++) {
-            String type = dataTypes.get(i);
-            String tableName = null;
-            String timeStr = ", NULL::timestamp AS item_time";
             String outname = "wrk" + i;
+            String type = dataTypes.get(i);
+            String tableName;
+            String timeStr = ", md.insert_date as item_time";
+            String labelCol = "label";
+            String mdJoin = null;
 
             qb.append(unionStr);
 
             switch(type) {
                 case XnatProjectdata.SCHEMA_ELEMENT_NAME:
-                    qb.append(" SELECT " + outname + ".*, " + outname + ".id AS label " + timeStr + " FROM wrk_workflowData " +
-                            outname + " WHERE data_type = '" + type + "' " + constraints);
+                    tableName = SchemaElement.GetElement(type).getSQLName();
+                    labelCol = "id";
+                    mdJoin = " LEFT JOIN xnat_projectdata_meta_data md ON " + tableName +
+                            ".projectdata_info = md.meta_data_id";
                     break;
                 case XnatSubjectdata.SCHEMA_ELEMENT_NAME:
                     tableName = SchemaElement.GetElement(type).getSQLName();
+                    mdJoin = " LEFT JOIN xnat_subjectdata_meta_data md ON " + tableName +
+                            ".subjectdata_info = md.meta_data_id";;
                     break;
                 default:
                     tableName = experimentTable;
                     timeStr = experimentDateStr;
                     break;
             }
-            if (tableName != null) {
-                qb.append(" SELECT " + outname + ".*, " + tableName + ".label" + timeStr + " FROM " +
-                        "(SELECT * FROM wrk_workflowData WHERE data_type = '" + type + "' " + constraints + ") " +
-                        "AS " + outname + " INNER JOIN " + tableName + " ON " + outname + ".id=" + tableName + ".id");
+            qb.append(" SELECT " + outname + ".*, " + tableName + "." + labelCol + " AS label " + timeStr + " FROM " +
+                    "(SELECT * FROM wrk_workflowData WHERE data_type = '" + type + "' " + constraints + ") " +
+                    "AS " + outname + " INNER JOIN " + tableName + " ON " + outname + ".id=" + tableName + ".id");
+            if (mdJoin != null) {
+                qb.append(mdJoin);
             }
             unionStr = " UNION";
         }
