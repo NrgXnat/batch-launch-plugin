@@ -98,6 +98,9 @@ public class BulkLaunchAction extends DisplaySearchAction {
                 throw new SearchTimeoutException("BuldLaunchAction Session Expired: The previously performed search has timed out.");
             }
             String rootElementName = ds.getRootElement().getFullXMLName();
+            if (rootElementName == null) {
+				 throw new Exception("Invalid value submitted.");
+			}
             //Load search results into a table
             org.nrg.xft.XFTTable table = (org.nrg.xft.XFTTable)ds.execute(null,user.getLogin());
 

@@ -529,26 +529,26 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public ResponseEntity<String> killActive(@PathVariable final String containerName,
-                @RequestParam("experiments[]") List<String> experiments) {
+                @RequestParam("elements[]") List<String> elements) {
 
         try {
-            if (experiments.isEmpty()) {
-                return new ResponseEntity<>("No experiments specified", HttpStatus.BAD_REQUEST);
+            if (elements.isEmpty()) {
+                return new ResponseEntity<>("No elements specified", HttpStatus.BAD_REQUEST);
             }
 
             final UserI user = getSessionUser();
             final List<String> successMessages = new ArrayList<>();
             final List<String> failureMessages = new ArrayList<>();
-            boolean isFirstExp = true;
+            boolean isFirst = true;
             String errMsg = "";
 
-            for (final String uri : experiments) {
-                if (isFirstExp) {
-                    isFirstExp = false;
+            for (final String uri : elements) {
+                if (isFirst) {
+                    isFirst = false;
                     ResourceData resourceData = catalogService.getResourceDataFromUri(uri);
                     if (!checkAccess("edit", user, resourceData.getItem())) {
                         failureMessages.add("Insufficient permissions to terminate " + containerName + " workflows for " +
-                                uri + ". It's likely that attempts to terminate other experiments will also fail.");
+                                uri + ". It's likely that attempts to terminate other elements will also fail.");
                         errMsg = "; however, termination may fail due to permissions";
                         continue;
                     }
