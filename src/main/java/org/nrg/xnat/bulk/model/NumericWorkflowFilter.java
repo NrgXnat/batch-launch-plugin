@@ -20,6 +20,9 @@ public class NumericWorkflowFilter extends WorkflowFilter {
     @Nullable @JsonProperty private Number lt;
     @Nullable @JsonProperty private Number le;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @JsonIgnore
     public String constructQueryString(String dbColumnName, MapSqlParameterSource namedParams) throws FilterException {
@@ -46,6 +49,9 @@ public class NumericWorkflowFilter extends WorkflowFilter {
         return StringUtils.join(filters, " AND ");
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @JsonIgnore
     void validate(String uiValue) {

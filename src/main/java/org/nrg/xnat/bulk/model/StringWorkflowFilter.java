@@ -16,6 +16,9 @@ public class StringWorkflowFilter extends WorkflowFilter {
     @JsonProperty private String like;
     @Nullable @JsonProperty private Boolean not;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @JsonIgnore
     public String constructQueryString(String dbColumnName, MapSqlParameterSource namedParams) throws FilterException {
@@ -25,6 +28,9 @@ public class StringWorkflowFilter extends WorkflowFilter {
         return dbColumnName + notStr + " ILIKE :" + dbColumnName + "str";
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @JsonIgnore
     void validate(String uiValue) throws FilterException{

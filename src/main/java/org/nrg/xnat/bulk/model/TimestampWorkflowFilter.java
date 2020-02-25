@@ -23,6 +23,9 @@ public class TimestampWorkflowFilter extends WorkflowFilter {
     @Nullable @JsonProperty private String beforeOrOn;
     @Nullable @JsonProperty private String afterOrOn;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @JsonIgnore
     public String constructQueryString(String dbColumnName, MapSqlParameterSource namedParams) throws FilterException {
@@ -54,6 +57,9 @@ public class TimestampWorkflowFilter extends WorkflowFilter {
         return StringUtils.join(filters, " AND ");
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @JsonIgnore
     void validate(String uiValue) throws FilterException{

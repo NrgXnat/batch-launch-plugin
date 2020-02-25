@@ -8,6 +8,9 @@ import org.apache.velocity.context.Context;
 import org.nrg.xdat.turbine.modules.screens.SecureScreen;
 
 public class UserDashboard extends SecureScreen {
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected void doBuildTemplate(RunData data, Context context) throws Exception {
     }
