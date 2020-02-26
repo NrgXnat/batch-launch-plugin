@@ -5,10 +5,9 @@ package org.nrg.xnat.bulk.repositories;
 
 import com.google.common.collect.ImmutableMap;
 import org.nrg.containers.services.impl.ContainerServiceImpl;
-import org.nrg.xdat.om.WrkWorkflowdata;
-import org.nrg.xdat.om.XnatExperimentdata;
-import org.nrg.xdat.om.XnatSubjectdata;
+import org.nrg.xdat.om.*;
 import org.nrg.xdat.schema.SchemaElement;
+import org.nrg.xdat.schema.SchemaField;
 import org.nrg.xdat.security.ElementSecurity;
 import org.nrg.xft.exception.ElementNotFoundException;
 import org.nrg.xft.exception.FieldNotFoundException;
@@ -18,7 +17,6 @@ import org.nrg.xnat.bulk.xapi.PageRequest;
 import org.nrg.xnat.bulk.model.WorkflowDuration;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
-import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
@@ -143,9 +141,8 @@ public class WorkflowRepository implements PageableRepository {
             "ON wrk.workflowData_info = meta.meta_data_id";
 
     // Pipelines on experiment
-    public static final String QUERY_EXPT_WFS = "SELECT wrk.*, xnat_experimentdata.label, " +
-            "concat_ws(' ', xnat_experimentdata.date, xnat_experimentdata.time)::timestamp AS item_time, " +
-            "meta.last_modified FROM (SELECT * FROM wrk_workflowData WHERE id = :id OR " +
+    public static final String QUERY_EXPT_WFS = "SELECT wrk.*, xnat_experimentdata.label, " + getExperimentItemTimeSQL() +
+            ", meta.last_modified FROM (SELECT * FROM wrk_workflowData WHERE id = :id OR " +
             "id IN (SELECT DISTINCT id FROM (SELECT iad.id FROM xnat_imageassessordata iad " +
             "WHERE iad.id IS NOT NULL AND iad.imagesession_id=:id UNION " +
             "SELECT iad.id FROM xnat_imageassessordata_history iad " +
@@ -308,7 +305,7 @@ public class WorkflowRepository implements PageableRepository {
     }
 
     /**
-     * Get Worflow model object from PersistentWorkflowI object
+     * Get Workflow model object from PersistentWorkflowI object
      * @param wrk   PersistentWorkflowI object
      * @param user  user
      * @return      Worflow model object
@@ -387,38 +384,57 @@ public class WorkflowRepository implements PageableRepository {
                     }
                 });
         String experimentTable = SchemaElement.GetElement(XnatExperimentdata.SCHEMA_ELEMENT_NAME).getSQLName();
-        String experimentDateStr = ", concat_ws(' ', xnat_experimentdata.date, xnat_experimentdata.time)::timestamp " +
-                "AS item_time";
         for (int i = 0; i < dataTypes.size(); i++) {
             String outname = "wrk" + i;
             String type = dataTypes.get(i);
             String tableName;
-            String timeStr = ", md.insert_date as item_time";
+            String timeStr = "md.insert_date as item_time";
             String labelCol = "label";
+            String idCol = "id";
             String mdJoin = null;
 
-            qb.append(unionStr);
-
+            SchemaElement se = SchemaElement.GetElement(type);
             switch(type) {
                 case XnatProjectdata.SCHEMA_ELEMENT_NAME:
-                    tableName = SchemaElement.GetElement(type).getSQLName();
+                    tableName = se.getSQLName();
                     labelCol = "id";
-                    mdJoin = " LEFT JOIN xnat_projectdata_meta_data md ON " + tableName +
-                            ".projectdata_info = md.meta_data_id";
+                    mdJoin = getMetaDataJoinSQL(tableName, se);
                     break;
                 case XnatSubjectdata.SCHEMA_ELEMENT_NAME:
-                    tableName = SchemaElement.GetElement(type).getSQLName();
-                    mdJoin = " LEFT JOIN xnat_subjectdata_meta_data md ON " + tableName +
-                            ".subjectdata_info = md.meta_data_id";;
+                    tableName = se.getSQLName();
+                    mdJoin = getMetaDataJoinSQL(tableName, se);
+                    break;
+                case ArcProject.SCHEMA_ELEMENT_NAME:
+                    tableName = se.getSQLName();
+                    labelCol = "id";
+                    idCol = "arc_project_id";
+                    SchemaElement projSe = SchemaElement.GetElement(XnatProjectdata.SCHEMA_ELEMENT_NAME);
+                    String projTable = projSe.getSQLName();
+                    mdJoin = " INNER JOIN " + projTable + " ON " + projTable + ".id = " + tableName + ".id " +
+                            getMetaDataJoinSQL(projTable, projSe);
                     break;
                 default:
-                    tableName = experimentTable;
-                    timeStr = experimentDateStr;
+                    if (se.instanceOf(XnatExperimentdata.SCHEMA_ELEMENT_NAME)) {
+                        tableName = experimentTable;
+                        timeStr = getExperimentItemTimeSQL();
+                    } else {
+                        ArrayList pks = se.getAllPrimaryKeys();
+                        if (pks.size() != 1) {
+                            continue;
+                        }
+                        idCol = ((SchemaField) pks.get(0)).getGenericXFTField().getId();
+                        labelCol = idCol;
+                        tableName = se.getSQLName();
+                        mdJoin = getMetaDataJoinSQL(tableName, se);
+                    }
                     break;
             }
-            qb.append(" SELECT " + outname + ".*, " + tableName + "." + labelCol + " AS label " + timeStr + " FROM " +
-                    "(SELECT * FROM wrk_workflowData WHERE data_type = '" + type + "' " + constraints + ") " +
-                    "AS " + outname + " INNER JOIN " + tableName + " ON " + outname + ".id=" + tableName + ".id");
+
+            qb.append(unionStr);
+            qb.append(" SELECT " + outname + ".*, " + tableName + "." + labelCol + "::varchar AS label, " + timeStr +
+                    " FROM (SELECT * FROM wrk_workflowData WHERE data_type = '" + type + "' " + constraints + ") " +
+                    "AS " + outname + " INNER JOIN " + tableName + " ON " + outname + ".id = " +
+                    tableName + "." + idCol + "::varchar");
             if (mdJoin != null) {
                 qb.append(mdJoin);
             }
@@ -434,6 +450,26 @@ public class WorkflowRepository implements PageableRepository {
      */
     private String buildQueryWithDataTypeLabels() throws Exception {
         return buildQueryWithDataTypeLabels(null);
+    }
+
+    /**
+     * Return the SQL for item_time for experiment data
+     * @return the SQL string
+     */
+    private static String getExperimentItemTimeSQL() {
+        return "nullif(concat_ws(' ', xnat_experimentdata.date, xnat_experimentdata.time),'')::timestamp " +
+                "AS item_time";
+    }
+
+    /**
+     * Get join SQL for adding metadata table
+     * @param tableName the table
+     * @param se the schema element for the data type
+     * @return the SQL join string
+     */
+    private String getMetaDataJoinSQL(String tableName, SchemaElement se) {
+        return " LEFT JOIN " + tableName + "_meta_data md ON " + tableName +
+                "." + se.getGenericXFTElement().getName() + "_info = md.meta_data_id";
     }
 
 }
