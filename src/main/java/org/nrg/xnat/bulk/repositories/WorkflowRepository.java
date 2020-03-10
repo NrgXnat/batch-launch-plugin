@@ -393,7 +393,13 @@ public class WorkflowRepository implements PageableRepository {
             String idCol = "id";
             String mdJoin = null;
 
-            SchemaElement se = SchemaElement.GetElement(type);
+            SchemaElement se;
+            try {
+                se = SchemaElement.GetElement(type);
+            } catch (ElementNotFoundException e) {
+                log.warn("Found workflow for datatype that no longer exists", e);
+                continue;
+            }
             switch(type) {
                 case XnatProjectdata.SCHEMA_ELEMENT_NAME:
                     tableName = se.getSQLName();
@@ -457,7 +463,10 @@ public class WorkflowRepository implements PageableRepository {
      * @return the SQL string
      */
     private static String getExperimentItemTimeSQL() {
-        return "nullif(concat_ws(' ', xnat_experimentdata.date, xnat_experimentdata.time),'')::timestamp " +
+        return "CASE " +
+                "WHEN xnat_experimentdata.date IS null THEN null::timestamp " +
+                "ELSE nullif(concat_ws(' ', xnat_experimentdata.date, xnat_experimentdata.time),'')::timestamp " +
+                "END " +
                 "AS item_time";
     }
 

@@ -113,8 +113,10 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
                     workflowListingRequest.getSortDir(), workflowListingRequest.getPage(),
                     workflowListingRequest.getSize(), workflowListingRequest.getFiltersMap()), HttpStatus.OK);
         } catch (FilterException e) {
+            log.error("Error querying workflows", e);
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
+            log.error("Error querying workflows", e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -136,6 +138,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
         try {
             return new ResponseEntity<>(workflowService.getWorkflowModelFromWorkflowI(wrk, user), HttpStatus.OK);
         } catch (Exception e) {
+            log.error("Error retrieving workflow", e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
