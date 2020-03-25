@@ -7,7 +7,7 @@ version '0.2.7'
 // TODO: This is the minimum set of Gradle plugins required to build most XNAT plugins. You may include many others, including plugins for testing and test coverage, IDE integration, and more.
 buildscript {
     ext {
-        vXnat = '1.7.7.RAD-SNAPSHOT'
+        vXnat = '1.7.7-SNAPSHOT'
     }
     repositories {
         mavenLocal()
@@ -48,29 +48,9 @@ apply plugin: 'io.franzbecker.gradle-lombok'
 apply plugin: 'io.spring.dependency-management'
 
 // TODO: As of the 1.7.x release, XNAT is built as a Java 7-compatible (i.e. JDK 1.7) application. All plugins must be 1.7 compatible as well.
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
-// TODO: If the compiler is Java 8 or later, this checks for a Java 7 version of the primary Java run-time library. Building with post-Java 7 libraries can result in occasional compatibility issues.
-def javaVersion = Jvm.current().javaVersion
-if (javaVersion.java8Compatible || javaVersion.java9Compatible) {
-    if (hasProperty("rt.17.jar")) {
-        // Solution for bootstrap classpath warning and possible issues with compatibility with 1.7 libraries
-        // was taken from this post on discuss.gradle.org: http://bit.ly/24xD9j0
-        def rt17jar = getProperty("rt.17.jar")
-        logger.info "Using ${rt17jar} as the bootstrap class path jar."
-        gradle.projectsEvaluated {
-            tasks.withType(JavaCompile) {
-                options.fork = true
-                options.compilerArgs << "-XDignore.symbol.file"
-                options.bootClasspath = rt17jar
-            }
-        }
-    } else {
-        logger.warn "No value was set for the rt.17.jar build property, using the default bootstrap class path. You should consider setting rt.17.jar to indicate a jar file containing the Java 1.7 run-time library:\n"
-        logger.warn "  ./gradlew -Prt.17.jar=rt-1.7.0_45.jar war\n"
-    }
-}
 
 // TODO: This tells the compiler where to find source code. This isn't required in a standard build, but the XNAT data builder generates code from XNAT data-type schemas that the compiler needs to know about.
 sourceSets {
@@ -129,7 +109,7 @@ def vSwagger = '2.4.0'
 
 // TODO: This is a pretty minimal set of dependencies, so don't worry if you need to add more.
 dependencies {
-    compile("org.nrg:containers:2.1.1.RAD-SNAPSHOT") {
+    compile("org.nrg:containers:2.1.1-SNAPSHOT") {
         exclude group: '*'
     }
     compile("org.nrg.xnat:web") {
