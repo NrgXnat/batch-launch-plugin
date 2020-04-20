@@ -273,7 +273,7 @@ public class SearchXMLBuilder {
 	}
 
 	private void addSessionColumn(StringBuilder sb, String dataType, List<String> projects) {
-		addLabelField(sb, dataType, projects, false);
+		addLabelField(sb, dataType, projects, true);
 		sb.append("<xdat:search_field>");
 		sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
 		sb.append("<xdat:field_ID>VISIT</xdat:field_ID>");
