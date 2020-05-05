@@ -125,8 +125,10 @@ console.log('bulklauncher.js');
         $container = $('#selectable-table-bulk');
 
         var xml = $('#xss').val();
+        var projectLabelKey = "id";
         var subjectLabelKey = "";
         var sessionLabelKey = "";
+        var scanLabelKey = "id";
         var currentJob = $('span#currentJob').text();
 
         XNAT.xhr.post({
@@ -179,67 +181,61 @@ console.log('bulklauncher.js');
 
                 var dataType;
                 XNAT.plugin.batchLaunch.dataType = dataType = responseData.ResultSet.rootElementName;
+                let excluded = ["Scans", "Age", "Date", "Scanner", "Scans", "Type", "M/F", "Gender"];
                 $.each(responseData.ResultSet.Columns, function (i, d) {
                     var header, label;
                     header = label = d.header;
-                    if (header) {
-                        var showColumn = true;
-                        if (header == "Scans" || header == "Age" || header == "Date" ||
-                            header == "Scanner" || header == "Type" || header == "M/F") {
-                            showColumn = false;
-                        }
-                        if (d.key.startsWith('xnat_subjectdata_sub_project_identifier') ||
-                            d.key.startsWith("sub_project_identifier") || d.key == "xnat_col_subjectdatalabel" ||
-                            d.key == "xnat_subjectdata_subjectid" || d.key == "xnat_subjectdata_subject_label") {
-                            subjectLabelKey = d.key;
-                        } else if (d.key.indexOf('_project_identifier_') > 0 || d.key == "session_id") {
-                            sessionLabelKey = d.key;
-                        } else if (d.key == "label") {
-                            sessionLabelKey = d.key;
-                        }
-                        if (showColumn) {
-                            keyAndHeaderMap[header] = d.key;
-                            columnsToShow[header] = {
-                                show: 0,
-                                label: label,
-                                labelClean: label.replace(' ','-'),
-                                type: d.type,
-                                pipeline: d.key.startsWith("wrk_status") && d.type === "string" &&
-                                    d.xPATH.replace(/[^.]*./,'') === "WRK_STATUS" //Hack
-                            };
-                        }
+                    if (!header || excluded.includes(header)) {
+                        return;
                     }
+                    var key = d.key.substring(0, 63);
+                    if (d.key.startsWith('xnat_subjectdata_sub_project_identifier') ||
+                        d.key.startsWith("sub_project_identifier") || d.key === "xnat_col_subjectdatalabel" ||
+                        d.key === "xnat_subjectdata_subjectid" || d.key === "xnat_subjectdata_subject_label") {
+                        subjectLabelKey = key;
+                    } else if (d.key.indexOf('_project_identifier_') > 0 || d.key === "session_id") {
+                        sessionLabelKey = key;
+                    } else if (d.key === "label") {
+                        sessionLabelKey = key;
+                    }
+                    keyAndHeaderMap[header] = key;
+                    columnsToShow[header] = {
+                        show: false,
+                        label: label,
+                        labelClean: label.replace(' ','-'),
+                        type: d.type,
+                        pipeline: d.key.startsWith("wrk_status") && d.type === "string" &&
+                            d.xPATH.replace(/[^.]*./,'') === "WRK_STATUS" //Hack
+                    };
                 });
 
-                columnsToShow['Project']['show'] = multipleProjects ? 1 : 0;
+                columnsToShow['Project']['show'] = multipleProjects;
                 if (columnsToShow.hasOwnProperty('Subject')) {
-                    columnsToShow['Subject']['show'] = 1;
+                    columnsToShow['Subject']['show'] = true;
                 }
                 if (columnsToShow.hasOwnProperty('Session')) {
-                    columnsToShow['Session']['show'] = 1;
+                    columnsToShow['Session']['show'] = true;
+                }
+                if (columnsToShow.hasOwnProperty('Scan')) {
+                    columnsToShow['Scan']['show'] = true;
                 }
 
                 var rows = responseData.ResultSet.Result;
 
                 // Dont add columns for workflows which have not been executed for the project at all
                 for (var wrk_col in columnsToShow) {
-                    if (columnsToShow[wrk_col]['show'] === 1) {
+                    if (columnsToShow[wrk_col]['show'] || !keyAndHeaderMap.hasOwnProperty(wrk_col)) {
                         continue;
                     }
                     $.each(rows, function (i, d) {
-                        if (columnsToShow[wrk_col]['show'] === 0) {
-                            if (keyAndHeaderMap.hasOwnProperty(wrk_col)) {
-                                var key = keyAndHeaderMap[wrk_col];
-                                if (wrk_col != 'Project' && key != sessionLabelKey && key != subjectLabelKey && d[key]) {
-                                    var workFlowStatusIndx = d[key].indexOf("#");
-                                    var workFlowStatus = d[key].substring(0, workFlowStatusIndx);
-                                    if (workFlowStatus || key.startsWith("res_file") || key.startsWith("wrk_status_launch")
-                                        || key.startsWith("wrk_status_numrows") || key.startsWith("wrk_status_lastmod")
-                                        || key.startsWith("scan_type_count")) {
-                                        columnsToShow[wrk_col]['show'] = 1;
-                                        return false;
-                                    }
-                                }
+                        var key = keyAndHeaderMap[wrk_col], val = d[key];
+                        if (val) {
+                            var workFlowStatusIndx = val.indexOf("#");
+                            var workFlowStatus = val.substring(0, workFlowStatusIndx);
+                            if (workFlowStatus || key.startsWith("res_file") || key.startsWith("wrk_status_launch")
+                                || key.startsWith("wrk_status_numrows") || key.startsWith("wrk_status_lastmod")
+                                || key.startsWith("scan_type_count")) {
+                                columnsToShow[wrk_col]['show'] = true;
                             }
                         }
                     });
@@ -252,124 +248,125 @@ console.log('bulklauncher.js');
                 var filterIdPrefix = 'filter-by-';
                 var filterClassPrefix = 'filter-';
                 for (var header_col in columnsToShow) {
-                    if (columnsToShow[header_col]['show'] === 1) {
-                        label = columnsToShow[header_col]['label'];
-                        labelClean = columnsToShow[header_col]['labelClean'];
-                        var filterId = filterIdPrefix + labelClean;
-                        var filterClass = filterClassPrefix + labelClean;
-                        filterCssList.push(filterClass);
-                        $('tr#xnat-table-header-row1').append($('<th class="left sort '+ labelClean +
-                            '" style="word-wrap:break-word;">' + label + '<i class="arrows">&nbsp;</i></th>'));
-                        //Filter for each column
-                        if (columnsToShow[header_col]['type'] === 'date') {
-                            var MIN = 60 * 1000;
-                            var HOUR = MIN * 60;
-                            var X8HRS = HOUR * 8;
-                            var X24HRS = HOUR * 24;
-                            var X7DAYS = X24HRS * 7;
-                            var X30DAYS = X24HRS * 30;
-                            $filterInput = $.spawn('div', [XNAT.ui.select.menu({
-                                value: 0,
-                                options: {
-                                    all: {
-                                        label: 'All',
-                                        value: 0,
-                                        selected: true
-                                    },
-                                    lastHour: {
-                                        label: 'Last Hour',
-                                        value: HOUR
-                                    },
-                                    last8hours: {
-                                        label: 'Last 8 Hrs',
-                                        value: X8HRS
-                                    },
-                                    last24hours: {
-                                        label: 'Last 24 Hrs',
-                                        value: X24HRS
-                                    },
-                                    lastWeek: {
-                                        label: 'Last Week',
-                                        value: X7DAYS
-                                    },
-                                    last30days: {
-                                        label: 'Last 30 days',
-                                        value: X30DAYS
-                                    }
-                                },
-                                element: {
-                                    id: filterId,
-                                    on: {
-                                        change: function () {
-                                            var filterId = this.id;
-                                            var filterClass = filterId.replace(filterIdPrefix,filterClassPrefix);
-                                            var colClass = filterId.replace(filterIdPrefix,'');
-                                            var selectedValue = parseInt(this.value, 10);
-                                            if (selectedValue === 0) {
-                                                $dataRows.removeClass(filterClass);
-                                            } else {
-                                                cacheRows();
-                                                var currentTimeServer = Date.now() + toServerTime;
-                                                $dataRows.addClass(filterClass).filter(function () {
-                                                    var timestamp = $(this).find('td.' + colClass).text(), date;
-                                                    return timestamp && (date = new Date(timestamp)) &&
-                                                        (selectedValue === date - 1 || selectedValue > (currentTimeServer - date));
-                                                }).removeClass(filterClass);
-                                            }
-                                            updateAfterFiltering($(this).parents("table"));
-                                        }
-                                    }
-                                }
-                            }).element]);
-                        } else {
-                            $filterInput = $.spawn('input#' + filterId + '.filter-data', {
-                                type: 'text',
-                                title: labelClean + ':filter',
-                                placeholder: 'Filter...',
-                                style: 'width: 90%;'
-                            });
-                            $filterInput.on('keyup', function(e){
-                                var filterId = this.id;
-                                var colClass = filterId.replace(filterIdPrefix,'');
-                                var filterClass = filterId.replace(filterIdPrefix,filterClassPrefix);
-                                var val = this.value;
-                                var key = e.which;
-                                // don't do anything on 'tab' keyup
-                                if (key === 9) return false;
-                                if (key === 27){ // key 27 = 'esc'
-                                    this.value = val = '';
-                                }
-                                if (!val || key === 8) {
-                                    $dataRows.removeClass(filterClass);
-                                }
-                                filterRows(val, colClass);
-                                updateAfterFiltering($(this).parents("table"));
-                            });
-                        }
-                        $('tr#xnat-table-header-row2').append($("<td class='"+labelClean+"'></td>").append($filterInput));
-
-                        //Toggle columns checkbox list
-                        var dropdownItemContents = XNAT.plugin.batchLaunch.addColumnToggleContents(labelClean, label, true);
-                        if (!currentJob && columnsToShow[header_col]['pipeline']) {
-                            dropdownItemContents.push("&nbsp;");
-                            dropdownItemContents.push($.spawn('a', {
-                                id: label,
-                                onclick: function() {
-                                    var job = $(this).prop('id');
-                                    if (multipleProjects) {
-                                        XNAT.plugin.batchLaunch.fakeFormPost({
-                                            job: job,
-                                            search_xml: $('#xss').val()
-                                        });
-                                    } else {
-                                        window.location.href = window.location.href.replace(/\/job\/[^\/]*/,'') +
-                                        '/job/' + job;
-                                    }
-                                }
-                            }, '[More details]'));
-                        }
-                        showHideList.push($.spawn("span.bl-dropdown-item", {}, dropdownItemContents));
+                    if (!columnsToShow[header_col]['show']) {
+                        continue;
                     }
+                    label = columnsToShow[header_col]['label'];
+                    labelClean = columnsToShow[header_col]['labelClean'];
+                    var filterId = filterIdPrefix + labelClean;
+                    var filterClass = filterClassPrefix + labelClean;
+                    filterCssList.push(filterClass);
+                    $('tr#xnat-table-header-row1').append($('<th class="left sort '+ labelClean +
+                        '" style="word-wrap:break-word;">' + label + '<i class="arrows">&nbsp;</i></th>'));
+                    //Filter for each column
+                    if (columnsToShow[header_col]['type'] === 'date') {
+                        var MIN = 60 * 1000;
+                        var HOUR = MIN * 60;
+                        var X8HRS = HOUR * 8;
+                        var X24HRS = HOUR * 24;
+                        var X7DAYS = X24HRS * 7;
+                        var X30DAYS = X24HRS * 30;
+                        $filterInput = $.spawn('div', [XNAT.ui.select.menu({
+                            value: 0,
+                            options: {
+                                all: {
+                                    label: 'All',
+                                    value: 0,
+                                    selected: true
+                                },
+                                lastHour: {
+                                    label: 'Last Hour',
+                                    value: HOUR
+                                },
+                                last8hours: {
+                                    label: 'Last 8 Hrs',
+                                    value: X8HRS
+                                },
+                                last24hours: {
+                                    label: 'Last 24 Hrs',
+                                    value: X24HRS
+                                },
+                                lastWeek: {
+                                    label: 'Last Week',
+                                    value: X7DAYS
+                                },
+                                last30days: {
+                                    label: 'Last 30 days',
+                                    value: X30DAYS
+                                }
+                            },
+                            element: {
+                                id: filterId,
+                                on: {
+                                    change: function () {
+                                        var filterId = this.id;
+                                        var filterClass = filterId.replace(filterIdPrefix,filterClassPrefix);
+                                        var colClass = filterId.replace(filterIdPrefix,'');
+                                        var selectedValue = parseInt(this.value, 10);
+                                        if (selectedValue === 0) {
+                                            $dataRows.removeClass(filterClass);
+                                        } else {
+                                            cacheRows();
+                                            var currentTimeServer = Date.now() + toServerTime;
+                                            $dataRows.addClass(filterClass).filter(function () {
+                                                var timestamp = $(this).find('td.' + colClass).text(), date;
+                                                return timestamp && (date = new Date(timestamp)) &&
+                                                    (selectedValue === date - 1 || selectedValue > (currentTimeServer - date));
+                                            }).removeClass(filterClass);
+                                        }
+                                        updateAfterFiltering($(this).parents("table"));
+                                    }
+                                }
+                            }
+                        }).element]);
+                    } else {
+                        $filterInput = $.spawn('input#' + filterId + '.filter-data', {
+                            type: 'text',
+                            title: labelClean + ':filter',
+                            placeholder: 'Filter...',
+                            style: 'width: 90%;'
+                        });
+                        $filterInput.on('keyup', function(e){
+                            var filterId = this.id;
+                            var colClass = filterId.replace(filterIdPrefix,'');
+                            var filterClass = filterId.replace(filterIdPrefix,filterClassPrefix);
+                            var val = this.value;
+                            var key = e.which;
+                            // don't do anything on 'tab' keyup
+                            if (key === 9) return false;
+                            if (key === 27){ // key 27 = 'esc'
+                                this.value = val = '';
+                            }
+                            if (!val || key === 8) {
+                                $dataRows.removeClass(filterClass);
+                            }
+                            filterRows(val, colClass);
+                            updateAfterFiltering($(this).parents("table"));
+                        });
+                    }
+                    $('tr#xnat-table-header-row2').append($("<td class='"+labelClean+"'></td>").append($filterInput));
+
+                    //Toggle columns checkbox list
+                    var dropdownItemContents = XNAT.plugin.batchLaunch.addColumnToggleContents(labelClean, label, true);
+                    if (!currentJob && columnsToShow[header_col]['pipeline']) {
+                        dropdownItemContents.push("&nbsp;");
+                        dropdownItemContents.push($.spawn('a', {
+                            id: label,
+                            onclick: function() {
+                                var job = $(this).prop('id');
+                                if (multipleProjects) {
+                                    XNAT.plugin.batchLaunch.fakeFormPost({
+                                        job: job,
+                                        search_xml: $('#xss').val()
+                                    });
+                                } else {
+                                    window.location.href = window.location.href.replace(/\/job\/[^\/]*/,'') +
+                                    '/job/' + job;
+                                }
+                            }
+                        }, '[More details]'));
+                    }
+                    showHideList.push($.spawn("span.bl-dropdown-item", {}, dropdownItemContents));
                 }
 
                 // Toggle columns
@@ -388,31 +385,27 @@ console.log('bulklauncher.js');
                 // AddDataTableRows:
                 var allSameProject = true;
                 $.each(rows, function (i, d) {
-                    var project, id, label, type, project_url, subject_url;
+                    var project, label, project_url, subject_url, expt_url;
+                    var uri = d.uri, element_url = '/data' + uri + '?format=html';
                     var workflowStatus = {};
                     if (dataType === "xnat:projectData") {
-                        id = d.id;
-                        label = id;
-                        project = id;
-                        type = 'projects';
+                        label = d[projectLabelKey];
+                        project = label;
                     } else {
                         project = d.project;
-                        project_url = 'app/action/DisplayItemAction/search_element/xnat:projectData/search_field/' +
-                            'xnat:projectData.ID/search_value/' + project + '/popup/$popup';
+                        project_url = '/data/archive/projects/' + project;
                         if (dataType === "xnat:subjectData") {
-                            id = d.subject_id || d.subjectid;
                             label = d[subjectLabelKey];
-                            type = 'subjects';
                         } else {
-                            id = d.session_id || d.expt_id;
-                            label = d[sessionLabelKey];
-                            type = 'experiments';
-                            subject_url = 'app/action/DisplayItemAction/search_element/xnat:subjectData/search_field/' +
-                                'xnat:subjectData.ID/search_value/' + d.xnat_subjectdata_subjectid + '/popup/$popup';
+                            subject_url = '/data/archive/subjects/' + d.xnat_subjectdata_subjectid;
+                            if (dataType.includes("Session")) {
+                                label = d[sessionLabelKey];
+                            } else {
+                                label = d[scanLabelKey];
+                                expt_url = '/data' + uri.replace(/\/scans.*$/,'?format=html');
+                            }
                         }
                     }
-                    var element_url = 'app/action/DisplayItemAction/search_element/' + dataType + '/search_field/' +
-                        dataType + '.ID/search_value/' + id + '/popup/$popup';
 
                     if (allSameProject) {
                         if (XNAT.plugin.batchLaunch.projectId && project !== XNAT.plugin.batchLaunch.projectId) {
@@ -423,16 +416,16 @@ console.log('bulklauncher.js');
                         }
                     }
 
-                    var single_select_checkbox_id = "select-" + id;
+                    var itemid = uri.replace(/\/archive\/[^\/]*/).replace(/\/scans\//,'-');
+                    var single_select_checkbox_id = "select-" + itemid;
                     var id_json = JSON.stringify({
-                        uri: '/archive/' + type + '/' + id,
-                        id: id,
+                        uri: uri,
                         label: label,
                         project: project,
                         xsiType: dataType
                     });
 
-                    var rowDataWithColumns = '<tr valign="top" id="element-' + id + '">';
+                    var rowDataWithColumns = '<tr valign="top" id="element-' + itemid + '">';
                     rowDataWithColumns += '<td class="element-selector center" ' +
                         'style="width: 45px;">';
                     var inputCk = spawn('input', {
@@ -445,44 +438,49 @@ console.log('bulklauncher.js');
                     rowDataWithColumns += '</td>';
 
                     for (var hdr in columnsToShow) {
-                        if (keyAndHeaderMap.hasOwnProperty(hdr) && columnsToShow[hdr]['show'] === 1) {
-                            var key = keyAndHeaderMap[hdr];
-                            label = columnsToShow[hdr]['label'];
-                            labelClean = columnsToShow[hdr]['labelClean'];
-                            if (key === sessionLabelKey ||
-                                (key === subjectLabelKey && dataType === "xnat:subjectData") ||
-                                (hdr === 'Project' && dataType === "xnat:projectData")) {
-                                rowDataWithColumns += '<td class="' + labelClean + '" ><a href="' + XNAT.url.rootUrl(element_url) +
-                                    '"  target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
-                            } else if (hdr === 'Project') {
-                                rowDataWithColumns += '<td class="' + labelClean + '" ><a href="' + XNAT.url.rootUrl(project_url) +
-                                    '" target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
-                            } else if (key === subjectLabelKey) {
-                                rowDataWithColumns += '<td class="' + labelClean + '" ><a href="' + XNAT.url.rootUrl(subject_url) +
-                                    '" target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
-                            } else if (key.startsWith("res_file") || key.startsWith("wrk_status_launch")
-                                || key.startsWith("wrk_status_numrows") || key.startsWith("wrk_status_lastmod")
-                                || key.startsWith("scan_type_count")) {
-                                rowDataWithColumns += '<td class="' + labelClean + '" >' + d[key] + '</td>';
-                            } else {
-                                // d.key contains status#workflow id
-                                var entryMap = {};
-                                var workFlowStatusIndx = d[key].indexOf("#");
-                                var workFlowStatus = d[key].substring(0, workFlowStatusIndx);
-                                workflowStatus[hdr] = workFlowStatus; //Needs to be empty if no status yet
-                                workFlowStatus = workFlowStatus || "Ready";
-                                var workFlowId = d[key].substring(workFlowStatusIndx + 1);
-                                var containerId = d[key.replace("wrk_status", "wrk_status_cid")];
-                                entryMap['wfid'] = workFlowId;
-                                entryMap['status'] = workFlowStatus;
-                                entryMap['comments'] = containerId;
-                                entryMap['justification'] = (containerId) ? "Container launch" : "";
-                                rowDataWithColumns += '<td class="' + labelClean + '">';
-                                rowDataWithColumns += XNAT.plugin.batchLaunch.spawnStatusCell(workFlowStatus).html;
-                                rowDataWithColumns += XNAT.plugin.batchLaunch.spawnInlineActions(entryMap).html;
-                                rowDataWithColumns += '</td>';
+                        if (!keyAndHeaderMap.hasOwnProperty(hdr) || !columnsToShow[hdr]['show']) {
+                            continue;
+                        }
+                        var key = keyAndHeaderMap[hdr];
+                        label = columnsToShow[hdr]['label'];
+                        labelClean = columnsToShow[hdr]['labelClean'];
+                        if ((key === scanLabelKey && dataType.includes("Scan")) ||
+                            (key === sessionLabelKey && dataType.includes("Session")) ||
+                            (key === subjectLabelKey && dataType === "xnat:subjectData") ||
+                            (key === projectLabelKey && dataType === "xnat:projectData")) {
+                            rowDataWithColumns += '<td class="' + labelClean + '" ><a href="' + XNAT.url.rootUrl(element_url) +
+                                '"  target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
+                        } else if (hdr === 'Project') {
+                            rowDataWithColumns += '<td class="' + labelClean + '" ><a href="' + XNAT.url.rootUrl(project_url) +
+                                '" target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
+                        } else if (hdr === 'Subject') {
+                            rowDataWithColumns += '<td class="' + labelClean + '" ><a href="' + XNAT.url.rootUrl(subject_url) +
+                                '" target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
+                        } else if (hdr === 'Session') {
+                            rowDataWithColumns += '<td class="' + labelClean + '" ><a href="' + XNAT.url.rootUrl(expt_url) +
+                                '" target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
+                        } else if (key.startsWith("res_file") || key.startsWith("wrk_status_launch")
+                            || key.startsWith("wrk_status_numrows") || key.startsWith("wrk_status_lastmod")
+                            || key.startsWith("scan_type_count")) {
+                            rowDataWithColumns += '<td class="' + labelClean + '" >' + d[key] + '</td>';
+                        } else {
+                            // d.key contains status#workflow id
+                            var entryMap = {};
+                            var workFlowStatusIndx = d[key].indexOf("#");
+                            var workFlowStatus = d[key].substring(0, workFlowStatusIndx);
+                            workflowStatus[hdr] = workFlowStatus; //Needs to be empty if no status yet
+                            workFlowStatus = workFlowStatus || "Ready";
+                            var workFlowId = d[key].substring(workFlowStatusIndx + 1);
+                            var containerId = d[key.replace("wrk_status", "wrk_status_cid")];
+                            entryMap['wfid'] = workFlowId;
+                            entryMap['status'] = workFlowStatus;
+                            entryMap['comments'] = containerId;
+                            entryMap['justification'] = (containerId) ? "Container launch" : "";
+                            rowDataWithColumns += '<td class="' + labelClean + '">';
+                            rowDataWithColumns += XNAT.plugin.batchLaunch.spawnStatusCell(workFlowStatus).html;
+                            rowDataWithColumns += XNAT.plugin.batchLaunch.spawnInlineActions(entryMap).html;
+                            rowDataWithColumns += '</td>';
 
-                            }
                         }
                     }
                     pipelineWorkFlowStatus[label] = workflowStatus;

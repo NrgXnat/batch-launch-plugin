@@ -1,7 +1,11 @@
 ## Copyright 2019 Radiologics, Inc
 
+#* @vtlvariable name="om" type="org.nrg.xdat.om.XnatProjectdata" *#
+
+## Since we have to manually create an addl dispay doc, only certain datatypes are supported :(
 #set($supportedTypes = ["xnat:subjectData", "xnat:mrSessionData", "xnat:petmrSessionData", "xnat:petSessionData",
-	"xnat:ctSessionData", "xnat:otherDicomSessionData"])
+	"xnat:ctSessionData", "xnat:dxSessionData", "xnat:mrScanData", "xnat:petScanData",
+	"xnat:ctScanData", "xnat:dxScanData"])
 #set($xsiTypes = [])
 #if($data.getSession().getAttribute("userHelper").canRead("xnat:subjectData/project","$om.getId()"))
 	#if($om.getParticipants_participant().size() > 0)
@@ -10,6 +14,11 @@
 #end
 #if($data.getSession().getAttribute("userHelper").canRead("xnat:experimentData/project","$om.getId()"))
 	#foreach ($xsiTypeProc in $om.getExperimentCountByXSIType().keySet())
+		#if ($supportedTypes.contains($xsiTypeProc))
+			#set($junk = $xsiTypes.add($xsiTypeProc))
+		#end
+	#end
+	#foreach ($xsiTypeProc in $om.getScanCountByXSIType().keySet())
 		#if ($supportedTypes.contains($xsiTypeProc))
 			#set($junk = $xsiTypes.add($xsiTypeProc))
 		#end

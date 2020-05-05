@@ -6,7 +6,8 @@
 	}
 
 	#set ($xsiTypes = ["xnat:projectData", "xnat:subjectData", "xnat:mrSessionData", "xnat:petmrSessionData",
-		"xnat:petSessionData", "xnat:ctSessionData", "xnat:otherDicomSessionData"])
+		"xnat:petSessionData", "xnat:ctSessionData", "xnat:otherDicomSessionData", "xnat:dxSessionData",
+		"xnat:mrScanData", "xnat:petScanData", "xnat:ctScanData", "xnat:dxScanData"])
 	#foreach ($xsiType in $xsiTypes)
 		if(!XNAT.app.typeBasedListingOptions["$xsiType"]){
 			XNAT.app.typeBasedListingOptions["$xsiType"]=[];

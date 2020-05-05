@@ -3,12 +3,11 @@
 
 package org.nrg.xnat.bulk.utils;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.nrg.containers.model.command.auto.Command.CommandOutput;
 import org.nrg.containers.model.command.auto.Command.CommandWrapper;
 import org.nrg.containers.model.command.auto.Command.CommandWrapperOutput;
 import org.nrg.containers.model.command.auto.CommandSummaryForContext;
@@ -26,6 +25,7 @@ import com.google.common.collect.Lists;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+@Slf4j
 public class SearchXMLBuilder {
 	public String execute(final List<String> projects,
 						  @Nonnull final String dataType,
@@ -49,15 +49,27 @@ public class SearchXMLBuilder {
 				sb.append("<xdat:type>string</xdat:type>");
 				sb.append("<xdat:header>Project</xdat:header>");
 				sb.append("</xdat:search_field>");
+				addUriField(sb, dataType);
 				break;
 			case XnatSubjectdata.SCHEMA_ELEMENT_NAME:
 				addProjectColumn(sb, dataType);
 				addSubjectColumn(sb, dataType, projects);
+				addUriField(sb, dataType);
+				break;
+			case XnatMrscandata.SCHEMA_ELEMENT_NAME:
+			case XnatPetscandata.SCHEMA_ELEMENT_NAME:
+			case XnatCtscandata.SCHEMA_ELEMENT_NAME:
+			case XnatDxscandata.SCHEMA_ELEMENT_NAME:
+				addProjectColumn(sb, dataType);
+				addSubjectColumn(sb, dataType, projects);
+				addScanColumns(sb, dataType, projects);
+				addUriField(sb, dataType);
 				break;
 			default:
 				addProjectColumn(sb, dataType);
 				addSubjectColumn(sb, dataType, projects);
 				addSessionColumn(sb, dataType, projects);
+				addUriField(sb, dataType);
 		}
 
 		int sequence=100;
@@ -76,61 +88,41 @@ public class SearchXMLBuilder {
 			}
 		}
 
-		if(StringUtils.isBlank(specificJob)){
-	        //Get a list of all pipelines/containers which have been configured for the project.
-	        List<String> configuredPipelinesOrContainers = new ArrayList<String>();
-	        for(String project: projects){
+		if (StringUtils.isBlank(specificJob)) {
+			//Get a list of all pipelines/containers which have been configured for the project.
+			List<String> configuredPipelinesOrContainers = new ArrayList<String>();
+			for (String project : projects) {
 				ArcProject aProject = ArcSpecManager.GetFreshInstance().getProjectArc(project);
 				if (aProject != null) {
-		        	List<ArcProjectDescendantI> descendants = aProject.getPipelines_descendants_descendant();
-		            for (ArcProjectDescendantI descendant : descendants) {
-		                ArcProjectDescendant instance = (ArcProjectDescendant) descendant;
-		                if (instance.getXsitype().equals("All Datatypes") || instance.getXsitype().equals(dataType)) {
-		                    List<ArcProjectDescendantPipelineI> pipelines = instance.getPipeline();
-		                    for (ArcProjectDescendantPipelineI pipeline1 : pipelines) {
-		                        ArcProjectDescendantPipeline descPipeline = (ArcProjectDescendantPipeline) pipeline1;
-		                        ArcPipelinedata pipeline = descPipeline.getPipelinedata();
-		        				 String path = pipeline.getLocation() ;
-		         				configuredPipelinesOrContainers.add(path);
-		                    }
-		                }
-		    		 }
-				}
-	        }
-
-	    	//Get configured containers
-			try {
-	    		List<String> cmmds = containerWrappersForDataType(projects,dataType,user);
-	    		configuredPipelinesOrContainers.addAll(cmmds);
-			}catch(Exception nsbe) {
-
-			}
-
-	        for (String pipeline:configuredPipelinesOrContainers) {
-				int lastSlash = pipeline.lastIndexOf(File.separator);
-				String header = pipeline;
-				if (lastSlash != -1) {
-					header = pipeline.substring(lastSlash+1);
-				}else {
-					lastSlash = pipeline.lastIndexOf("/");
-					if (lastSlash != -1) {
-						header = pipeline.substring(lastSlash+1);
-					}else {
-						lastSlash = pipeline.lastIndexOf("\\");
-						if (lastSlash != -1) {
-							header = pipeline.substring(lastSlash+1);
+					List<ArcProjectDescendantI> descendants = aProject.getPipelines_descendants_descendant();
+					for (ArcProjectDescendantI descendant : descendants) {
+						ArcProjectDescendant instance = (ArcProjectDescendant) descendant;
+						if (instance.getXsitype().equals("All Datatypes") || instance.getXsitype().equals(dataType)) {
+							List<ArcProjectDescendantPipelineI> pipelines = instance.getPipeline();
+							for (ArcProjectDescendantPipelineI pipeline1 : pipelines) {
+								ArcProjectDescendantPipeline descPipeline = (ArcProjectDescendantPipeline) pipeline1;
+								ArcPipelinedata pipeline = descPipeline.getPipelinedata();
+								String path = pipeline.getLocation();
+								configuredPipelinesOrContainers.add(path);
+							}
 						}
 					}
 				}
-				int lastDot = header.lastIndexOf(".");
-				if (lastDot != -1) {
-					header = header.substring(0,lastDot);
-				}
+			}
 
+	    	//Get configured containers
+			try {
+	    		List<String> cmds = containerWrappersForDataType(projects,dataType,user);
+	    		configuredPipelinesOrContainers.addAll(cmds);
+			} catch (Exception e) {
+				log.error("Unable to determine available containers for {}", projects, e);
+			}
+
+	        for (String pipeline:configuredPipelinesOrContainers) {
 				String pipelineEscaped = pipeline.replace(".", "_").replaceAll("\\s+", "_");
 				sequence = addPipeline(pipelineEscaped, dataType, sb, sequence);
 			}
-		}else{
+		} else {
 			//user is working on one specific pipeline
 			sequence = addPipeline(specificJob, dataType, sb, sequence);
 
@@ -164,7 +156,7 @@ public class SearchXMLBuilder {
 			sb.append(pipelineDisplay);
 			sequence++;
 
-			for(String resource:getOuputResourceLabelsForContainer(specificJob,dataType,user)){
+			for(String resource: getOutputResourceLabelsForContainer(specificJob,dataType,user)){
 				pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
 						"<xdat:field_ID>RES_FILE_COUNT="+ resource +"</xdat:field_ID>" +
 						"<xdat:sequence>"+sequence+"</xdat:sequence>" +
@@ -177,8 +169,8 @@ public class SearchXMLBuilder {
 			}
 		}
 
-		if(resources!=null){
-			for(String resource: resources){
+		if (resources!=null) {
+			for (String resource: resources) {
 				String pipelineDisplay="<xdat:search_field><xdat:element_name>"+dataType+"</xdat:element_name>" +
 						"<xdat:field_ID>RES_FILE_COUNT="+ resource +"</xdat:field_ID>" +
 						"<xdat:sequence>"+sequence+"</xdat:sequence>" +
@@ -198,7 +190,7 @@ public class SearchXMLBuilder {
 		return sb.toString();
 	}
 
-	private List<String> getOuputResourceLabelsForContainer(String containerName, String xsiType,UserI user){
+	private List<String> getOutputResourceLabelsForContainer(String containerName, String xsiType, UserI user){
 		final List<String> resources= Lists.newArrayList();
 		if(StringUtils.isNotEmpty(containerName)){
 			final CommandService cmdService = XDAT.getContextService().getBean(CommandService.class);
@@ -220,7 +212,8 @@ public class SearchXMLBuilder {
 		return resources;
 	}
 
-	private List<String> containerWrappersForDataType(List<String> projects, String xsiType, UserI user) throws Exception {
+	private List<String> containerWrappersForDataType(List<String> projects, String xsiType, UserI user)
+			throws ElementNotFoundException {
 		List<String> wrapperNames = new ArrayList<String>();
 		CommandService cmdService = XDAT.getContextService().getBean(CommandService.class);
 		for(String project: projects){
@@ -283,6 +276,19 @@ public class SearchXMLBuilder {
 		sb.append("</xdat:search_field>");
 	}
 
+	private void addScanColumns(StringBuilder sb, String dataType, List<String> projects) {
+		// Add session label
+		addLabelField(sb, dataType.replace("Scan", "Session"), projects, true);
+		// add scan id
+		sb.append("<xdat:search_field>");
+		sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
+		sb.append("<xdat:field_ID>ID</xdat:field_ID>");
+		sb.append("<xdat:sequence>4</xdat:sequence>");
+		sb.append("<xdat:type>string</xdat:type>");
+		sb.append("<xdat:header>").append("Scan").append("</xdat:header>");
+		sb.append("</xdat:search_field>");
+	}
+
 	private void addLabelField(StringBuilder sb, String dataType, List<String> projects, boolean baseDataTypeMatches) {
 		String projIdField = "PROJECT_IDENTIFIER";
 		String header = "Session";
@@ -298,15 +304,6 @@ public class SearchXMLBuilder {
 		}
 
 		if (projects.size()>1) {
-			if (baseDataTypeMatches) {
-				sb.append("<xdat:search_field>");
-				sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
-				sb.append("<xdat:field_ID>ID</xdat:field_ID>");
-				sb.append("<xdat:sequence>1</xdat:sequence>");
-				sb.append("<xdat:type>string</xdat:type>");
-				sb.append("<xdat:header>id</xdat:header>");
-				sb.append("</xdat:search_field>");
-			}
 			//if more then 1 project is in scope, then show default label
 			sb.append("<xdat:search_field>");
 			sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
@@ -330,5 +327,15 @@ public class SearchXMLBuilder {
 			sb.append("<xdat:value>").append(projects.get(0)).append("</xdat:value>");
 			sb.append("</xdat:search_field>");
 		}
+	}
+
+	private void addUriField(StringBuilder sb, String dataType) {
+		sb.append("<xdat:search_field>");
+		sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
+		sb.append("<xdat:field_ID>URI</xdat:field_ID>");
+		sb.append("<xdat:sequence>1</xdat:sequence>");
+		sb.append("<xdat:type>string</xdat:type>");
+		sb.append("<xdat:header>uri</xdat:header>");
+		sb.append("</xdat:search_field>");
 	}
 }
