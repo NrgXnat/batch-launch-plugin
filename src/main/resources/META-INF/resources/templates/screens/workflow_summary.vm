@@ -1,0 +1,7 @@
+## Copyright 2019 Radiologics, Inc
+
+#parse("/screens/workflow_table.vm")
+
+<div>
+    <p>Created $!om.getInsertDate() by $!om.getInsertUser().getLogin().</p>
+</div>

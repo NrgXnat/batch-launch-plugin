@@ -2,13 +2,13 @@
 <!--
   ~ Copyright 2019 Radiologics, Inc
   -->
-<Displays xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xdat/display.xsd" schema-element="xnat:mrSessionData" full-description="MR Session" brief-description="MR Session">
+<Displays xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xdat/display.xsd" schema-element="xnat:petSessionData" full-description="PET Session" brief-description="PET Session">
 	<DisplayField id="WRK_STATUS" header="STATUS" visible="true" searchable="false" data-type="string" xsi:type="SubQueryField">
 		<Content type="sql">widstatus</Content>
 		<description>Workflow</description>
 		<SubQuery>select distinct on (w.id)  w.id as session_id, w.externalid, w.wrk_workflowdata_id, w.pipeline_name ,  w.status, w.status ||'#' || w.wrk_workflowdata_id AS widstatus from wrk_workflowdata w where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' order by w.id,launch_time desc</SubQuery>
 		<MappingColumns>
-			<MappingColumn schemaField="xnat:mrSessionData.ID" queryField="session_id"/>
+			<MappingColumn schemaField="xnat:petSessionData.ID" queryField="session_id"/>
 		</MappingColumns>
 	</DisplayField>
 	<DisplayField id="WRK_STATUS_LAUNCH" header="Launch" visible="true" searchable="false" data-type="date" xsi:type="SubQueryField">
@@ -16,7 +16,7 @@
 		<description>Workflow Launch</description>
 		<SubQuery>select distinct on (w.id)  w.id as session_id, w.externalid, w.wrk_workflowdata_id, w.pipeline_name ,  to_char(w.launch_time,'YYYY-MM-DD HH24:MI:SS') AS launch_time from wrk_workflowdata w where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' order by w.id,launch_time desc</SubQuery>
 		<MappingColumns>
-			<MappingColumn schemaField="xnat:mrSessionData.ID" queryField="session_id"/>
+			<MappingColumn schemaField="xnat:petSessionData.ID" queryField="session_id"/>
 		</MappingColumns>
 	</DisplayField>
 	<DisplayField id="WRK_STATUS_LASTMOD" header="Last Mod" visible="true" searchable="false" data-type="date" xsi:type="SubQueryField">
@@ -24,7 +24,7 @@
 		<description>Workflow Last Mod</description>
 		<SubQuery>select distinct on (w.id)  w.id as session_id, w.externalid, w.wrk_workflowdata_id, w.pipeline_name ,  to_char(meta.last_modified,'YYYY-MM-DD HH24:MI:SS') AS last_modified FROM wrk_workflowdata w LEFT JOIN wrk_workflowdata_meta_data meta ON w.workflowData_info=meta.meta_data_id where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' order by w.id,launch_time desc</SubQuery>
 		<MappingColumns>
-			<MappingColumn schemaField="xnat:mrSessionData.ID" queryField="session_id"/>
+			<MappingColumn schemaField="xnat:petSessionData.ID" queryField="session_id"/>
 		</MappingColumns>
 	</DisplayField>
 	<DisplayField id="WRK_STATUS_NUMRUNS" header="Num Runs" visible="true" searchable="false" data-type="integer" xsi:type="SubQueryField">
@@ -32,7 +32,7 @@
 		<description>Workflow Runs</description>
 		<SubQuery>select distinct on (w.id)  w.id as session_id, COUNT(*) AS NUM_WRKS from wrk_workflowdata w where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' GROUP BY session_id</SubQuery>
 		<MappingColumns>
-			<MappingColumn schemaField="xnat:mrSessionData.ID" queryField="session_id"/>
+			<MappingColumn schemaField="xnat:petSessionData.ID" queryField="session_id"/>
 		</MappingColumns>
 	</DisplayField>
 	<DisplayField id="WRK_STATUS_CID" header="Container ID" visible="true" searchable="false" data-type="string" xsi:type="SubQueryField">
@@ -40,7 +40,7 @@
 		<description>Container ID</description>
 		<SubQuery>select distinct on (w.id)  w.id as session_id, w.externalid, w.wrk_workflowdata_id, w.pipeline_name ,  w.status, w.comments AS container_id from wrk_workflowdata w where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' AND w.justification='Container launch' order by w.id,launch_time desc</SubQuery>
 		<MappingColumns>
-			<MappingColumn schemaField="xnat:mrSessionData.ID" queryField="session_id"/>
+			<MappingColumn schemaField="xnat:petSessionData.ID" queryField="session_id"/>
 		</MappingColumns>
 	</DisplayField>
 	<DisplayField id="RES_FILE_SIZE" header="File Size" visible="true" searchable="false" data-type="string" xsi:type="SubQueryField">
@@ -48,7 +48,7 @@
 		<description>File Size by Resource</description>
 		<SubQuery>SELECT xnat_experimentdata_id AS session_id, label,  file_size FROM xnat_abstractResource abst JOIN xnat_experimentdata_resource res ON abst.xnat_abstractresource_id=res.xnat_abstractresource_xnat_abstractresource_id WHERE label='@WHERE' ORDER BY xnat_experimentdata_id</SubQuery>
 		<MappingColumns>
-			<MappingColumn schemaField="xnat:mrSessionData.ID" queryField="session_id"/>
+			<MappingColumn schemaField="xnat:petSessionData.ID" queryField="session_id"/>
 		</MappingColumns>
 	</DisplayField>
 	<DisplayField id="RES_FILE_COUNT" header="Files" visible="true" searchable="false" data-type="string" xsi:type="SubQueryField">
@@ -56,7 +56,7 @@
 		<description>File Count by Resource</description>
 		<SubQuery>SELECT xnat_experimentdata_id AS session_id, label, file_count FROM xnat_abstractResource abst JOIN xnat_experimentdata_resource res ON abst.xnat_abstractresource_id=res.xnat_abstractresource_xnat_abstractresource_id WHERE label='@WHERE' ORDER BY xnat_experimentdata_id</SubQuery>
 		<MappingColumns>
-			<MappingColumn schemaField="xnat:mrSessionData.ID" queryField="session_id"/>
+			<MappingColumn schemaField="xnat:petSessionData.ID" queryField="session_id"/>
 		</MappingColumns>
 	</DisplayField>
 	<DisplayField id="SCAN_TYPE_COUNT" header="Scans" visible="true" searchable="false" data-type="integer" xsi:type="SubQueryField">
@@ -64,7 +64,7 @@
 		<description>Scan count by type</description>
 		<SubQuery>SELECT image_session_id, COUNT(*) AS file_count FROM xnat_imageScanData scan WHERE TYPE='@WHERE' GROUP BY image_session_id</SubQuery>
 		<MappingColumns>
-			<MappingColumn schemaField="xnat:mrSessionData.ID" queryField="image_session_id"/>
+			<MappingColumn schemaField="xnat:petSessionData.ID" queryField="image_session_id"/>
 		</MappingColumns>
 	</DisplayField>
 </Displays>

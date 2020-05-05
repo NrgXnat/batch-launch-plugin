@@ -1,0 +1,44 @@
+## Copyright 2019 Radiologics, Inc
+
+#set($supportedTypes = ["xnat:subjectData", "xnat:mrSessionData", "xnat:petmrSessionData", "xnat:petSessionData",
+	"xnat:ctSessionData", "xnat:otherDicomSessionData"])
+#set($xsiTypes = [])
+#if($data.getSession().getAttribute("userHelper").canRead("xnat:subjectData/project","$om.getId()"))
+	#if($om.getParticipants_participant().size() > 0)
+		#set($junk = $xsiTypes.add("xnat:subjectData"))
+	#end
+#end
+#if($data.getSession().getAttribute("userHelper").canRead("xnat:experimentData/project","$om.getId()"))
+	#foreach ($xsiTypeProc in $om.getExperimentCountByXSIType().keySet())
+		#if ($supportedTypes.contains($xsiTypeProc))
+			#set($junk = $xsiTypes.add($xsiTypeProc))
+		#end
+	#end
+#end
+#if ($xsiTypes.size() == 1)
+	<li class="yuimenuitem" id="processing-dashboard">
+		#set ( $batchLaunchHistoryUri = "/app/template/XDATScreen_bulk_action.vm/project/$om.getId()/dataType/$xsiTypes.get(0)" )
+		<a href="$content.getURI($batchLaunchHistoryUri)">Processing Dashboard</a>
+	</li>
+#elseif($xsiTypes.size() > 1)
+	<li class="yuimenuitem" id="processing-dashboard">
+		<a class="yuimenuitemlabel" href="#processingBoardbox">Processing Dashboard</a>
+		<div id="#processingBoardbox" class="yuimenu">
+			<div class="bd">
+				<ul class="first-of-type">
+					#foreach ($xsiTypeProc in $xsiTypes)
+						#set ( $batchLaunchHistoryTitle = $!data.getSession().getAttribute("userHelper").getBrowseableElementDisplay($!xsiTypeProc).getBriefDescription())
+						#if ($!batchLaunchHistoryTitle)
+							<li class="yuimenuitem $!li_class">
+								#set ( $batchLaunchHistoryUri = "/app/template/XDATScreen_bulk_action.vm/project/$om.getId()/dataType/$xsiTypeProc" )
+								<a href="$content.getURI($batchLaunchHistoryUri)">$!batchLaunchHistoryTitle</a>
+							</li>
+						#end
+					#end
+				</ul>
+			</div>
+		</div>
+	</li>
+#end
+
+
