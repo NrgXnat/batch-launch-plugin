@@ -10,11 +10,13 @@ import org.nrg.xdat.turbine.modules.screens.SecureScreen;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.db.PoolDBUtils;
 import org.nrg.xft.security.UserI;
+import org.nrg.xnat.bulk.utils.DynamicAddSqlQueryFieldsToDataTypes;
 import org.nrg.xnat.bulk.utils.SearchXMLBuilder;
 
 import com.google.common.collect.Lists;
 
 import java.util.Calendar;
+
 
 @SuppressWarnings("unused")
 
@@ -85,6 +87,8 @@ public class XDATScreen_bulk_action extends SecureScreen {
 
             context.put("xss", (new SearchXMLBuilder()).execute(Lists.newArrayList(project), dataType, user, sb,
                     job, resourceList, typesList));
+
+            DynamicAddSqlQueryFieldsToDataTypes.addFields();
         }
 
     }
