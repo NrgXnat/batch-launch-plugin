@@ -1,12 +1,12 @@
 // Copyright 2019 Radiologics, Inc
 // Developer: Kate Alpert <kate@radiologics.com>
 
-package org.nrg.xnat.bulk.services;
+package org.nrg.xnatx.plugins.batch.services;
 
-import org.nrg.xnat.bulk.model.Workflow;
-import org.nrg.xnat.bulk.model.WorkflowFilter;
-import org.nrg.xnat.bulk.repositories.WorkflowRepository;
-import org.nrg.xnat.bulk.xapi.PageRequest;
+import org.nrg.xnatx.plugins.batch.model.Workflow;
+import org.nrg.xnatx.plugins.batch.model.WorkflowFilter;
+import org.nrg.xnatx.plugins.batch.repositories.WorkflowRepository;
+import org.nrg.xnatx.plugins.batch.xapi.PageRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.xdat.model.WrkXnatexecutionenvironmentParameterI;
@@ -24,17 +24,14 @@ import java.util.Map;
 @Slf4j
 @Service
 public class WorkflowService {
-    private WorkflowRepository workflowRepository;
-
     public enum WorkflowType {
         CONTAINER,
         PIPELINE,
         OTHER
     }
 
-    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
-    public WorkflowService(WorkflowRepository workflowRepository) {
+    public WorkflowService(final WorkflowRepository workflowRepository) {
         this.workflowRepository = workflowRepository;
     }
 
@@ -74,4 +71,6 @@ public class WorkflowService {
         }
         return null;
     }
+
+    private final WorkflowRepository workflowRepository;
 }

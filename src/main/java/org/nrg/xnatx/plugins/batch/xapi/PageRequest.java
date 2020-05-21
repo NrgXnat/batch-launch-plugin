@@ -1,12 +1,12 @@
 // Copyright 2019 Radiologics, Inc
 // Developer: Kate Alpert <kate@radiologics.com>
 
-package org.nrg.xnat.bulk.xapi;
+package org.nrg.xnatx.plugins.batch.xapi;
 
 import lombok.extern.slf4j.Slf4j;
-import org.nrg.xnat.bulk.exceptions.FilterException;
-import org.nrg.xnat.bulk.model.WorkflowFilter;
-import org.nrg.xnat.bulk.repositories.PageableRepository;
+import org.nrg.xnatx.plugins.batch.exceptions.FilterException;
+import org.nrg.xnatx.plugins.batch.model.WorkflowFilter;
+import org.nrg.xnatx.plugins.batch.repositories.PageableRepository;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.Arrays;
@@ -21,7 +21,7 @@ public class PageRequest {
     private String sortColumn;
     private String sortDir;
     private Map<String, WorkflowFilter> filtersMap;
-    private PageableRepository repo;
+    private PageableRepository          repo;
 
     public PageRequest(PageableRepository repo,String sortColumn, String sortDir,
                        Map<String, WorkflowFilter> filtersMap, Integer page, Integer size) {

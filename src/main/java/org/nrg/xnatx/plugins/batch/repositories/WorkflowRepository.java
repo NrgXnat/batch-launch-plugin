@@ -1,20 +1,19 @@
 // Copyright 2019 Radiologics, Inc
 // Developer: Kate Alpert <kate@radiologics.com>
 
-package org.nrg.xnat.bulk.repositories;
+package org.nrg.xnatx.plugins.batch.repositories;
 
 import com.google.common.collect.ImmutableMap;
 import org.nrg.containers.services.impl.ContainerServiceImpl;
 import org.nrg.xdat.om.*;
 import org.nrg.xdat.schema.SchemaElement;
 import org.nrg.xdat.schema.SchemaField;
-import org.nrg.xdat.security.ElementSecurity;
 import org.nrg.xft.exception.ElementNotFoundException;
 import org.nrg.xft.exception.FieldNotFoundException;
 import org.nrg.xft.exception.XFTInitException;
-import org.nrg.xnat.bulk.model.Workflow;
-import org.nrg.xnat.bulk.xapi.PageRequest;
-import org.nrg.xnat.bulk.model.WorkflowDuration;
+import org.nrg.xnatx.plugins.batch.model.Workflow;
+import org.nrg.xnatx.plugins.batch.xapi.PageRequest;
+import org.nrg.xnatx.plugins.batch.model.WorkflowDuration;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;

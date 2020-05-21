@@ -1,7 +1,7 @@
 // Copyright 2019 Radiologics, Inc
 // Developer: Kate Alpert <kate@radiologics.com>
 
-package org.nrg.xnat.bulk.model;
+package org.nrg.xnatx.plugins.batch.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

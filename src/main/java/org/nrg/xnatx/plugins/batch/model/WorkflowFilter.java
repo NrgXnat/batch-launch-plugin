@@ -1,12 +1,12 @@
 // Copyright 2019 Radiologics, Inc
 // Developer: Kate Alpert <kate@radiologics.com>
 
-package org.nrg.xnat.bulk.model;
+package org.nrg.xnatx.plugins.batch.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import org.nrg.xnat.bulk.exceptions.FilterException;
+import org.nrg.xnatx.plugins.batch.exceptions.FilterException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 @JsonTypeInfo(

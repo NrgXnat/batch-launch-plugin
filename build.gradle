@@ -1,160 +1,62 @@
-import org.gradle.internal.jvm.Jvm
-
-// TODO: Change the group and version to values appropriate for your plugin project.
-group 'org.nrg.xnat.plugins'
-version '0.2.7'
-
-// TODO: This is the minimum set of Gradle plugins required to build most XNAT plugins. You may include many others, including plugins for testing and test coverage, IDE integration, and more.
 buildscript {
     ext {
-        vXnat = '1.7.7-SNAPSHOT'
+        vXnat = "1.7.7-ML-SNAPSHOT"
     }
     repositories {
         mavenLocal()
-        maven { 
-            url "https://plugins.gradle.org/m2/"
-        }
+        maven { url "https://plugins.gradle.org/m2" }
         mavenCentral()
         jcenter()
-        maven { 
-            url 'https://nrgxnat.jfrog.io/nrgxnat/libs-release'
-            name 'XNAT Release Repository'
-        }
-        maven { 
-            url 'https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot'
-            name 'XNAT Snapshot Repository'
-        }
-        maven {
-            url "https://maven.radiologics.com/repository/snapshots"
-            name "Radiologics Snapshot Repository"
-        }
-        maven {
-            url "https://maven.radiologics.com/repository/internal"
-            name "Radiologics Release Repository"
-        }
+        maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
+        maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
     }
     dependencies {
         gradleApi()
-        classpath "io.spring.gradle:dependency-management-plugin:1.0.3.RELEASE"
-        classpath "io.franzbecker:gradle-lombok:1.14"
+        classpath "io.franzbecker:gradle-lombok:4.0.0"
         classpath "org.nrg.xnat.build:xnat-data-builder:${vXnat}"
     }
 }
-apply plugin: 'java'
-apply plugin: 'maven'
-apply plugin: 'maven-publish'
-apply plugin: 'eclipse'
-apply plugin: 'io.franzbecker.gradle-lombok'
-apply plugin: 'io.spring.dependency-management'
 
-// TODO: As of the 1.7.x release, XNAT is built as a Java 7-compatible (i.e. JDK 1.7) application. All plugins must be 1.7 compatible as well.
+apply plugin: "java"
+apply plugin: "maven-publish"
+apply plugin: "eclipse"
+apply plugin: "io.franzbecker.gradle-lombok"
+
+group "org.nrg.xnatx.plugins"
+version "0.2.8-ML-SNAPSHOT"
+
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-
-// TODO: This tells the compiler where to find source code. This isn't required in a standard build, but the XNAT data builder generates code from XNAT data-type schemas that the compiler needs to know about.
-sourceSets {
-    main {
-        java {
-            srcDir 'src/main/java'
-            srcDir 'build/xnat-generated/src/main/java'
-        }
-        resources {
-            srcDir 'src/main/resources'
-            srcDir 'build/xnat-generated/src/main/resources'
-        }
-    }
-}
-
-// TODO: This provides access to all of these repositories for dependency resolution.
 repositories {
-
-    mavenCentral()
     mavenLocal()
+    maven { url "https://dcm4che.org/maven2" }
+    mavenCentral()
     jcenter()
-    maven {
-        url 'http://dcm4che.org/maven2'
-        name 'dcm4che Maven Repository'
-    }
-    maven {
-        url 'https://nrgxnat.jfrog.io/nrgxnat/libs-release'
-        name 'XNAT Release Repository'
-    }
-    maven {
-        url 'https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot'
-        name 'XNAT Snapshot Repository'
-    }
-    maven {
-        url 'https://nrgxnat.jfrog.io/nrgxnat/ext-release'
-        name 'XNAT External Release Repository'
-    }
-    maven {
-        url "https://maven.radiologics.com/repository/snapshots"
-        name "Radiologics Snapshot Repository"
-    }
-    maven {
-        url "https://maven.radiologics.com/repository/internal"
-        name "Radiologics Release Repository"
-    }
+    maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
+    maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
 }
 
-dependencyManagement.imports {
-    mavenBom "org.nrg:parent:${vXnat}"
+configurations.all {
+    exclude group: "javax.sql"
+    exclude group: "javax.transaction"
+    exclude group: "javax.jms"
 }
 
-// TODO: Keeping your versions as variables makes it easier to update versions when you have multiple libraries from the same framework that thus have the same version.
-// TODO: These versions will change over time as XNAT development continues. Check the latest version of the XNAT template plugin or the XNAT versioning matrix page.
-def vJunit = '4.12'
-def vSwagger = '2.4.0'
-
-// TODO: This is a pretty minimal set of dependencies, so don't worry if you need to add more.
 dependencies {
-    compile("org.nrg:containers:2.1.1-SNAPSHOT") {
-        exclude group: '*'
-    }
-    compile("org.nrg.xnat:web") {
-        exclude group: '*'
-    }
-    compile("org.nrg.xnat:xnat-data-models") {
-        exclude group: '*'
-    } 
-    compile("org.nrg.xdat:core") {
-    }
-    compile "org.nrg:prefs"
-    compile "org.nrg:framework"
-    annotationProcessor "org.nrg:framework"
-    compile "org.nrg:config"
-
-    compile(group: 'turbine', name: 'turbine', version: '2.3.3') {
-        exclude group: '*'
-    }
-    compile(group: 'org.apache.velocity', name: 'velocity', version: '1.7') {
-        exclude group: '*'
-    }
-    // https://mvnrepository.com/artifact/commons-fileupload/commons-fileupload
-    compile group: 'commons-fileupload', name: 'commons-fileupload', version: '1.2.1'
-
-    compile group: 'ecs', name: 'ecs', version: '1.4.2'
-    compile "org.springframework:spring-core"
-    compile "org.springframework:spring-context"
-    compile "org.springframework:spring-tx"
-    compile "org.springframework:spring-web"
-    compile "io.springfox:springfox-swagger2:${vSwagger}"
-    compile "org.slf4j:slf4j-api"
-    compile "org.slf4j:slf4j-log4j12"
-}
-configurations {
-    compile.exclude group: 'javax.sql'
-    compile.exclude group: 'javax.transaction'
-    compile.exclude group: 'javax.jms'
-
+    implementation platform("org.nrg:parent:${vXnat}")
+    implementation "org.nrg.xnatx.plugins:container-service"
+    implementation "org.nrg.xnat:web"
+    implementation "io.springfox:springfox-swagger2"
 }
 
 task sourceJar(type: Jar, dependsOn: classes) {
+    classifier "sources"
     from sourceSets.main.allSource
 }
 
-task javadocJar(type: Jar, dependsOn: javadoc) {
+task javadocJar(type: Jar) {
+    classifier "javadoc"
     from javadoc.destinationDir
 }
 
@@ -163,13 +65,56 @@ publishing {
         mavenJava(MavenPublication) {
             from components.java
 
-            artifact sourceJar {
-                classifier "sources"
+            artifacts {
+                artifact sourceJar
+                artifact javadocJar
             }
 
-            artifact javadocJar {
-                classifier "javadoc"
+            pom.withXml {
+                def root = asNode()
+                root.appendNode("name", "XNAT Batch Launch Plugin")
+                root.appendNode("url", "https://bitbucket.org/xnatx/xnatx-batch-launch-plugin")
+                root.appendNode("inceptionYear", "2019")
+
+                root.appendNode("scm").with {
+                    appendNode("url", "https://bitbucket.org/xnatx/xnatx-batch-launch-plugin")
+                    appendNode("connection", "scm:https://bitbucket.org/xnatx/xnatx-batch-launch-plugin")
+                    appendNode("developerConnection", "scm:git@bitbucket.org:xnatx/xnatx-batch-launch-plugin.git")
+                }
+
+                root.appendNode("licenses").appendNode("license").with {
+                    appendNode("name", "Simplified BSD 2-Clause License")
+                    appendNode("url", "https://xnat.org/about/license.php")
+                    appendNode("distribution", "repo")
+                }
+
+                root.appendNode("developers").with {
+                    appendNode("developer").with {
+                        appendNode("id", "mohana")
+                        appendNode("name", "Mohana Ramaratnam")
+                        appendNode("email", "mohana@radiologics.com")
+                    }
+                }
             }
         }
     }
+    repositories {
+        maven {
+            credentials {
+                // These properties must be set in the ~/.gradle/gradle.properties file or passed on the Gradle command
+                // line in the form -PrepoUsername=foo -PrepoPassword=bar.
+                username propertyWithDefault("repoUsername", "username")
+                password propertyWithDefault("repoPassword", "password")
+            }
+            if (project.version.endsWith("-SNAPSHOT")) {
+                url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot-local"
+            } else {
+                url "https://nrgxnat.jfrog.io/nrgxnat/libs-release-local"
+            }
+        }
+    }
+}
+
+def propertyWithDefault(String name, Object value) {
+    hasProperty(name) ? property(name) : value
 }

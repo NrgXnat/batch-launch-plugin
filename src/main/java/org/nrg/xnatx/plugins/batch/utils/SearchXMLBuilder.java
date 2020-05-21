@@ -1,14 +1,13 @@
 // Copyright 2019 Radiologics, Inc
 // Developer: Mohana Ramaratnam <mohana@radiologics.com>
 
-package org.nrg.xnat.bulk.utils;
+package org.nrg.xnatx.plugins.batch.utils;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-
+import com.google.common.collect.Lists;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.nrg.containers.model.command.auto.Command.CommandOutput;
+import org.apache.turbine.util.RunData;
+import org.nrg.action.ClientException;
 import org.nrg.containers.model.command.auto.Command.CommandWrapper;
 import org.nrg.containers.model.command.auto.Command.CommandWrapperOutput;
 import org.nrg.containers.model.command.auto.CommandSummaryForContext;
@@ -17,27 +16,47 @@ import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.ArcProjectDescendantI;
 import org.nrg.xdat.model.ArcProjectDescendantPipelineI;
 import org.nrg.xdat.om.*;
+import org.nrg.xdat.turbine.utils.TurbineUtils;
+import org.nrg.xft.db.PoolDBUtils;
 import org.nrg.xft.exception.ElementNotFoundException;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.turbine.utils.ArcSpecManager;
-
-import com.google.common.collect.Lists;
+import org.restlet.data.Status;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
+@Slf4j
 public class SearchXMLBuilder {
+    public static String getCheckedParameter(final RunData data, final String parameter) throws ClientException {
+		final String encoded = (String) TurbineUtils.GetPassedParameter(parameter, data);
+        if (PoolDBUtils.HackCheck(encoded)) {
+            log.error("The user {} submitted an invalid value for parameter \"{}\": {}", XDAT.getUserDetails().getUsername(), parameter, encoded);
+            throw new ClientException(Status.CLIENT_ERROR_BAD_REQUEST, "Invalid value submitted");
+        }
+        return encoded;
+    }
+
+	public static List<String> getItemList(final RunData data, final String parameter) throws ClientException {
+        final String encoded = getCheckedParameter(data, parameter);
+		return StringUtils.isBlank(encoded) ? Collections.emptyList() : Arrays.asList(encoded.split("\\s*,\\s*"));
+    }
+
 	public String execute(final List<String> projects,
-						  @Nonnull final String dataType,
-						  final UserI user,
-						  final String whereClause,
-						  String specificJob,
-						  List<String> resources,
-						  @Nullable List<String> scan_types){
+                          @Nonnull final String dataType,
+                          final UserI user,
+                          final String whereClause,
+                          String specificJob,
+                          List<String> resources,
+                          @Nullable List<String> scan_types){
 
 		StringBuilder sb=new StringBuilder();
 		sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
-		sb.append("<xdat:bundle ID=\"\" allow-diff-columns=\"0\" secure=\"0\" brief-description=\"Sessions\" xmlns:arc=\"http://nrg.wustl.edu/arc\" xmlns:val=\"http://nrg.wustl.edu/val\" xmlns:pipe=\"http://nrg.wustl.edu/pipe\" xmlns:wrk=\"http://nrg.wustl.edu/workflow\" xmlns:scr=\"http://nrg.wustl.edu/scr\" xmlns:xdat=\"http://nrg.wustl.edu/security\" xmlns:cat=\"http://nrg.wustl.edu/catalog\" xmlns:prov=\"http://www.nbirn.net/prov\" xmlns:xnat=\"http://nrg.wustl.edu/xnat\" xmlns:xnat_a=\"http://nrg.wustl.edu/xnat_assessments\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://nrg.wustl.edu/workflow " + XDAT.getSiteUrl() + "/schemas/workflow.xsd http://nrg.wustl.edu/catalog " + XDAT.getSiteUrl() + "/schemas/catalog.xsd http://nrg.wustl.edu/pipe " + XDAT.getSiteUrl() + "/schemas/repository.xsd http://nrg.wustl.edu/scr " + XDAT.getSiteUrl() + "/schemas/screeningAssessment.xsd http://nrg.wustl.edu/arc " + XDAT.getSiteUrl() + "/schemas/project.xsd http://nrg.wustl.edu/val " + XDAT.getSiteUrl() + "/schemas/protocolValidation.xsd http://nrg.wustl.edu/xnat " + XDAT.getSiteUrl() + "/schemas/xnat.xsd http://nrg.wustl.edu/xnat_assessments " + XDAT.getSiteUrl() + "/schemas/assessments.xsd http://www.nbirn.net/prov " + XDAT.getSiteUrl() + "/schemas/birnprov.xsd http://nrg.wustl.edu/security " + XDAT.getSiteUrl() + "/schemas/security.xsd\">");
+		sb.append("<xdat:bundle ID=\"\" allow-diff-columns=\"0\" secure=\"0\" brief-description=\"Sessions\" xmlns:arc=\"http://nrg.wustl.edu/arc\" xmlns:val=\"http://nrg.wustl.edu/val\" xmlns:pipe=\"http://nrg.wustl.edu/pipe\" xmlns:wrk=\"http://nrg.wustl.edu/workflow\" xmlns:scr=\"http://nrg.wustl.edu/scr\" xmlns:xdat=\"http://nrg.wustl.edu/security\" xmlns:cat=\"http://nrg.wustl.edu/catalog\" xmlns:prov=\"http://www.nbirn.net/prov\" xmlns:xnat=\"http://nrg.wustl.edu/xnat\" xmlns:xnat_a=\"http://nrg.wustl.edu/xnat_assessments\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://nrg.wustl.edu/workflow ").append(XDAT.getSiteUrl()).append("/schemas/workflow.xsd http://nrg.wustl.edu/catalog ").append(XDAT.getSiteUrl()).append("/schemas/catalog.xsd http://nrg.wustl.edu/pipe ").append(XDAT.getSiteUrl()).append("/schemas/repository.xsd http://nrg.wustl.edu/scr ").append(XDAT.getSiteUrl()).append("/schemas/screeningAssessment.xsd http://nrg.wustl.edu/arc ").append(XDAT.getSiteUrl()).append("/schemas/project.xsd http://nrg.wustl.edu/val ").append(XDAT.getSiteUrl()).append("/schemas/protocolValidation.xsd http://nrg.wustl.edu/xnat ").append(XDAT.getSiteUrl()).append("/schemas/xnat.xsd http://nrg.wustl.edu/xnat_assessments ").append(XDAT.getSiteUrl()).append("/schemas/assessments.xsd http://www.nbirn.net/prov ").append(XDAT.getSiteUrl()).append("/schemas/birnprov.xsd http://nrg.wustl.edu/security ").append(XDAT.getSiteUrl()).append("/schemas/security.xsd\">");
 		sb.append("<xdat:root_element_name>").append(dataType).append("</xdat:root_element_name>");
 
 		switch (dataType) {
@@ -78,7 +97,7 @@ public class SearchXMLBuilder {
 
 		if(StringUtils.isBlank(specificJob)){
 	        //Get a list of all pipelines/containers which have been configured for the project.
-	        List<String> configuredPipelinesOrContainers = new ArrayList<String>();
+	        List<String> configuredPipelinesOrContainers = new ArrayList<>();
 	        for(String project: projects){
 				ArcProject aProject = ArcSpecManager.GetFreshInstance().getProjectArc(project);
 				if (aProject != null) {
@@ -100,34 +119,12 @@ public class SearchXMLBuilder {
 
 	    	//Get configured containers
 			try {
-	    		List<String> cmmds = containerWrappersForDataType(projects,dataType,user);
-	    		configuredPipelinesOrContainers.addAll(cmmds);
-			}catch(Exception nsbe) {
-
+	    		configuredPipelinesOrContainers.addAll(containerWrappersForDataType(projects,dataType,user));
+			}catch(Exception ignored) {
 			}
 
 	        for (String pipeline:configuredPipelinesOrContainers) {
-				int lastSlash = pipeline.lastIndexOf(File.separator);
-				String header = pipeline;
-				if (lastSlash != -1) {
-					header = pipeline.substring(lastSlash+1);
-				}else {
-					lastSlash = pipeline.lastIndexOf("/");
-					if (lastSlash != -1) {
-						header = pipeline.substring(lastSlash+1);
-					}else {
-						lastSlash = pipeline.lastIndexOf("\\");
-						if (lastSlash != -1) {
-							header = pipeline.substring(lastSlash+1);
-						}
-					}
-				}
-				int lastDot = header.lastIndexOf(".");
-				if (lastDot != -1) {
-					header = header.substring(0,lastDot);
-				}
-
-				String pipelineEscaped = pipeline.replace(".", "_").replaceAll("\\s+", "_");
+				final String pipelineEscaped = pipeline.replace(".", "_").replaceAll("\\s+", "_");
 				sequence = addPipeline(pipelineEscaped, dataType, sb, sequence);
 			}
 		}else{
@@ -221,7 +218,7 @@ public class SearchXMLBuilder {
 	}
 
 	private List<String> containerWrappersForDataType(List<String> projects, String xsiType, UserI user) throws Exception {
-		List<String> wrapperNames = new ArrayList<String>();
+		List<String> wrapperNames = new ArrayList<>();
 		CommandService cmdService = XDAT.getContextService().getBean(CommandService.class);
 		for(String project: projects){
 			List<CommandSummaryForContext> cmdSummary = cmdService.available(project, xsiType, user);

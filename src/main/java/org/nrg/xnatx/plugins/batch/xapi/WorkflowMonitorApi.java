@@ -1,7 +1,7 @@
 // Copyright 2019 Radiologics, Inc
 // Developer: Kate Alpert <kate@radiologics.com>
 
-package org.nrg.xnat.bulk.xapi;
+package org.nrg.xnatx.plugins.batch.xapi;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -11,10 +11,10 @@ import org.nrg.action.ClientException;
 import org.nrg.action.ServerException;
 import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xnat.archive.ResourceData;
-import org.nrg.xnat.bulk.exceptions.FilterException;
-import org.nrg.xnat.bulk.model.Workflow;
-import org.nrg.xnat.bulk.model.WorkflowListingRequest;
-import org.nrg.xnat.bulk.services.WorkflowService;
+import org.nrg.xnatx.plugins.batch.exceptions.FilterException;
+import org.nrg.xnatx.plugins.batch.model.Workflow;
+import org.nrg.xnatx.plugins.batch.model.WorkflowListingRequest;
+import org.nrg.xnatx.plugins.batch.services.WorkflowService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.containers.model.container.auto.Container;
@@ -30,7 +30,6 @@ import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
-import org.nrg.xft.ItemI;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.services.archive.CatalogService;
@@ -65,9 +64,9 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 @RequestMapping(value = "/workflows")
 public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     private ContainerService containerService;
-    private SiteConfigPreferences preferences;
-    private WorkflowService workflowService;
-    private final CatalogService catalogService;
+    private       SiteConfigPreferences preferences;
+    private       WorkflowService       workflowService;
+    private final CatalogService        catalogService;
     private final ExecutorService executorService;
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")

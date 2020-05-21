@@ -7,4 +7,4 @@
  * Released under the Simplified BSD.
  */
 
-rootProject.name = 'batch_launch_plugin'
+rootProject.name = "batch-launch"

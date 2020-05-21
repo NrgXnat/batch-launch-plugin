@@ -1,7 +1,7 @@
 // Copyright 2019 Radiologics, Inc
 // Developer: Mohana Ramaratnam <mohana@radiologics.com>
 
-package org.nrg.xnat.bulk.xapi;
+package org.nrg.xnatx.plugins.batch.xapi;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
@@ -34,7 +34,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -1,7 +1,7 @@
 // Copyright 2019 Radiologics, Inc
 // Developer: Kate Alpert <kate@radiologics.com>
 
-package org.nrg.xnat.bulk.repositories;
+package org.nrg.xnatx.plugins.batch.repositories;
 
 import java.util.Map;
 import java.util.Set;

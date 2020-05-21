@@ -3,170 +3,112 @@
 
 package org.nrg.xnat.turbine.modules.actions;
 
-import java.io.StringReader;
-import java.net.URLDecoder;
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.List;
+import static org.nrg.xnatx.plugins.batch.utils.SearchXMLBuilder.getCheckedParameter;
+import static org.nrg.xnatx.plugins.batch.utils.SearchXMLBuilder.getItemList;
 
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
 import org.nrg.xdat.exceptions.InvalidSearchException;
 import org.nrg.xdat.om.XdatStoredSearch;
 import org.nrg.xdat.search.DisplaySearch;
 import org.nrg.xdat.turbine.modules.actions.DisplaySearchAction;
-import org.nrg.xdat.turbine.utils.TurbineUtils;
-import org.nrg.xft.XFTItem;
-import org.nrg.xft.db.PoolDBUtils;
-import org.nrg.xft.exception.DBPoolException;
-import org.nrg.xft.exception.ElementNotFoundException;
-import org.nrg.xft.exception.XFTInitException;
+import org.nrg.xft.XFTTable;
 import org.nrg.xft.schema.Wrappers.XMLWrapper.SAXReader;
 import org.nrg.xft.security.UserI;
-import org.nrg.xnat.bulk.utils.SearchXMLBuilder;
+import org.nrg.xnatx.plugins.batch.utils.SearchXMLBuilder;
 import org.xml.sax.InputSource;
 
-import com.google.common.collect.Lists;
+import java.io.StringReader;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.Hashtable;
+import java.util.List;
 
 @SuppressWarnings("unused")
+@Slf4j
 public class BulkLaunchAction extends DisplaySearchAction {
-	   static Logger logger = Logger.getLogger(BulkLaunchAction.class);
-
-
-	public void doPerform(RunData data, Context context)
-	{
-		try {
-		   // doPreliminaryProcessing(data,context);
-		    final UserI user = TurbineUtils.getUser(data);
-		    String search_xml = data.getParameters().getString("search_xml");
-		    if(search_xml==null){
-		    	data.setMessage("Your search result has expired.  Please resubmit your query. ");
-		        data.setScreenTemplate("Error.vm");
-		        return;
-		    }
-		    search_xml = search_xml.replaceAll("%", "%25");
-		    search_xml = URLDecoder.decode(search_xml, "UTF-8");
-		    search_xml = StringUtils.replace(search_xml, ".close.", "/");
-
-		    final String startTag = "<xdat:search_where";
-		    final String endTag = "</xdat:search_where>";
-		    String whereClause = StringUtils.defaultIfBlank(StringUtils.substringBetween(search_xml, startTag, endTag),
-					"");
-		    if (StringUtils.isNotBlank(whereClause)) {
-		    	whereClause = startTag + whereClause + endTag;
-			}
-
-			context.put("xss",this.buildNewSearchXML(search_xml, user, whereClause, data));
-			super.doPreliminaryProcessing(data, context);
-			data.setScreenTemplate(getScreenTemplate());
-
-			doFinalProcessing(data,context);
-		} catch (SearchTimeoutException e) {
-	        logger.error(e);
-	        data.setMessage(e.getMessage());
-	        data.setScreenTemplate("Index.vm");
-	    } catch (XFTInitException e) {
-	        this.error(e, data);
-		} catch (ElementNotFoundException e) {
-	        this.error(e, data);
-		} catch (DBPoolException e) {
-	        this.error(e, data);
-		}catch (IllegalAccessException e){
-	        data.setMessage("The user does not have access to this data.");
-	        data.setScreenTemplate("Error.vm");
-	        data.getParameters().setString("exception", e.toString());
-		}catch (InvalidSearchException e){
-	        data.setMessage("You specified an invalid search condition: " + e.getMessage());
-	        data.setScreenTemplate("Error.vm");
-		} catch (Exception e) {
-			e.printStackTrace();
-	        this.error(e, data);
-		}
-	}
-
-	 private String buildNewSearchXML(final String search_xml, UserI user, final String whereClause, final RunData data) throws Exception{;
-	 	 final StringReader sr = new StringReader(search_xml);
-         final InputSource is = new InputSource(sr);
-         final SAXReader reader = new SAXReader(user);
-         final XFTItem item = reader.parse(is);
-         final XdatStoredSearch search = new XdatStoredSearch(item);
-         final DisplaySearch ds = search.getCSVDisplaySearch(user);
-
-            if (ds==null) {
-                throw new SearchTimeoutException("BuldLaunchAction Session Expired: The previously performed search has timed out.");
-            }
-            String rootElementName = ds.getRootElement().getFullXMLName();
-            if (rootElementName == null) {
-				 throw new Exception("Invalid value submitted.");
-			}
-            //Load search results into a table
-            org.nrg.xft.XFTTable table = (org.nrg.xft.XFTTable)ds.execute(null,user.getLogin());
-
-
-            //The 'session_id' value is specified as the DisplayField ID for the xnat:mrSessionData/ID field in the Display docs.
-            //This value should match the value at the header of the session id column in the previous ExampleListingActionScreen implementation.
-            String sessionIDHeader ="session_id";
-            String projectHeader  = "Project";
-            //Distinct projects
-            List<String> distinctProjectsInSearch = new ArrayList<String>();
-            table.resetRowCursor();
-            while (table.hasMoreRows()){
-                Hashtable<?, ?> row= table.nextRowHash();
-                String project = (String)row.get(projectHeader);
-                if (project == null) project = (String)row.get(projectHeader.toLowerCase());
-                if (!distinctProjectsInSearch.contains(project)) {
-                	distinctProjectsInSearch.add(project);
-                }
-            }
-            
-            String job = data.getParameters().getString("job");
-            if (job!=null && PoolDBUtils.HackCheck(job)) {
-            	throw new Exception("Invalid value submitted.");
+    @Override
+    public void doPerform(final RunData data, final Context context) {
+        final UserI user = getUser();
+        try {
+            final String rawSearchXml = data.getParameters().getString("searchXml");
+            if (StringUtils.isBlank(rawSearchXml)) {
+                data.setMessage("Your search result has expired.  Please resubmit your query. ");
+                data.setScreenTemplate("Error.vm");
+                return;
             }
 
-            String resources = data.getParameters().getString("resources");
-            if (resources!=null && PoolDBUtils.HackCheck(resources)) {
-            	throw new Exception("Invalid value submitted.");
+            final String searchXml   = StringUtils.replace(URLDecoder.decode(RegExUtils.replaceAll(rawSearchXml, "%", "%25"), "UTF-8"), ".close.", "/");
+            final String whereClause = getWhereClause(searchXml);
+            context.put("xss", buildNewSearchXML(searchXml, user, whereClause, data));
+            super.doPreliminaryProcessing(data, context);
+            data.setScreenTemplate(getScreenTemplate(data));
+            doFinalProcessing(data, context);
+        } catch (SearchTimeoutException e) {
+            log.error("A search by user {} appeared to time out", user.getUsername(), e);
+            data.setMessage(e.getMessage());
+            data.setScreenTemplate("Index.vm");
+        } catch (IllegalAccessException e) {
+            data.setMessage("The user does not have access to this data.");
+            data.setScreenTemplate("Error.vm");
+            data.getParameters().setString("exception", e.toString());
+        } catch (InvalidSearchException e) {
+            data.setMessage("You specified an invalid search condition: " + e.getMessage());
+            data.setScreenTemplate("Error.vm");
+        } catch (Exception e) {
+            error(e, data);
+        }
+    }
+
+    @Override
+    public String getScreenTemplate(final RunData data) {
+        return DEFAULT_SCREEN_TEMPLATE;
+    }
+
+    private String buildNewSearchXML(final String searchXml, final UserI user, final String whereClause, final RunData data) throws Exception {
+        final DisplaySearch displaySearch = new XdatStoredSearch(new SAXReader(user).parse(new InputSource(new StringReader(searchXml)))).getCSVDisplaySearch(user);
+
+        if (displaySearch == null) {
+            throw new SearchTimeoutException("BulkLaunchAction Session Expired: The previously performed search has timed out.");
+        }
+
+        final String rootElementName = displaySearch.getRootElement().getFullXMLName();
+        if (StringUtils.isBlank(rootElementName)) {
+            throw new Exception("Invalid value submitted.");
+        }
+
+        //Load search results into a table
+        final XFTTable table = (XFTTable) displaySearch.execute(null, user.getLogin());
+
+        //The 'session_id' value is specified as the DisplayField ID for the xnat:mrSessionData/ID field in the Display docs.
+        //This value should match the value at the header of the session id column in the previous ExampleListingActionScreen implementation.
+        //Distinct projects
+        final List<String> distinctProjectsInSearch = new ArrayList<>();
+        table.resetRowCursor();
+        while (table.hasMoreRows()) {
+            final Hashtable<?, ?> row     = table.nextRowHash();
+            final String          project = StringUtils.defaultIfBlank((String) row.get(PROJECT_HEADER), (String) row.get(PROJECT_HEADER_LOWER));
+            if (!distinctProjectsInSearch.contains(project)) {
+                distinctProjectsInSearch.add(project);
             }
-            
-            String[] resourceArray=null;
-            if(org.apache.commons.lang3.StringUtils.isNotEmpty(resources)){
-            	if(resources.contains(",")){
-            		resourceArray=resources.split(",");
-            	}
-            }
-            
-            String scans = (String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("scan_types",data);
-            if (org.apache.commons.lang3.StringUtils.isNotEmpty(scans) && PoolDBUtils.HackCheck(scans)) {
-            	throw new Exception("Invalid value submitted.");
-            }
-            
-            java.util.List<String> typesList=null;
-            if(org.apache.commons.lang3.StringUtils.isNotEmpty(scans)){
-            	if(resources.indexOf(",")>0){
-            		typesList=java.util.Arrays.asList(scans.split(","));
-            	}else{
-            		typesList=Lists.newArrayList(scans);
-            	}
-            }
-            
-            return (new SearchXMLBuilder()).execute(distinctProjectsInSearch, rootElementName, user, whereClause,job,resourceArray==null?null:java.util.Arrays.asList(resourceArray),typesList);
-	 }
+        }
 
+        return (new SearchXMLBuilder()).execute(distinctProjectsInSearch, rootElementName, user, whereClause, getCheckedParameter(data, "job"), getItemList(data, "resources"), getItemList(data, "scan_types"));
+    }
 
+    private static String getWhereClause(final String searchXml) {
+        final String whereClause = StringUtils.substringBetween(searchXml, START_TAG, END_TAG);
+        return StringUtils.isNotBlank(whereClause) ? String.format(WHERE_CLAUSE, whereClause) : "";
+    }
 
-	public String getScreenTemplate(){
-		return "XDATScreen_bulk_action.vm";
-	}
-
-	public String getScreen(){
-		return "XDATScreen_bulk_action";
-	}
-
-	
+    private static final String DEFAULT_SCREEN_TEMPLATE = "XDATScreen_bulk_action.vm";
+    private static final String START_TAG               = "<xdat:search_where";
+    private static final String END_TAG                 = "</xdat:search_where>";
+    private static final String WHERE_CLAUSE            = START_TAG + "%s" + END_TAG;
+    private static final String PROJECT_HEADER          = "Project";
+    private static final String PROJECT_HEADER_LOWER    = StringUtils.lowerCase(PROJECT_HEADER);
 
 }
-
-
