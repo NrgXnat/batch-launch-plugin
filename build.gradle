@@ -21,6 +21,7 @@ apply plugin: "java"
 apply plugin: "maven-publish"
 apply plugin: "eclipse"
 apply plugin: "io.franzbecker.gradle-lombok"
+apply plugin: "xnat-data-builder"
 
 group "org.nrg.xnatx.plugins"
 version "0.2.8-ML-SNAPSHOT"
