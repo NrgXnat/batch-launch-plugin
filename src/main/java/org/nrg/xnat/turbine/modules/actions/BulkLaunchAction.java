@@ -41,7 +41,8 @@ public class BulkLaunchAction extends DisplaySearchAction {
                 return;
             }
 
-            final String searchXml   = StringUtils.replace(URLDecoder.decode(RegExUtils.replaceAll(rawSearchXml, "%", "%25"), "UTF-8"), ".close.", "/");
+            final String searchXml   = StringUtils.replace(URLDecoder.decode(RegExUtils.replaceAll(rawSearchXml,
+                    "%", "%25"), "UTF-8"), ".close.", "/");
             final String whereClause = getWhereClause(searchXml);
             context.put("xss", buildNewSearchXML(searchXml, user, whereClause, data));
             super.doPreliminaryProcessing(data, context);

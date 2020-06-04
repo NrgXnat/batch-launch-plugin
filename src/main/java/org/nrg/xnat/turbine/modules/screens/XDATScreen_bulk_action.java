@@ -12,6 +12,7 @@ import org.nrg.xdat.XDAT;
 import org.nrg.xdat.turbine.modules.screens.SecureScreen;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
+import org.nrg.xnatx.plugins.batch.utils.DynamicAddSqlQueryFieldsToDataTypes;
 import org.nrg.xnatx.plugins.batch.utils.SearchXMLBuilder;
 
 import java.util.Calendar;
@@ -41,6 +42,8 @@ public class XDATScreen_bulk_action extends SecureScreen {
             final List<String> scanTypes = SearchXMLBuilder.getItemList(data, "scan_types");
             context.put("xss", (new SearchXMLBuilder()).execute(Collections.singletonList(project), dataType, user, String.format(SEARCH_TEMPLATE, dataType, project), job, resources, scanTypes));
         }
+
+        DynamicAddSqlQueryFieldsToDataTypes.addFields();
     }
 
     private static final String SEARCH_TEMPLATE = "<xdat:search_where method=\"AND\">" +

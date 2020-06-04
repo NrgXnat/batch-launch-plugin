@@ -24,7 +24,7 @@ apply plugin: "io.franzbecker.gradle-lombok"
 apply plugin: "xnat-data-builder"
 
 group "org.nrg.xnatx.plugins"
-version "0.2.8-ML-SNAPSHOT"
+version "0.3.0-ML-SNAPSHOT"
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
