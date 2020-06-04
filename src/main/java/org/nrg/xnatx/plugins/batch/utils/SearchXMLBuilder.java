@@ -34,7 +34,7 @@ import java.util.List;
 public class SearchXMLBuilder {
     public static String getCheckedParameter(final RunData data, final String parameter) throws ClientException {
 		final String encoded = (String) TurbineUtils.GetPassedParameter(parameter, data);
-        if (PoolDBUtils.HackCheck(encoded)) {
+        if (encoded != null && PoolDBUtils.HackCheck(encoded)) {
             log.error("The user {} submitted an invalid value for parameter \"{}\": {}", XDAT.getUserDetails().getUsername(), parameter, encoded);
             throw new ClientException(Status.CLIENT_ERROR_BAD_REQUEST, "Invalid value submitted");
         }

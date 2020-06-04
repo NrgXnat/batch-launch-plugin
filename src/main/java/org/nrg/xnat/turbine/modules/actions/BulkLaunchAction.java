@@ -34,7 +34,7 @@ public class BulkLaunchAction extends DisplaySearchAction {
     public void doPerform(final RunData data, final Context context) {
         final UserI user = getUser();
         try {
-            final String rawSearchXml = data.getParameters().getString("searchXml");
+            final String rawSearchXml = data.getParameters().getString("search_xml");
             if (StringUtils.isBlank(rawSearchXml)) {
                 data.setMessage("Your search result has expired.  Please resubmit your query. ");
                 data.setScreenTemplate("Error.vm");
@@ -96,7 +96,10 @@ public class BulkLaunchAction extends DisplaySearchAction {
             }
         }
 
-        return (new SearchXMLBuilder()).execute(distinctProjectsInSearch, rootElementName, user, whereClause, getCheckedParameter(data, "job"), getItemList(data, "resources"), getItemList(data, "scan_types"));
+        return (new SearchXMLBuilder()).execute(distinctProjectsInSearch, rootElementName, user, whereClause,
+                getCheckedParameter(data, "job"),
+                getItemList(data, "resources"),
+                getItemList(data, "scan_types"));
     }
 
     private static String getWhereClause(final String searchXml) {
