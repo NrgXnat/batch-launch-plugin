@@ -1,3 +1,5 @@
 ## Copyright 2019 Radiologics, Inc
 
 <script type="text/javascript" src="$content.getURI('scripts/xnat/plugin/workflowMgmt/user_dashboard.js')"></script>
+<script type="text/javascript" src="$!content.getURI("scripts/xnat/plugin/containerService/containerService-history.js")"></script>
+<script type="text/javascript" src="$!content.getURI("scripts/xnat/plugin/workflowMgmt/workflowmgmt.js")"></script>
