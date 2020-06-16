@@ -23,7 +23,7 @@
       <fileNamePattern>${xnat.home}/logs/batch_launch.log.%d{'.'yyy-MM-dd}</fileNamePattern>
     </rollingPolicy>
   </appender>
-  <logger name="com.radiologics.batch_launch" additivity="false" level="INFO">
+  <logger name="org.nrg.xnatx.plugins.batch" additivity="false" level="INFO">
     <appender-ref ref="batch_launch"/>
   </logger>
 </configuration>
