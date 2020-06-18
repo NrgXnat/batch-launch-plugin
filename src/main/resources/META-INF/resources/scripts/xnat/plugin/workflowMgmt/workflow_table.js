@@ -22,12 +22,11 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         getObject(XNAT.plugin.batchLaunch.workflowTable || {});
 
     XNAT.plugin.batchLaunch.workflowTable.tableId = "workflows-data-table";
-    var columnIds = ["externalId", "label", "itemTime", "status", "pipelineName", "launchTime", "modTime", "details",
+    var columnIds = ["externalId", "label", "status", "pipelineName", "launchTime", "modTime", "details",
         "percentageComplete", "stepDescription"];
     var labelMap = {
         externalId: {label: "Project", show: true, type: "string"},
         label: {label: "Label", show: true, type: "string"},
-        itemTime: {label: "Expt time", show: true, type: "datetime"},
         status: {label: "Status", show: true, type: "string"},
         pipelineName: {label: "Name", show: true, type: "string"},
         launchTime: {label: "Launch time", show: true, type: "datetime"},
@@ -102,7 +101,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                 classes: "clean fixed-header selectable scrollable-table",
                 style: "width: auto;"
             },
-            sortable: 'externalId, label, itemTime, status, pipelineName, launchTime, modTime',
+            sortable: 'externalId, label, status, pipelineName, launchTime, modTime',
             filter: 'externalId, label, status, pipelineName',
             sortAndFilterAjax: parseSortAndFilterParams,
             items: {
@@ -130,13 +129,6 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                         } else {
                             return this['label'];
                         }
-                    }
-                },
-                itemTime: {
-                    th: {className: 'itemTime'},
-                    label: labelMap['itemTime']['label'],
-                    apply: function(){
-                        return new Date(this['modTime']).toLocaleString();
                     }
                 },
                 status: {
@@ -252,7 +244,6 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         }
         if (hide_label) {
             labelMap['label']['show'] = false;
-            labelMap['itemTime']['show'] = false;
         }
 
         // Do we have a table yet?
