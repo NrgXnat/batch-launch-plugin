@@ -136,7 +136,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                     th: {className: 'itemTime'},
                     label: labelMap['itemTime']['label'],
                     apply: function(){
-                        return new Date(this['itemTime']).toLocaleString();
+                        return new Date(this['modTime']).toLocaleString();
                     }
                 },
                 status: {
