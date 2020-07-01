@@ -10,7 +10,7 @@ $(document).ready(function() {
         "    right: 279px;";
     var $dashboard = $(
         "<div>" +
-        "   <a href='/app/template/UserDashboard.vm' title='User dashboard' id='user-dashboard' style='" + style_string + "'" +
+        "   <a href='" + XNAT.url.rootUrl('/app/template/UserDashboard.vm') + "' title='User dashboard' id='user-dashboard' style='" + style_string + "'" +
         "       <i class='fa fa-list-alt'></i>" +
         "   </a>" +
         "</div>"
