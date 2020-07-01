@@ -2,10 +2,6 @@
 
 #* @vtlvariable name="om" type="org.nrg.xdat.om.XnatProjectdata" *#
 
-## Since we have to manually create an addl dispay doc, only certain datatypes are supported :(
-#set($supportedTypes = ["xnat:subjectData", "xnat:mrSessionData", "xnat:petmrSessionData", "xnat:petSessionData",
-	"xnat:ctSessionData", "xnat:dxSessionData", "xnat:mrScanData", "xnat:petScanData",
-	"xnat:ctScanData", "xnat:dxScanData"])
 #set($xsiTypes = [])
 #if($data.getSession().getAttribute("userHelper").canRead("xnat:subjectData/project","$om.getId()"))
 	#if($om.getParticipants_participant().size() > 0)
@@ -13,15 +9,11 @@
 	#end
 #end
 #if($data.getSession().getAttribute("userHelper").canRead("xnat:experimentData/project","$om.getId()"))
-	#foreach ($xsiTypeProc in $om.getExperimentCountByXSIType().keySet())
-		#if ($supportedTypes.contains($xsiTypeProc))
-			#set($junk = $xsiTypes.add($xsiTypeProc))
-		#end
+	#foreach ($xsiType in $om.getExperimentCountByXSIType().keySet())
+		#set($junk = $xsiTypes.add($xsiType))
 	#end
-	#foreach ($xsiTypeProc in $om.getScanCountByXSIType().keySet())
-		#if ($supportedTypes.contains($xsiTypeProc))
-			#set($junk = $xsiTypes.add($xsiTypeProc))
-		#end
+	#foreach ($xsiType in $om.getScanCountByXSIType().keySet())
+		#set($junk = $xsiTypes.add($xsiType))
 	#end
 #end
 #if ($xsiTypes.size() == 1)
@@ -35,11 +27,12 @@
 		<div id="#processingBoardbox" class="yuimenu">
 			<div class="bd">
 				<ul class="first-of-type">
-					#foreach ($xsiTypeProc in $xsiTypes)
-						#set ( $batchLaunchHistoryTitle = $!data.getSession().getAttribute("userHelper").getBrowseableElementDisplay($!xsiTypeProc).getBriefDescription())
-						#if ($!batchLaunchHistoryTitle)
+					#foreach ($xsiType in $xsiTypes)
+						#set($batchLaunchHistoryTitle = "")
+						#set($batchLaunchHistoryTitle = $!data.getSession().getAttribute("userHelper").getBrowseableElementDisplay($!xsiType).getBriefDescription())
+						#if ($!batchLaunchHistoryTitle && $batchLaunchHistoryTitle != "")
 							<li class="yuimenuitem $!li_class">
-								#set ( $batchLaunchHistoryUri = "/app/template/XDATScreen_bulk_action.vm/project/$om.getId()/dataType/$xsiTypeProc" )
+								#set($batchLaunchHistoryUri = "/app/template/XDATScreen_bulk_action.vm/project/$om.getId()/dataType/$xsiType")
 								<a href="$content.getURI($batchLaunchHistoryUri)">$!batchLaunchHistoryTitle</a>
 							</li>
 						#end
