@@ -287,6 +287,10 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                 if (!XNAT.plugin.batchLaunch.workflowTable.tableBody) {
                     // First load
                     if (data.length) {
+                        if (XNAT.plugin.batchLaunch.workflowTable.emptyTable) {
+                            $content.empty();
+                            XNAT.plugin.batchLaunch.workflowTable.emptyTable = false;
+                        }
                         // Only calls out active/failed workflows in first "page" of results
                         if (data.some(function (item) {
                             return !XNAT.plugin.batchLaunch.isWorkflowComplete(item['status']) &&
@@ -319,6 +323,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                         });
                     } else {
                         $content.html('No history to display.');
+                        XNAT.plugin.batchLaunch.workflowTable.emptyTable = true;
                     }
                 } else {
                     // Next "page" of results
