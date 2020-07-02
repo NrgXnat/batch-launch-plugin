@@ -4,10 +4,12 @@
 package org.nrg.xnatx.plugins.batch.repositories;
 
 import com.google.common.collect.ImmutableMap;
+import org.intellij.lang.annotations.Language;
 import org.nrg.containers.services.impl.ContainerServiceImpl;
 import org.nrg.xdat.om.*;
 import org.nrg.xdat.schema.SchemaElement;
 import org.nrg.xdat.schema.SchemaField;
+import org.nrg.xdat.security.helpers.Groups;
 import org.nrg.xft.exception.ElementNotFoundException;
 import org.nrg.xft.exception.FieldNotFoundException;
 import org.nrg.xft.exception.XFTInitException;
@@ -38,7 +40,7 @@ import java.util.*;
 @Slf4j
 @Repository
 public class WorkflowRepository implements PageableRepository {
-    private NamedParameterJdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
     private Map<String, Long> workflowDurationMap = null;
     private long workflowDurationMapExpiration = System.currentTimeMillis();
     private int WF_DURATION_EXP_SEC = 14400; // 4 hours
@@ -149,6 +151,9 @@ public class WorkflowRepository implements PageableRepository {
             "xnat_experimentdata ON wrk.id=xnat_experimentdata.id LEFT JOIN wrk_workflowdata_meta_data meta " +
             "ON wrk.workflowData_info=meta.meta_data_id";
 
+    private static final String PROJECT_PLINE_DATATYPES = "'" + ArcProject.SCHEMA_ELEMENT_NAME + "','" +
+            XnatProjectdata.SCHEMA_ELEMENT_NAME + "'";
+
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
@@ -190,18 +195,7 @@ public class WorkflowRepository implements PageableRepository {
         String query;
         switch(dataType) {
             case "xdat:user":
-                namedParams.addValue("userId", user.getID())
-                        .addValue("username", user.getLogin());
-                // Pipelines user has launched and pipelines associated with projects user can read
-                query = "WITH subq AS (SELECT wrkSub.*, meta.last_modified, meta.insert_user_xdat_user_id FROM (" +
-                        buildQueryWithDataTypeLabels() + ") AS wrkSub LEFT JOIN wrk_workflowdata_meta_data meta ON " +
-                        "wrkSub.workflowData_info = meta.meta_data_id ) " +
-                        "SELECT subq.* FROM subq WHERE insert_user_xdat_user_id = :userId OR create_user = :username " +
-                        "UNION " +
-                        "SELECT subq.* FROM subq INNER JOIN (SELECT * FROM (SELECT * FROM xdat_user_groupid gid WHERE " +
-                        "groups_groupid_xdat_user_xdat_user_id = :userId) AS usrgrp " +
-                        "INNER JOIN xdat_usergroup ug ON usrgrp.groupid = ug.id) AS userq " +
-                        "ON userq.tag = subq.externalid OR userq.tag = subq.id";
+                query = makeUserLevelQuery(user, namedParams);
                 break;
             case XnatProjectdata.SCHEMA_ELEMENT_NAME:
                 namedParams.addValue("arcId",
@@ -226,6 +220,75 @@ public class WorkflowRepository implements PageableRepository {
         // Estimate % complete if not provided
         updateWorkflowProgress(wfs);
         return wfs;
+    }
+
+    /**
+     * Make query to retrieve workflows for user dashboard:
+     *  - Workflows user has launched and workflows associated with data user can read
+     *  - if site admin: the above plus all workflows with ADMIN externalId
+     *  - if all data admin: return all workflows
+     *
+     * @param user the user
+     * @param namedParams the map SQL params
+     * @return the query
+     * @throws Exception for issues collecting datatypes
+     */
+    @Language("SQL")
+    private String makeUserLevelQuery(UserI user, MapSqlParameterSource namedParams) throws Exception {
+        @Language("SQL") String query;
+        @Language("SQL") String wrkSubQ = "SELECT wrkSub.*, meta.last_modified, meta.insert_user_xdat_user_id " +
+                "           FROM (" + buildQueryWithDataTypeLabels() + ") AS wrkSub " +
+                "               LEFT JOIN wrk_workflowdata_meta_data meta " +
+                "                   ON wrkSub.workflowData_info = meta.meta_data_id";
+        if (Groups.isDataAdmin(user)) {
+            // Access to all workflows across the whole site
+            query = wrkSubQ;
+        } else {
+            String adminWfs = "";
+            if (Groups.isSiteAdmin(user)) {
+                // Add site admin workflows
+                adminWfs = " OR wrkSubQ.externalId = '" + PersistentWorkflowUtils.ADMIN_EXTERNAL_ID + "' ";
+            }
+            namedParams.addValue("userId", user.getID())
+                    .addValue("username", user.getLogin());
+            // Workflows user has launched and workflows associated with data user can read
+            query = "WITH wrkSubQ AS " +
+                    "   (" + wrkSubQ + "), " +
+                    "permSub1 AS (SELECT DISTINCT " +
+                    "   REGEXP_REPLACE(REGEXP_REPLACE(m.field, '(/project|/ID)$', ''), '/sharing/share$', '') AS data_type, " +
+                    "   m.field_value  AS project, " +
+                    "   m.read_element AS read, " +
+                    "   m.edit_element AS edit " +
+                    "       FROM xdat_field_mapping m " +
+                    "          LEFT JOIN xdat_field_mapping_set s ON m.xdat_field_mapping_set_xdat_field_mapping_set_id = s.xdat_field_mapping_set_id " +
+                    "          LEFT JOIN xdat_element_access a ON s.permissions_allow_set_xdat_elem_xdat_element_access_id = a.xdat_element_access_id " +
+                    "          LEFT JOIN xdat_usergroup g ON a.xdat_usergroup_xdat_usergroup_id = g.xdat_usergroup_id " +
+                    "          LEFT JOIN xdat_user_groupid i ON g.id = i.groupid " +
+                    "          LEFT JOIN xdat_user u ON i.groups_groupid_xdat_user_xdat_user_id = u.xdat_user_id " +
+                    "       WHERE u.login = :username AND (m.read_element = 1 OR m.edit_element = 1))," +
+                    "permSub2 AS (SELECT 'arc:project'::varchar AS data_type, " +
+                    "   ap.arc_project_id::varchar AS project, " +
+                    "   permSub1.read, " +
+                    "   permSub1.edit " +
+                    "       FROM permSub1 " +
+                    "           INNER JOIN arc_project ap ON permSub1.data_type = '" + XnatProjectdata.SCHEMA_ELEMENT_NAME + "' AND permSub1.project = ap.id), " +
+                    "permSubQ AS (SELECT * FROM permSub1 UNION SELECT * FROM permSub2)" +
+                    "SELECT wrkSubQ.* " +
+                    "   FROM wrkSubQ " +
+                    "   WHERE insert_user_xdat_user_id = :userId OR create_user = :username " + adminWfs +
+                    "UNION " +
+                    "SELECT wrkSubQ.* " +
+                    "   FROM wrkSubQ " +
+                    "       INNER JOIN permSubQ " +
+                    "           ON (" +
+                    "              (permSubQ.data_type IN (" + PROJECT_PLINE_DATATYPES + ") AND permSubQ.edit = 1 AND " +
+                    "                   permSubQ.data_type = wrkSubQ.data_type AND permSubQ.project = wrkSubQ.id) " +
+                    "              OR " +
+                    "              (permSubQ.data_type NOT IN (" + PROJECT_PLINE_DATATYPES + ") AND " +
+                    "                   permSubQ.data_type = wrkSubQ.data_type AND permSubQ.project = wrkSubQ.externalId)" +
+                    "           )";
+        }
+        return query;
     }
 
     /**
