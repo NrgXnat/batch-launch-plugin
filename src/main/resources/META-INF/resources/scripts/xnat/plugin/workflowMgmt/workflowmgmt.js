@@ -229,7 +229,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
             $button.remove();
             $actionsRow.find(dropdown).remove();
         }
-        $button = $.spawn(button, {}, ["Columns", "&nbsp;", $.spawn("i.fa.fa-caret-down")]);
+        $button = $.spawn(button, {classes: "btn btn-sm"}, ["Columns", "&nbsp;", $.spawn("i.fa.fa-caret-down")]);
         $actionsRow.append($button);
         var $dropdown = $.spawn(dropdown, {}, showHideList);
         $actionsRow.append($dropdown);
