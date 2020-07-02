@@ -35,6 +35,8 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         percentageComplete: {label: "&percnt;", show: true, type: "number"},
         stepDescription: {label: "Progress", show: true, type: "string"}
     };
+    var noLinkDataTypes = ['xdat:element_action_type', 'xdat:user', 'xdat:userGroup', 'xdat:element_security',
+        'xnat:fieldDefinitionGroup', 'xnat:investigatorData', 'pipe:PipelineRepository', 'arc:ArchiveSpecification'];
     var $container;
 
     function parseSortAndFilterParams(sortOrFilter, column, value) {
@@ -124,7 +126,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                     th: {className: 'label'},
                     label: labelMap['label']['label'],
                     apply: function(){
-                        if (this['dataType']) {
+                        if (this['dataType'] && !noLinkDataTypes.includes(this['dataType'])) {
                             return spawn('a', {href: getDisplayUrl(this['dataType'], this['id'])}, this['label']);
                         } else {
                             return this['label'];
