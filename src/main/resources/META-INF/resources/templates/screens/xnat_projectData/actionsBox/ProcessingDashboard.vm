@@ -2,39 +2,45 @@
 
 #* @vtlvariable name="om" type="org.nrg.xdat.om.XnatProjectdata" *#
 
-<li class="yuimenuitem" id="processing-dashboard" style="display:none">
-	<a class="yuimenuitemlabel" href="#processingBoardbox">Processing Dashboard</a>
-	<div id="#processingBoardbox" class="yuimenu">
-		<div class="bd">
-			<ul class="first-of-type"></ul>
+#set($xsiTypes = [])
+#if($data.getSession().getAttribute("userHelper").canRead("xnat:subjectData/project","$om.getId()"))
+	#if($om.getParticipants_participant().size() > 0)
+		#set($junk = $xsiTypes.add("xnat:subjectData"))
+	#end
+#end
+#if($data.getSession().getAttribute("userHelper").canRead("xnat:experimentData/project","$om.getId()"))
+	#foreach ($xsiType in $om.getExperimentCountByXSIType().keySet())
+		#set($junk = $xsiTypes.add($xsiType))
+	#end
+	#foreach ($xsiType in $om.getScanCountByXSIType().keySet())
+		#set($junk = $xsiTypes.add($xsiType))
+	#end
+#end
+#if ($xsiTypes.size() == 1)
+	<li class="yuimenuitem" id="processing-dashboard">
+		#set ( $batchLaunchHistoryUri = "/app/template/XDATScreen_bulk_action.vm/project/$om.getId()/dataType/$xsiTypes.get(0)" )
+		<a href="$content.getURI($batchLaunchHistoryUri)">Processing Dashboard</a>
+	</li>
+#elseif($xsiTypes.size() > 1)
+	<li class="yuimenuitem" id="processing-dashboard">
+		<a class="yuimenuitemlabel" href="#processingBoardbox">Processing Dashboard</a>
+		<div id="#processingBoardbox" class="yuimenu">
+			<div class="bd">
+				<ul class="first-of-type">
+					#foreach ($xsiType in $xsiTypes)
+						#set($batchLaunchHistoryTitle = "")
+						#set($batchLaunchHistoryTitle = $!data.getSession().getAttribute("userHelper").getBrowseableElementDisplay($!xsiType).getSchemaElement().getPluralDescription())
+						#if ($!batchLaunchHistoryTitle && $batchLaunchHistoryTitle != "")
+							<li class="yuimenuitem $!li_class">
+								#set($batchLaunchHistoryUri = "/app/template/XDATScreen_bulk_action.vm/project/$om.getId()/dataType/$xsiType")
+								<a href="$content.getURI($batchLaunchHistoryUri)">$!batchLaunchHistoryTitle</a>
+							</li>
+						#end
+					#end
+				</ul>
+			</div>
 		</div>
-	</div>
-</li>
+	</li>
+#end
 
-<script type="application/javascript">
-	const projectId = "$om.getId()";
-	XNAT.xhr.getJSON({
-		url: XNAT.url.restUrl('/xapi/access/displays/browseable'),
-		success: function (data) {
-			if (data.length === 0) {
-				return;
-			}
-			let pdli = $('#processing-dashboard');
-			let list = '';
-			data = data.sort((a, b) => a.plural < b.plural ? -1 : (a.plural > b.plural ? 1 : 0));
-			$.each(data, function(i, element){
-				if (!(element.imageSession || element.imageScan) && element.elementName !== 'xnat:subjectData') {
-					return;
-				}
-				let href = XNAT.url.rootUrl('/app/template/XDATScreen_bulk_action.vm/project/' + projectId +
-						'/dataType/' + element.elementName);
-				list += '<li class="yuimenuitem"><a href="' + href + '" class="yuimenuitemlabel">' + element.plural + '</a></li>';
-			});
-			pdli.find('ul').append(list);
-			pdli.show();
-		},
-		error: function (e) {
-			console.log(e);
-		}
-	});
-</script>
+
