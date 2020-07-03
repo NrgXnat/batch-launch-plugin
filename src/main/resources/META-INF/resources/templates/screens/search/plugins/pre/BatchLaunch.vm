@@ -1,17 +1,26 @@
 ## Copyright 2019 Radiologics, Inc
 
+#* @vtlvariable name="ed" type="org.nrg.xdat.display.ElementDisplay" *#
 <script type="text/javascript">
-	if(!XNAT.app.typeBasedListingOptions){
+	if (!XNAT.app.typeBasedListingOptions) {
 		XNAT.app.typeBasedListingOptions = {};
 	}
 
-	#set ($xsiTypes = ["xnat:projectData", "xnat:subjectData", "xnat:mrSessionData", "xnat:petmrSessionData",
-		"xnat:petSessionData", "xnat:ctSessionData", "xnat:otherDicomSessionData", "xnat:dxSessionData",
-		"xnat:mrScanData", "xnat:petScanData", "xnat:ctScanData", "xnat:dxScanData"])
-	#foreach ($xsiType in $xsiTypes)
-		if(!XNAT.app.typeBasedListingOptions["$xsiType"]){
-			XNAT.app.typeBasedListingOptions["$xsiType"]=[];
+	function addProcDashOption(type) {
+		if (!XNAT.app.typeBasedListingOptions[type]) {
+			XNAT.app.typeBasedListingOptions[type] = [];
 		}
-		XNAT.app.typeBasedListingOptions["$xsiType"].push({action:'BulkLaunchAction', display:'Processing Dashboard'});
-	#end
+		XNAT.app.typeBasedListingOptions[type].push({
+			action: 'BulkLaunchAction',
+			display: 'Processing Dashboard'
+		});
+	}
+
+	$(window.available_elements).each(function() {
+		if (this.isExperiment || this.isImageScan) {
+			addProcDashOption(this.elementName);
+		}
+	});
+	addProcDashOption("xnat:projectData");
+	addProcDashOption("xnat:subjectData");
 </script>

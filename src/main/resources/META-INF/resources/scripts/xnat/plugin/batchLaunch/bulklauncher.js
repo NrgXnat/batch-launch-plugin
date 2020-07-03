@@ -127,7 +127,9 @@ console.log('bulklauncher.js');
         var xml = $('#xss').val();
         var projectLabelKey = "id";
         var subjectLabelKey = "";
-        var sessionLabelKey = "";
+        var experimentLabelKey = "";
+        var subjectIdKey = "";
+        var experimentIdKey = "";
         var scanLabelKey = "id";
         var currentJob = $('span#currentJob').text();
 
@@ -190,13 +192,16 @@ console.log('bulklauncher.js');
                     }
                     var key = d.key.substring(0, 63);
                     if (d.key.startsWith('xnat_subjectdata_sub_project_identifier') ||
-                        d.key.startsWith("sub_project_identifier") || d.key === "xnat_col_subjectdatalabel" ||
-                        d.key === "xnat_subjectdata_subjectid" || d.key === "xnat_subjectdata_subject_label") {
+                        d.key.startsWith("sub_project_identifier") ||
+                        d.key === "xnat_col_subjectdatalabel" ||
+                        d.key === "xnat_subjectdata_subject_label") {
                         subjectLabelKey = key;
-                    } else if (d.key.indexOf('_project_identifier_') > 0 || d.key === "session_id") {
-                        sessionLabelKey = key;
-                    } else if (d.key === "label") {
-                        sessionLabelKey = key;
+                    } else if (d.key.indexOf('_project_identifier_') > 0 || d.key === "label") {
+                        experimentLabelKey = key;
+                    } else if (d.key === "xnat_subjectdata_subjectid" || d.key === "subject_id") {
+                        subjectIdKey = key;
+                    } else if (d.key === "expt_id" || d.key === "session_id" || d.key.indexOf("session_id") > 0) {
+                        experimentIdKey = key;
                     }
                     keyAndHeaderMap[header] = key;
                     columnsToShow[header] = {
@@ -213,8 +218,8 @@ console.log('bulklauncher.js');
                 if (columnsToShow.hasOwnProperty('Subject')) {
                     columnsToShow['Subject']['show'] = true;
                 }
-                if (columnsToShow.hasOwnProperty('Session')) {
-                    columnsToShow['Session']['show'] = true;
+                if (columnsToShow.hasOwnProperty('Experiment')) {
+                    columnsToShow['Experiment']['show'] = true;
                 }
                 if (columnsToShow.hasOwnProperty('Scan')) {
                     columnsToShow['Scan']['show'] = true;
@@ -385,24 +390,29 @@ console.log('bulklauncher.js');
                 // AddDataTableRows:
                 var allSameProject = true;
                 $.each(rows, function (i, d) {
-                    var project, label, project_url, subject_url, expt_url;
+                    var project, label, id, project_url, subject_url, expt_url;
                     var uri = d.uri, element_url = '/data' + uri + '?format=html';
                     var workflowStatus = {};
                     if (dataType === "xnat:projectData") {
                         label = d[projectLabelKey];
-                        project = label;
+                        project = id = label;
+                        project_url = element_url;
                     } else {
                         project = d.project;
                         project_url = '/data/archive/projects/' + project;
                         if (dataType === "xnat:subjectData") {
                             label = d[subjectLabelKey];
+                            id = d[subjectIdKey];
+                            subject_url = element_url;
                         } else {
-                            subject_url = '/data/archive/subjects/' + d.xnat_subjectdata_subjectid;
-                            if (dataType.includes("Session")) {
-                                label = d[sessionLabelKey];
-                            } else {
-                                label = d[scanLabelKey];
+                            subject_url = '/data/archive/subjects/' + d[subjectIdKey];
+                            if (dataType.includes("Scan")) {
+                                label = id = d[scanLabelKey];
                                 expt_url = '/data' + uri.replace(/\/scans.*$/,'?format=html');
+                            } else {
+                                label = d[experimentLabelKey];
+                                id = d[experimentIdKey];
+                                expt_url = element_url;
                             }
                         }
                     }
@@ -444,10 +454,7 @@ console.log('bulklauncher.js');
                         var key = keyAndHeaderMap[hdr];
                         label = columnsToShow[hdr]['label'];
                         labelClean = columnsToShow[hdr]['labelClean'];
-                        if ((key === scanLabelKey && dataType.includes("Scan")) ||
-                            (key === sessionLabelKey && dataType.includes("Session")) ||
-                            (key === subjectLabelKey && dataType === "xnat:subjectData") ||
-                            (key === projectLabelKey && dataType === "xnat:projectData")) {
+                        if (key === scanLabelKey && dataType.includes("Scan")) {
                             rowDataWithColumns += '<td class="' + labelClean + '" ><a href="' + XNAT.url.rootUrl(element_url) +
                                 '"  target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
                         } else if (hdr === 'Project') {
@@ -456,7 +463,7 @@ console.log('bulklauncher.js');
                         } else if (hdr === 'Subject') {
                             rowDataWithColumns += '<td class="' + labelClean + '" ><a href="' + XNAT.url.rootUrl(subject_url) +
                                 '" target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
-                        } else if (hdr === 'Session') {
+                        } else if (hdr === 'Experiment') {
                             rowDataWithColumns += '<td class="' + labelClean + '" ><a href="' + XNAT.url.rootUrl(expt_url) +
                                 '" target="_blank"><span  title="' + label + '">' + d[key] + '</span></a></td>';
                         } else if (key.startsWith("res_file") || key.startsWith("wrk_status_launch")

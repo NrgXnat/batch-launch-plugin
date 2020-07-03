@@ -11,6 +11,8 @@ import org.nrg.action.ClientException;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.turbine.modules.screens.SecureScreen;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
+import org.nrg.xft.exception.ElementNotFoundException;
+import org.nrg.xft.exception.XFTInitException;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.plugins.batch.utils.DynamicAddSqlQueryFieldsToDataTypes;
 import org.nrg.xnatx.plugins.batch.utils.SearchXMLBuilder;
@@ -40,7 +42,11 @@ public class XDATScreen_bulk_action extends SecureScreen {
             final String       dataType  = (String) TurbineUtils.GetPassedParameter("dataType", data);
             final List<String> resources = SearchXMLBuilder.getItemList(data, "resources");
             final List<String> scanTypes = SearchXMLBuilder.getItemList(data, "scan_types");
-            context.put("xss", (new SearchXMLBuilder()).execute(Collections.singletonList(project), dataType, user, String.format(SEARCH_TEMPLATE, dataType, project), job, resources, scanTypes));
+            try {
+                context.put("xss", (new SearchXMLBuilder()).execute(Collections.singletonList(project), dataType, user, String.format(SEARCH_TEMPLATE, dataType, project), job, resources, scanTypes));
+            } catch (XFTInitException | ElementNotFoundException e) {
+                throw new ClientException("Issue generating search xml", e);
+            }
         }
 
         DynamicAddSqlQueryFieldsToDataTypes.addFields();

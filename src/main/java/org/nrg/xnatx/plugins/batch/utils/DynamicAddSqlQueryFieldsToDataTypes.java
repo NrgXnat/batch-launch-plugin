@@ -2,6 +2,8 @@ package org.nrg.xnatx.plugins.batch.utils;
 
 import lombok.extern.slf4j.Slf4j;
 import org.nrg.xdat.collections.DisplayFieldCollection;
+import org.nrg.xdat.display.DisplayField;
+import org.nrg.xdat.display.DisplayFieldElement;
 import org.nrg.xdat.display.ElementDisplay;
 import org.nrg.xdat.display.SQLQueryField;
 import org.nrg.xdat.om.XnatExperimentdata;
@@ -36,11 +38,15 @@ public class DynamicAddSqlQueryFieldsToDataTypes {
                     // add display field queries to all configured experiments and scans
                     ElementDisplay ed = se.getDisplay();
                     for (DisplayFieldInfo dfi : displayFieldQueries) {
-                        addQueryField(dfi, ed, se, es);
+                        addQueryField(dfi, ed, se);
                     }
                     // only add scan type count to image sessions
                     if (se.instanceOf(XnatImagesessiondata.SCHEMA_ELEMENT_NAME)) {
                         addQueryField(scanTypeCountQuery, ed, se, false);
+                    }
+                    // if no URI field, add one
+                    if (ed.getDisplayField("URI") == null) {
+                        addUriField(ed, se);
                     }
                 }
                 addedSQLQueryFieldToDataTypes = true;
@@ -50,7 +56,36 @@ public class DynamicAddSqlQueryFieldsToDataTypes {
         }
     }
 
-    private static void addQueryField(DisplayFieldInfo dfi, ElementDisplay ed, SchemaElement se, ElementSecurity es) {
+    private static void addUriField(ElementDisplay ed, SchemaElement se) {
+        DisplayField df = new DisplayField(ed);
+        df.setId("URI");
+        df.setHeader("uri");
+        df.setVisible(true);
+        df.setSearchable(false);
+        df.setDataType("string");
+        df.setContent(se.instanceOf(XnatImagescandata.SCHEMA_ELEMENT_NAME) ? URI_SQL_SCAN : URI_SQL_EXPT);
+
+        DisplayFieldElement dfe = new DisplayFieldElement();
+        dfe.setName("Field1");
+        dfe.setSchemaElementName(se.getFullXMLName() + ".ID");
+        df.addDisplayFieldElement(dfe);
+
+        if (se.instanceOf(XnatImagescandata.SCHEMA_ELEMENT_NAME)) {
+            DisplayFieldElement dfe2 = new DisplayFieldElement();
+            dfe.setName("Field2");
+            dfe.setSchemaElementName(se.getFullXMLName() + ".image_session_id");
+            df.addDisplayFieldElement(dfe2);
+        }
+
+        try {
+            ed.addDisplayFieldWException(df);
+        } catch (DisplayFieldCollection.DuplicateDisplayFieldException e) {
+            log.error(df.getParentDisplay().getElementName() + "." + df.getId());
+            log.error("", e);
+        }
+    }
+
+    private static void addQueryField(DisplayFieldInfo dfi, ElementDisplay ed, SchemaElement se) {
         addQueryField(dfi, ed, se, true);
     }
 
@@ -142,4 +177,14 @@ public class DynamicAddSqlQueryFieldsToDataTypes {
             new DisplayFieldInfo("RES_FILE_SIZE", "integer", "file_size"),
             new DisplayFieldInfo("RES_FILE_COUNT", "integer", "file_count")
     );
+
+    private static final Map<String, String> URI_SQL_EXPT = new HashMap<>();
+    static {
+        URI_SQL_EXPT.put("sql", "'/archive/experiments/' || @Field1");
+    };
+
+    private static final Map<String, String> URI_SQL_SCAN = new HashMap<>();
+    static {
+        URI_SQL_SCAN.put("sql", "'/archive/experiments/' || @Field2 || '/scans/' || @Field1");
+    };
 }

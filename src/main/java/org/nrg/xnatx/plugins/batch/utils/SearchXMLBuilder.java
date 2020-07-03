@@ -16,9 +16,11 @@ import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.ArcProjectDescendantI;
 import org.nrg.xdat.model.ArcProjectDescendantPipelineI;
 import org.nrg.xdat.om.*;
+import org.nrg.xdat.schema.SchemaElement;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.db.PoolDBUtils;
 import org.nrg.xft.exception.ElementNotFoundException;
+import org.nrg.xft.exception.XFTInitException;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.turbine.utils.ArcSpecManager;
 import org.restlet.data.Status;
@@ -52,43 +54,37 @@ public class SearchXMLBuilder {
                           final String whereClause,
                           String specificJob,
                           List<String> resources,
-                          @Nullable List<String> scan_types){
+                          @Nullable List<String> scan_types) throws XFTInitException, ElementNotFoundException {
 
 		StringBuilder sb=new StringBuilder();
 		sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
-		sb.append("<xdat:bundle ID=\"\" allow-diff-columns=\"0\" secure=\"0\" brief-description=\"Sessions\" xmlns:arc=\"http://nrg.wustl.edu/arc\" xmlns:val=\"http://nrg.wustl.edu/val\" xmlns:pipe=\"http://nrg.wustl.edu/pipe\" xmlns:wrk=\"http://nrg.wustl.edu/workflow\" xmlns:scr=\"http://nrg.wustl.edu/scr\" xmlns:xdat=\"http://nrg.wustl.edu/security\" xmlns:cat=\"http://nrg.wustl.edu/catalog\" xmlns:prov=\"http://www.nbirn.net/prov\" xmlns:xnat=\"http://nrg.wustl.edu/xnat\" xmlns:xnat_a=\"http://nrg.wustl.edu/xnat_assessments\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://nrg.wustl.edu/workflow ").append(XDAT.getSiteUrl()).append("/schemas/workflow.xsd http://nrg.wustl.edu/catalog ").append(XDAT.getSiteUrl()).append("/schemas/catalog.xsd http://nrg.wustl.edu/pipe ").append(XDAT.getSiteUrl()).append("/schemas/repository.xsd http://nrg.wustl.edu/scr ").append(XDAT.getSiteUrl()).append("/schemas/screeningAssessment.xsd http://nrg.wustl.edu/arc ").append(XDAT.getSiteUrl()).append("/schemas/project.xsd http://nrg.wustl.edu/val ").append(XDAT.getSiteUrl()).append("/schemas/protocolValidation.xsd http://nrg.wustl.edu/xnat ").append(XDAT.getSiteUrl()).append("/schemas/xnat.xsd http://nrg.wustl.edu/xnat_assessments ").append(XDAT.getSiteUrl()).append("/schemas/assessments.xsd http://www.nbirn.net/prov ").append(XDAT.getSiteUrl()).append("/schemas/birnprov.xsd http://nrg.wustl.edu/security ").append(XDAT.getSiteUrl()).append("/schemas/security.xsd\">");
+		sb.append("<xdat:bundle ID=\"\" allow-diff-columns=\"0\" secure=\"0\" brief-description=\"PD\" xmlns:arc=\"http://nrg.wustl.edu/arc\" xmlns:val=\"http://nrg.wustl.edu/val\" xmlns:pipe=\"http://nrg.wustl.edu/pipe\" xmlns:wrk=\"http://nrg.wustl.edu/workflow\" xmlns:scr=\"http://nrg.wustl.edu/scr\" xmlns:xdat=\"http://nrg.wustl.edu/security\" xmlns:cat=\"http://nrg.wustl.edu/catalog\" xmlns:prov=\"http://www.nbirn.net/prov\" xmlns:xnat=\"http://nrg.wustl.edu/xnat\" xmlns:xnat_a=\"http://nrg.wustl.edu/xnat_assessments\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://nrg.wustl.edu/workflow ").append(XDAT.getSiteUrl()).append("/schemas/workflow.xsd http://nrg.wustl.edu/catalog ").append(XDAT.getSiteUrl()).append("/schemas/catalog.xsd http://nrg.wustl.edu/pipe ").append(XDAT.getSiteUrl()).append("/schemas/repository.xsd http://nrg.wustl.edu/scr ").append(XDAT.getSiteUrl()).append("/schemas/screeningAssessment.xsd http://nrg.wustl.edu/arc ").append(XDAT.getSiteUrl()).append("/schemas/project.xsd http://nrg.wustl.edu/val ").append(XDAT.getSiteUrl()).append("/schemas/protocolValidation.xsd http://nrg.wustl.edu/xnat ").append(XDAT.getSiteUrl()).append("/schemas/xnat.xsd http://nrg.wustl.edu/xnat_assessments ").append(XDAT.getSiteUrl()).append("/schemas/assessments.xsd http://www.nbirn.net/prov ").append(XDAT.getSiteUrl()).append("/schemas/birnprov.xsd http://nrg.wustl.edu/security ").append(XDAT.getSiteUrl()).append("/schemas/security.xsd\">");
 		sb.append("<xdat:root_element_name>").append(dataType).append("</xdat:root_element_name>");
 
-		switch (dataType) {
-			case XnatProjectdata.SCHEMA_ELEMENT_NAME:
-				sb.append("<xdat:search_field>");
-				sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
-				sb.append("<xdat:field_ID>ID</xdat:field_ID>");
-				sb.append("<xdat:sequence>0</xdat:sequence>");
-				sb.append("<xdat:type>string</xdat:type>");
-				sb.append("<xdat:header>Project</xdat:header>");
-				sb.append("</xdat:search_field>");
-				addUriField(sb, dataType);
-				break;
-			case XnatSubjectdata.SCHEMA_ELEMENT_NAME:
-				addProjectColumn(sb, dataType);
-				addSubjectColumn(sb, dataType, projects);
-				addUriField(sb, dataType);
-				break;
-			case XnatMrscandata.SCHEMA_ELEMENT_NAME:
-			case XnatPetscandata.SCHEMA_ELEMENT_NAME:
-			case XnatCtscandata.SCHEMA_ELEMENT_NAME:
-			case XnatDxscandata.SCHEMA_ELEMENT_NAME:
-				addProjectColumn(sb, dataType);
-				addSubjectColumn(sb, dataType, projects);
-				addScanColumns(sb, dataType, projects);
-				addUriField(sb, dataType);
-				break;
-			default:
-				addProjectColumn(sb, dataType);
-				addSubjectColumn(sb, dataType, projects);
-				addSessionColumn(sb, dataType, projects);
-				addUriField(sb, dataType);
+		SchemaElement se = SchemaElement.GetElement(dataType);
+		if (XnatProjectdata.SCHEMA_ELEMENT_NAME.equals(dataType)) {
+			sb.append("<xdat:search_field>");
+			sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
+			sb.append("<xdat:field_ID>ID</xdat:field_ID>");
+			sb.append("<xdat:sequence>0</xdat:sequence>");
+			sb.append("<xdat:type>string</xdat:type>");
+			sb.append("<xdat:header>Project</xdat:header>");
+			sb.append("</xdat:search_field>");
+			addUriField(sb, dataType);
+		} else if (XnatSubjectdata.SCHEMA_ELEMENT_NAME.equals(dataType)) {
+			addProjectColumn(sb, dataType);
+			addSubjectColumn(sb, dataType, projects);
+			addUriField(sb, dataType);
+		} else if (se.instanceOf(XnatImagescandata.SCHEMA_ELEMENT_NAME)) {
+			addProjectColumn(sb, dataType);
+			addSubjectColumn(sb, dataType, projects);
+			addScanColumns(sb, dataType, projects);
+			addUriField(sb, dataType);
+		} else {
+			addProjectColumn(sb, dataType);
+			addSubjectColumn(sb, dataType, projects);
+			addExptColumn(sb, dataType, projects);
+			addUriField(sb, dataType);
 		}
 
 		int sequence=100;
@@ -283,7 +279,7 @@ public class SearchXMLBuilder {
 		addLabelField(sb, XnatSubjectdata.SCHEMA_ELEMENT_NAME, projects, XnatSubjectdata.SCHEMA_ELEMENT_NAME.equals(dataType));
 	}
 
-	private void addSessionColumn(StringBuilder sb, String dataType, List<String> projects) {
+	private void addExptColumn(StringBuilder sb, String dataType, List<String> projects) {
 		addLabelField(sb, dataType, projects, true);
 		sb.append("<xdat:search_field>");
 		sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
@@ -308,8 +304,8 @@ public class SearchXMLBuilder {
 	}
 
 	private void addLabelField(StringBuilder sb, String dataType, List<String> projects, boolean baseDataTypeMatches) {
-		String projIdField = "PROJECT_IDENTIFIER";
-		String header = "Session";
+		String projIdField = dataType.replaceFirst(":", "_").toUpperCase() + "_PROJECT_IDENTIFIER";
+		String header = "Experiment";
 		String seq = "3";
 		if (XnatSubjectdata.SCHEMA_ELEMENT_NAME.equals(dataType)) {
 			header = "Subject";
@@ -317,8 +313,6 @@ public class SearchXMLBuilder {
 			projIdField = "SUB_PROJECT_IDENTIFIER";
 		} else if (XnatMrsessiondata.SCHEMA_ELEMENT_NAME.equals(dataType)) {
 			projIdField = "MR_PROJECT_IDENTIFIER";
-		} else if (dataType.contains("Session")) {
-			projIdField = dataType.replaceFirst(":", "_").toUpperCase() + "_PROJECT_IDENTIFIER";
 		}
 
 		if (projects.size()>1) {
