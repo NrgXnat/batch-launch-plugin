@@ -72,8 +72,8 @@ public class DynamicAddSqlQueryFieldsToDataTypes {
 
         if (se.instanceOf(XnatImagescandata.SCHEMA_ELEMENT_NAME)) {
             DisplayFieldElement dfe2 = new DisplayFieldElement();
-            dfe.setName("Field2");
-            dfe.setSchemaElementName(se.getFullXMLName() + ".image_session_id");
+            dfe2.setName("Field2");
+            dfe2.setSchemaElementName(se.getFullXMLName() + ".image_session_id");
             df.addDisplayFieldElement(dfe2);
         }
 
