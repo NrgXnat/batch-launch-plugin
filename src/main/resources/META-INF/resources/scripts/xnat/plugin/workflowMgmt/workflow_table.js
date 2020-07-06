@@ -126,10 +126,14 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                     th: {className: 'label'},
                     label: labelMap['label']['label'],
                     apply: function(){
-                        if (this['dataType'] && !noLinkDataTypes.includes(this['dataType'])) {
-                            return spawn('a', {href: getDisplayUrl(this['dataType'], this['id'])}, this['label']);
+                        if (!this['label']) {
+                            return this['id'];
                         } else {
-                            return this['label'];
+                            if (this['dataType'] && !noLinkDataTypes.includes(this['dataType'])) {
+                                return spawn('a', {href: getDisplayUrl(this['dataType'], this['id'])}, this['label']);
+                            } else {
+                                return this['label'];
+                            }
                         }
                     }
                 },

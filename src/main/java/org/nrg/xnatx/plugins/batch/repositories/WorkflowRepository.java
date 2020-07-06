@@ -114,6 +114,7 @@ public class WorkflowRepository implements PageableRepository {
     };
 
     // Pipelines for project or for entries within project (experiments, subjects, etc)
+    @Language("SQL")
     public static final String QUERY_PROJECT_WFS = "SELECT wrk.*, p.id AS label, md.insert_date as item_time FROM " +
             "wrk_workflowData wrk INNER JOIN xnat_projectdata p ON p.id = wrk.id LEFT JOIN " +
             "xnat_projectdata_meta_data md ON p.projectdata_info = md.meta_data_id WHERE " +
@@ -127,6 +128,7 @@ public class WorkflowRepository implements PageableRepository {
 
     // SQL from WorkflowBasedHistoryBuilder
     // Pipelines on subject
+    @Language("SQL")
     public static final String QUERY_SUBJECT_WFS = "SELECT wrk.*, s.label, md.insert_date AS item_time, " +
             "meta.last_modified FROM (SELECT * FROM wrk_workflowData WHERE id = :id OR " +
             "id IN (SELECT DISTINCT id FROM (SELECT sad.id FROM xnat_subjectassessordata sad WHERE subject_id=:id " +
@@ -142,6 +144,7 @@ public class WorkflowRepository implements PageableRepository {
             "ON wrk.workflowData_info = meta.meta_data_id";
 
     // Pipelines on experiment
+    @Language("SQL")
     public static final String QUERY_EXPT_WFS = "SELECT wrk.*, xnat_experimentdata.label, " + getExperimentItemTimeSQL() +
             ", meta.last_modified FROM (SELECT * FROM wrk_workflowData WHERE id = :id OR " +
             "id IN (SELECT DISTINCT id FROM (SELECT iad.id FROM xnat_imageassessordata iad " +
@@ -478,7 +481,7 @@ public class WorkflowRepository implements PageableRepository {
                     idCol = "arc_project_id";
                     SchemaElement projSe = SchemaElement.GetElement(XnatProjectdata.SCHEMA_ELEMENT_NAME);
                     String projTable = projSe.getSQLName();
-                    mdJoin = " INNER JOIN " + projTable + " ON " + projTable + ".id = " + tableName + ".id " +
+                    mdJoin = " LEFT JOIN " + projTable + " ON " + projTable + ".id = " + tableName + ".id " +
                             getMetaDataJoinSQL(projTable, projSe);
                     break;
                 default:
@@ -501,7 +504,7 @@ public class WorkflowRepository implements PageableRepository {
             qb.append(unionStr);
             qb.append(" SELECT " + outname + ".*, " + tableName + "." + labelCol + "::varchar AS label, " + timeStr +
                     " FROM (SELECT * FROM wrk_workflowData WHERE data_type = '" + type + "' " + constraints + ") " +
-                    "AS " + outname + " INNER JOIN " + tableName + " ON " + outname + ".id = " +
+                    "AS " + outname + " LEFT JOIN " + tableName + " ON " + outname + ".id = " +
                     tableName + "." + idCol + "::varchar");
             if (mdJoin != null) {
                 qb.append(mdJoin);
