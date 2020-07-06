@@ -12,7 +12,7 @@ import javax.annotation.Nullable;
 import java.util.regex.Pattern;
 
 public class StringWorkflowFilter extends WorkflowFilter {
-    @JsonIgnore private final static Pattern validRegex = Pattern.compile("^[A-Za-z0-9_.\\- ]+$");
+    @JsonIgnore private final static Pattern validRegex = Pattern.compile("^[A-Za-z0-9_.\\-/ ]+$");
     @JsonProperty private String like;
     @Nullable @JsonProperty private Boolean not;
 

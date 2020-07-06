@@ -35,6 +35,7 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xnat.services.archive.CatalogService;
 import org.nrg.xnat.turbine.utils.ArchivableItem;
 import org.nrg.xnat.utils.WorkflowUtils;
+import org.restlet.data.Status;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
@@ -94,7 +95,8 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             @ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST)
     @ResponseBody
-    public ResponseEntity<List<Workflow>> getWorkflows(@RequestBody WorkflowListingRequest workflowListingRequest) {
+    public ResponseEntity<List<Workflow>> getWorkflows(@RequestBody WorkflowListingRequest workflowListingRequest)
+            throws ClientException, ServerException {
 
         if (workflowListingRequest.getPage() < 1 || workflowListingRequest.getSize() < 1) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -113,10 +115,10 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
                     workflowListingRequest.getSize(), workflowListingRequest.getFiltersMap()), HttpStatus.OK);
         } catch (FilterException e) {
             log.error("Error querying workflows", e);
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            throw new ClientException(Status.CLIENT_ERROR_BAD_REQUEST, e);
         } catch (Exception e) {
             log.error("Error querying workflows", e);
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new ServerException(Status.SERVER_ERROR_INTERNAL, e);
         }
     }
 

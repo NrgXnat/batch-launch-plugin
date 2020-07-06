@@ -343,9 +343,24 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                     }
                 }
             },
-            error: function() {
-                XNAT.plugin.batchLaunch.workflowTable.emptyTable = true;
-                $content.html('Issue loading history.');
+            error: function(e) {
+                let errHtml = '<p><strong>Error ' + e.status + ': '+ e.statusText+'</strong></p><p>' + e.responseText + '</p>';
+                if (XNAT.plugin.batchLaunch.workflowTable.filters) {
+                    XNAT.plugin.batchLaunch.workflowTable.filters = undefined;
+                    XNAT.ui.dialog.open({
+                        title: 'Invalid filter',
+                        content: errHtml,
+                        destroyOnClose: true,
+                        buttons: [{
+                            label: 'OK',
+                            isDefault: true,
+                            close: true
+                        }]
+                    });
+                } else {
+                    XNAT.plugin.batchLaunch.workflowTable.emptyTable = true;
+                    $content.html('Issue loading history. ' + errHtml);
+                }
             },
             complete: function() {
                 closeModalPanel(modalId);
