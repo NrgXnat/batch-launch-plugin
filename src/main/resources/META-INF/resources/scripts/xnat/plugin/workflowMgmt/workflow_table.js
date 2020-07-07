@@ -170,7 +170,28 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                     th: {className: 'details'},
                     label: labelMap['details']['label'],
                     apply: function(){
-                        return this['details'];
+                        if (this['details']) {
+                            const details = this['details'],
+                                pipelineName = this['pipelineName'],
+                                launchTime = new Date(this['launchTime']).toLocaleString(),
+                                anchorTxt =  details.length > 8 ? details.substring(0, 8) + '...' : details;
+                            return spawn('a', {
+                                onclick: function() {
+                                    XNAT.ui.dialog.open({
+                                        title: 'Details for ' + pipelineName + ' (launched: ' + launchTime + ')',
+                                        content: details,
+                                        destroyOnClose: true,
+                                        buttons: [{
+                                            label: 'OK',
+                                            isDefault: true,
+                                            close: true
+                                        }]
+                                    });
+                                }
+                            }, anchorTxt);
+                        } else {
+                            return '';
+                        }
                     }
                 },
                 percentageComplete: {
