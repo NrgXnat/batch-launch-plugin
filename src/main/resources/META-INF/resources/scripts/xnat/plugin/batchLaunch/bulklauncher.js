@@ -720,6 +720,7 @@ console.log('bulklauncher.js');
         var targets = sel['targets'], targetLabels = sel['targetLabels'];
 
         var postConfig = {
+            dataType: "json",
             beforeSend: function () {
                 XNAT.ui.dialog.alert("Jobs are being terminated in the background. " +
                     "You may continue to work, refreshing the dashboard to see updated progress.");
@@ -789,12 +790,11 @@ console.log('bulklauncher.js');
             dataToPost['Experiments'] = JSON.stringify(targets);
             dataToPost['pipelinePath'] = pipelinePath;
             postConfig['data'] = dataToPost;
-            postConfig['contentType'] = 'application/json; charset=utf-8';
+            postConfig['contentType'] = "application/json; charset=utf-8";
         } else {
             jobName = commandDetailsJsonObj['wrapper-name'];
             postConfig['url'] = XNAT.url.restUrl('/xapi/workflows/' + jobName + '/killactive');
             postConfig['data'] = {'elements': targets};
-            postConfig['dataType'] = 'json';
         }
 
         // confirm dialog
