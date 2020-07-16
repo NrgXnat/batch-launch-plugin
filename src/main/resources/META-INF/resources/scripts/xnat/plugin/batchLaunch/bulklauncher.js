@@ -789,7 +789,7 @@ console.log('bulklauncher.js');
             var dataToPost = {};
             dataToPost['Experiments'] = JSON.stringify(targets);
             dataToPost['pipelinePath'] = pipelinePath;
-            postConfig['data'] = dataToPost;
+            postConfig['data'] = JSON.stringify(dataToPost);
             postConfig['contentType'] = "application/json; charset=utf-8";
         } else {
             jobName = commandDetailsJsonObj['wrapper-name'];
