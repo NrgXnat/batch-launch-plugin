@@ -128,8 +128,6 @@ console.log('bulklauncher.js');
         var projectLabelKey = "id";
         var subjectLabelKey = "";
         var experimentLabelKey = "";
-        var subjectIdKey = "";
-        var experimentIdKey = "";
         var scanLabelKey = "id";
         var currentJob = $('span#currentJob').text();
 
@@ -198,11 +196,13 @@ console.log('bulklauncher.js');
                         subjectLabelKey = key;
                     } else if (d.key.indexOf('_project_identifier_') > 0 || d.key === "label") {
                         experimentLabelKey = key;
-                    } else if (d.key === "xnat_subjectdata_subjectid" || d.key === "subject_id") {
-                        subjectIdKey = key;
-                    } else if (d.key === "expt_id" || d.key === "session_id" || d.key.indexOf("session_id") > 0) {
-                        experimentIdKey = key;
                     }
+                    // These may or may not be returned, if you need them, you'll want to modify SearchXMLBuilder
+                    // else if (d.key === "xnat_subjectdata_subjectid" || d.key === "subject_id") {
+                    //     subjectIdKey = key;
+                    // } else if (d.key === "expt_id" || d.key === "session_id" || d.key.indexOf("session_id") > 0) {
+                    //     experimentIdKey = key;
+                    // }
                     keyAndHeaderMap[header] = key;
                     columnsToShow[header] = {
                         show: false,
@@ -390,28 +390,26 @@ console.log('bulklauncher.js');
                 // AddDataTableRows:
                 var allSameProject = true;
                 $.each(rows, function (i, d) {
-                    var project, label, id, project_url, subject_url, expt_url;
+                    var project, label, project_url, subject_url, expt_url;
                     var uri = d.uri, element_url = '/data' + uri + '?format=html';
                     var workflowStatus = {};
                     if (dataType === "xnat:projectData") {
                         label = d[projectLabelKey];
-                        project = id = label;
+                        project = label;
                         project_url = element_url;
                     } else {
                         project = d.project;
                         project_url = '/data/archive/projects/' + project;
                         if (dataType === "xnat:subjectData") {
                             label = d[subjectLabelKey];
-                            id = d[subjectIdKey];
                             subject_url = element_url;
                         } else {
-                            subject_url = '/data/archive/subjects/' + d[subjectIdKey];
+                            subject_url = project_url + '/subjects/' + d[subjectLabelKey];
                             if (dataType.includes("Scan")) {
-                                label = id = d[scanLabelKey];
+                                label = d[scanLabelKey];
                                 expt_url = '/data' + uri.replace(/\/scans.*$/,'?format=html');
                             } else {
                                 label = d[experimentLabelKey];
-                                id = d[experimentIdKey];
                                 expt_url = element_url;
                             }
                         }
