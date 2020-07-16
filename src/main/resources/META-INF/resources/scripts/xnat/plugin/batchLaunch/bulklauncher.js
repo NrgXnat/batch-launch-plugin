@@ -11,17 +11,15 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
 
 console.log('bulklauncher.js');
 
-(function(factory){
+(function (factory) {
     if (typeof define === 'function' && define.amd) {
         define(factory);
-    }
-    else if (typeof exports === 'object') {
+    } else if (typeof exports === 'object') {
         module.exports = factory();
-    }
-    else {
+    } else {
         return factory();
     }
-}(function() {
+}(function () {
     XNAT.plugin.batchLaunch.launchTable = getObject(XNAT.plugin.batchLaunch.launchTable || {});
 
     var pipelineWorkFlowStatus = {};
@@ -31,26 +29,28 @@ console.log('bulklauncher.js');
     var columnsToShow = {};
     // server time = client time + toServerTime
     // toServerTime = server time - client time
-    var toServerTime = parseInt($('span#timezoneOffset').text()) - new Date(Date.now()).getTimezoneOffset()*60*1000*-1;
+    var toServerTime = parseInt($('span#timezoneOffset').text()) - new Date(Date.now()).getTimezoneOffset() * 60 * 1000 * -1;
 
     var url = window.location.pathname;
     var multipleProjects = url.indexOf('BulkLaunchAction') > -1;
 
     // Similar to table.js, but no way to use it from there
-    function cacheRows(){
+    function cacheRows() {
         if (!$dataRows.length) {
             $dataRows = $('table#' + tableId + " tbody tr");
         }
         return $dataRows;
     }
 
-    function filterRows(val, name){
-        if (!val) { return; }
+    function filterRows(val, name) {
+        if (!val) {
+            return;
+        }
         val = val.toLowerCase();
         var filterClass = 'filter-' + name;
         // cache the rows if not cached yet
         cacheRows();
-        $dataRows.addClass(filterClass).filter(function(){
+        $dataRows.addClass(filterClass).filter(function () {
             return $(this).find('td.' + name).containsNC(val).length;
         }).removeClass(filterClass);
     }
@@ -65,33 +65,33 @@ console.log('bulklauncher.js');
         //https://stackoverflow.com/questions/7161113/how-do-i-export-html-table-data-as-csv-file
         var $rows = $table.find('tr:not(#xnat-table-header-row2):not(:hidden)'),
 
-        // Temporary delimiter characters unlikely to be typed by keyboard
-        // This is to avoid accidentally splitting the actual contents
-        tmpColDelim = String.fromCharCode(11), // vertical tab character
-        tmpRowDelim = String.fromCharCode(0), // null character
+            // Temporary delimiter characters unlikely to be typed by keyboard
+            // This is to avoid accidentally splitting the actual contents
+            tmpColDelim = String.fromCharCode(11), // vertical tab character
+            tmpRowDelim = String.fromCharCode(0), // null character
 
-        // actual delimiter characters for CSV format
-        colDelim = '","',
-        rowDelim = '"\r\n"',
+            // actual delimiter characters for CSV format
+            colDelim = '","',
+            rowDelim = '"\r\n"',
 
-        // Grab text from table into CSV formatted string
-        csv = '"' + $rows.map(function (i, row) {
-            var $row = $(row), $cols = $row.find('td:not(.element-selector),th:not(.toggle-all)');
+            // Grab text from table into CSV formatted string
+            csv = '"' + $rows.map(function (i, row) {
+                var $row = $(row), $cols = $row.find('td:not(.element-selector),th:not(.toggle-all)');
 
-            return $cols.map(function (j, col) {
-                var $col = $(col), text = $col.text();
+                return $cols.map(function (j, col) {
+                    var $col = $(col), text = $col.text();
 
-                return text.replace(/ +/,'').replace(/"/g, '""'); // escape double quotes, whitespace
+                    return text.replace(/ +/, '').replace(/"/g, '""'); // escape double quotes, whitespace
 
-            }).get().join(tmpColDelim);
+                }).get().join(tmpColDelim);
 
-        }).get().join(tmpRowDelim)
-            .split(tmpRowDelim).join(rowDelim)
-            .split(tmpColDelim).join(colDelim) + '"';
+            }).get().join(tmpRowDelim)
+                .split(tmpRowDelim).join(rowDelim)
+                .split(tmpColDelim).join(colDelim) + '"';
 
         // Data URI
         //var csvData = 'data:application/csv;charset=utf-8,' + encodeURIComponent(csv);
-        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        var blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
 
         if (window.navigator.msSaveBlob) { // IE 10+
             //alert('IE' + csv);
@@ -115,14 +115,14 @@ console.log('bulklauncher.js');
             a.click();
             document.body.removeChild(a);
 
-            setTimeout(function() {
+            setTimeout(function () {
                 // For Firefox it is necessary to delay revoking the ObjectURL
                 window.URL.revokeObjectURL(objUrl);
-                }, 100);
+            }, 100);
         }
     }
 
-    XNAT.plugin.batchLaunch.launchTable.init = function(reload) {
+    XNAT.plugin.batchLaunch.launchTable.init = function (reload) {
         var waitDialog = XNAT.ui.dialog.static.wait('Loading processing data...');
         $dataRows = [];
         $container = $('#selectable-table-bulk');
@@ -163,8 +163,8 @@ console.log('bulklauncher.js');
                 divContent += '	    </div>													';
                 divContent += '    <span class="clear clearfix"></span>									';
                 divContent += '	</div>														';
-                divContent += '	<div class="data-table-wrapper" id="div-'+tableId+'-header">';
-                divContent += '	       <table id="'+tableId+'" class="clean fixed-header selectable scrollable-table data-table xnat-table" style="width: auto;">';
+                divContent += '	<div class="data-table-wrapper" id="div-' + tableId + '-header">';
+                divContent += '	       <table id="' + tableId + '" class="clean fixed-header selectable scrollable-table data-table xnat-table" style="width: auto;">';
                 divContent += '	            <thead>												';
                 divContent += '		            <tr id="xnat-table-header-row1">								';
                 divContent += '		                <th class="toggle-all" style="width: 45px;">						';
@@ -210,10 +210,10 @@ console.log('bulklauncher.js');
                     columnsToShow[header] = {
                         show: false,
                         label: label,
-                        labelClean: label.replace(' ','-'),
+                        labelClean: label.replace(' ', '-'),
                         type: d.type,
                         pipeline: d.key.startsWith("wrk_status") && d.type === "string" &&
-                            d.xPATH.replace(/[^.]*./,'') === "WRK_STATUS" //Hack
+                            d.xPATH.replace(/[^.]*./, '') === "WRK_STATUS" //Hack
                     };
                 });
 
@@ -266,7 +266,7 @@ console.log('bulklauncher.js');
                     var filterId = filterIdPrefix + labelClean;
                     var filterClass = filterClassPrefix + labelClean;
                     filterCssList.push(filterClass);
-                    $('tr#xnat-table-header-row1').append($('<th class="left sort '+ labelClean +
+                    $('tr#xnat-table-header-row1').append($('<th class="left sort ' + labelClean +
                         '" style="word-wrap:break-word;">' + label + '<i class="arrows">&nbsp;</i></th>'));
                     //Filter for each column
                     if (columnsToShow[header_col]['type'] === 'date') {
@@ -310,8 +310,8 @@ console.log('bulklauncher.js');
                                 on: {
                                     change: function () {
                                         var filterId = this.id;
-                                        var filterClass = filterId.replace(filterIdPrefix,filterClassPrefix);
-                                        var colClass = filterId.replace(filterIdPrefix,'');
+                                        var filterClass = filterId.replace(filterIdPrefix, filterClassPrefix);
+                                        var colClass = filterId.replace(filterIdPrefix, '');
                                         var selectedValue = parseInt(this.value, 10);
                                         if (selectedValue === 0) {
                                             $dataRows.removeClass(filterClass);
@@ -336,15 +336,15 @@ console.log('bulklauncher.js');
                             placeholder: 'Filter...',
                             style: 'width: 90%;'
                         });
-                        $filterInput.on('keyup', function(e){
+                        $filterInput.on('keyup', function (e) {
                             var filterId = this.id;
-                            var colClass = filterId.replace(filterIdPrefix,'');
-                            var filterClass = filterId.replace(filterIdPrefix,filterClassPrefix);
+                            var colClass = filterId.replace(filterIdPrefix, '');
+                            var filterClass = filterId.replace(filterIdPrefix, filterClassPrefix);
                             var val = this.value;
                             var key = e.which;
                             // don't do anything on 'tab' keyup
                             if (key === 9) return false;
-                            if (key === 27){ // key 27 = 'esc'
+                            if (key === 27) { // key 27 = 'esc'
                                 this.value = val = '';
                             }
                             if (!val || key === 8) {
@@ -354,7 +354,7 @@ console.log('bulklauncher.js');
                             updateAfterFiltering($(this).parents("table"));
                         });
                     }
-                    $('tr#xnat-table-header-row2').append($("<td class='"+labelClean+"'></td>").append($filterInput));
+                    $('tr#xnat-table-header-row2').append($("<td class='" + labelClean + "'></td>").append($filterInput));
 
                     //Toggle columns checkbox list
                     var dropdownItemContents = XNAT.plugin.batchLaunch.addColumnToggleContents(labelClean, label, true);
@@ -362,7 +362,7 @@ console.log('bulklauncher.js');
                         dropdownItemContents.push("&nbsp;");
                         dropdownItemContents.push($.spawn('a', {
                             id: label,
-                            onclick: function() {
+                            onclick: function () {
                                 var job = $(this).prop('id');
                                 if (multipleProjects) {
                                     XNAT.plugin.batchLaunch.fakeFormPost({
@@ -370,8 +370,8 @@ console.log('bulklauncher.js');
                                         search_xml: $('#xss').val()
                                     });
                                 } else {
-                                    window.location.href = window.location.href.replace(/\/job\/[^\/]*/,'') +
-                                    '/job/' + job;
+                                    window.location.href = window.location.href.replace(/\/job\/[^\/]*/, '') +
+                                        '/job/' + job;
                                 }
                             }
                         }, '[More details]'));
@@ -390,7 +390,9 @@ console.log('bulklauncher.js');
 
                 // Css for filtering
                 $container.prepend($.spawn("style|type='text/css'", {},
-                    $.map(filterCssList, function(e){ return "tr." + e + "{display:none;}"})));
+                    $.map(filterCssList, function (e) {
+                        return "tr." + e + "{display:none;}"
+                    })));
 
                 // AddDataTableRows:
                 var allSameProject = true;
@@ -412,7 +414,7 @@ console.log('bulklauncher.js');
                             subject_url = project_url + '/subjects/' + d[subjectLabelKey];
                             if (dataType.includes("Scan")) {
                                 label = d[scanLabelKey];
-                                expt_url = '/data' + uri.replace(/\/scans.*$/,'?format=html');
+                                expt_url = '/data' + uri.replace(/\/scans.*$/, '?format=html');
                             } else {
                                 label = d[experimentLabelKey];
                                 expt_url = element_url;
@@ -429,7 +431,7 @@ console.log('bulklauncher.js');
                         }
                     }
 
-                    var itemid = uri.replace(/\/archive\/[^\/]*/).replace(/\/scans\//,'-');
+                    var itemid = uri.replace(/\/archive\/[^\/]*/).replace(/\/scans\//, '-');
                     var single_select_checkbox_id = "select-" + itemid;
                     var id_json = JSON.stringify({
                         uri: uri,
@@ -524,7 +526,7 @@ console.log('bulklauncher.js');
                 });
 
             },
-            complete: function(){
+            complete: function () {
                 waitDialog.close();
             }
         });
@@ -532,18 +534,18 @@ console.log('bulklauncher.js');
 
     function addActions() {
         // Since $container is not destroyed on reload, we don't want to re-run this
-        $container.on('click', 'button#download', function(){
+        $container.on('click', 'button#download', function () {
             exportTableToCSV($('table#' + tableId), "processing_data.csv");
             return false;
         });
-        $container.on('click', 'button#reload', function(){
+        $container.on('click', 'button#reload', function () {
             $container.empty();
             XNAT.plugin.batchLaunch.launchTable.init(true);
         });
-        $container.on('click', 'button#launch-job', function(){
+        $container.on('click', 'button#launch-job', function () {
             launchXnatJob();
         });
-        $container.on('click', 'button#kill-job', function(){
+        $container.on('click', 'button#kill-job', function () {
             killXnatJob();
         });
         XNAT.plugin.batchLaunch.addClickActions($container);
@@ -603,7 +605,7 @@ console.log('bulklauncher.js');
                     } else {
                         var info = columnsToShow[pipelineName];
                         var currentJob = $('span#currentJob').text();
-                        if (info && info['show']===1 && !currentJob) {
+                        if (info && info['show'] === 1 && !currentJob) {
                             //Hide this column
                             //$('.show-hide-columns-list input#show-' + info['labelClean']).prop("checked", false);
                             //XNAT.plugin.batchLaunch.toggleColumn(info['labelClean'], false);
@@ -632,42 +634,42 @@ console.log('bulklauncher.js');
             }
         });
 
-		//Load site wide pipelines for the datatype
-		XNAT.xhr.getJSON({
-            url: XNAT.url.rootUrl('/xapi/pipelines/site?xsiType='+XNAT.plugin.batchLaunch.dataType),
-	    success: function(responseData) {
-			responseData.ResultSet.Result.forEach(function(configuredPipeline) {
-	        		   var pipelineName = configuredPipeline['Name'];
-	        		   console.log("Adding " + pipelineName);
-	        		   $('#actionsDropdown').append(spawn('option', {
-			                            value: JSON.stringify({
-			                                'pipeline_name': pipelineName,
-			                                'pipeline_path': configuredPipeline['Path']
-			                            })
-                        }, pipelineName).html);
-	        });
-	    },
-	    error : function(o) {
-			console.log("Encouneterd error " + o);
-		    XNAT.dialog.open({
-	    		    title: 'Error',
-	    		    content: 'Could not get pipelines for data type: ' + o,
-	    		    width: 400,
-	    		    buttons: [
-	    			{
-	    			    label: 'OK',
-	    			    isDefault: true,
-	    			    close: true
-	    			}
-	    		    ]
-		    });
-	    }
-	});
+        //Load site wide pipelines for the datatype
+        XNAT.xhr.getJSON({
+            url: XNAT.url.rootUrl('/xapi/pipelines/site?xsiType=' + XNAT.plugin.batchLaunch.dataType),
+            success: function (responseData) {
+                responseData.ResultSet.Result.forEach(function (configuredPipeline) {
+                    var pipelineName = configuredPipeline['Name'];
+                    console.log("Adding " + pipelineName);
+                    $('#actionsDropdown').append(spawn('option', {
+                        value: JSON.stringify({
+                            'pipeline_name': pipelineName,
+                            'pipeline_path': configuredPipeline['Path']
+                        })
+                    }, pipelineName).html);
+                });
+            },
+            error: function (o) {
+                console.log("Encouneterd error " + o);
+                XNAT.dialog.open({
+                    title: 'Error',
+                    content: 'Could not get pipelines for data type: ' + o,
+                    width: 400,
+                    buttons: [
+                        {
+                            label: 'OK',
+                            isDefault: true,
+                            close: true
+                        }
+                    ]
+                });
+            }
+        });
     }
 
     function getSelectedElements() {
         var sel = {targets: [], targetLabels: []};
-        $('input.selectable-select-one:checkbox:checked').each(function() {
+        $('input.selectable-select-one:checkbox:checked').each(function () {
             // Get the JSON
             var jsonData = JSON.parse($(this).val());
             sel['targets'].push(jsonData['uri']);
@@ -705,36 +707,36 @@ console.log('bulklauncher.js');
         var targets = sel['targets'], targetLabels = sel['targetLabels'];
 
         var postConfig = {
-            beforeSend: function() {
+            beforeSend: function () {
                 XNAT.ui.dialog.alert("Jobs are being terminated in the background. " +
                     "You may continue to work, refreshing the dashboard to see updated progress.");
                 return true;
             },
-            success: function(data){
+            success: function (data) {
                 var messageContent = [],
                     totalAttempts = data.successes.concat(data.failures).length,
                     successMsg = 'successfully queued to be terminated. If statuses don\'t update ' +
                         'shortly, your admin will need to review the logs to determine what went wrong.';
                 if (data.failures.length > 0) {
-                    messageContent.push( spawn('div.message', data.successes.length + ' of ' +
-                        totalAttempts + ' jobs queued to be terminated') );
-                } else if(data.successes.length > 0) {
-                    messageContent.push( spawn('div.success','All jobs ' + successMsg) );
+                    messageContent.push(spawn('div.message', data.successes.length + ' of ' +
+                        totalAttempts + ' jobs queued to be terminated'));
+                } else if (data.successes.length > 0) {
+                    messageContent.push(spawn('div.success', 'All jobs ' + successMsg));
                 } else {
-                    messageContent.push( spawn('div.warning','No jobs terminated.'));
+                    messageContent.push(spawn('div.warning', 'No jobs terminated.'));
                 }
 
-                if (data.failures.length > 0){
-                    messageContent.push( spawn('h3',{'style': {'margin-top': '2em' }}, 'Failed termination attempts') );
-                    data.failures.forEach(function(failure){
-                        messageContent.push( spawn('p',{ style: { 'font-weight': 'bold' }}, 'Error message:') );
-                        messageContent.push( spawn('pre.json', failure) );
+                if (data.failures.length > 0) {
+                    messageContent.push(spawn('h3', {'style': {'margin-top': '2em'}}, 'Failed termination attempts'));
+                    data.failures.forEach(function (failure) {
+                        messageContent.push(spawn('p', {style: {'font-weight': 'bold'}}, 'Error message:'));
+                        messageContent.push(spawn('pre.json', failure));
                     });
                 }
 
                 XNAT.ui.dialog.open({
                     title: 'Job termination report',
-                    content: spawn('div', messageContent ),
+                    content: spawn('div', messageContent),
                     buttons: [
                         {
                             label: 'OK',
@@ -744,7 +746,7 @@ console.log('bulklauncher.js');
                     ]
                 });
             },
-            error: function(e) {
+            error: function (e) {
                 XNAT.ui.dialog.open({
                     title: 'Job termination failed',
                     content: spawn("p", {}, e.status + " error: " + e.responseText),
@@ -766,16 +768,16 @@ console.log('bulklauncher.js');
                 return false;
             }
             var pipelineName = commandDetailsJsonObj['pipeline_name'];
-            postConfig['url'] = XNAT.url.restUrl('/xapi/pipelines/terminate/'+pipelineName+'/project/'+
+            postConfig['url'] = XNAT.url.restUrl('/xapi/pipelines/terminate/' + pipelineName + '/project/' +
                 XNAT.plugin.batchLaunch.projectId);
             var pipelinePath = commandDetailsJsonObj['pipeline_path'];
             var dataToPost = {};
-            dataToPost['Experiments']=JSON.stringify(targets);
-            dataToPost['pipelinePath']=pipelinePath;
+            dataToPost['Experiments'] = JSON.stringify(targets);
+            dataToPost['pipelinePath'] = pipelinePath;
             postConfig['data'] = dataToPost;
             postConfig['contentType'] = 'application/json; charset=utf-8';
         } else {
-            postConfig['url'] = XNAT.url.restUrl('/xapi/workflows/'+commandDetailsJsonObj['wrapper-name']+'/killactive');
+            postConfig['url'] = XNAT.url.restUrl('/xapi/workflows/' + commandDetailsJsonObj['wrapper-name'] + '/killactive');
             postConfig['data'] = {'elements': targets};
             postConfig['dataType'] = 'json';
         }
@@ -788,7 +790,9 @@ console.log('bulklauncher.js');
                     '</strong> job for the following <strong>' + targets.length +
                     '</strong> elements?'),
                 spawn('p', {}, '<em>Note: REVIEW THEM, this cannot be undone!</em>'),
-                spawn('ul', {}, $.map(targetLabels, function(e){return spawn('li', {}, e);}))
+                spawn('ul', {}, $.map(targetLabels, function (e) {
+                    return spawn('li', {}, e);
+                }))
             ]),
             buttons: [
                 {
@@ -800,7 +804,7 @@ console.log('bulklauncher.js');
                     label: 'Yes',
                     isDefault: true,
                     close: true,
-                    action: function() {
+                    action: function () {
                         if (!targets || targets.length === 0) return false;
 
                         // Experiments
@@ -880,7 +884,7 @@ console.log('bulklauncher.js');
                     rootElementName, targets, targetLabels, projectId, commandId);
             }
         }
-	}
+    }
 
     function pipelineIsSelected(commandDetailsJsonObj) {
         var pipelineName = commandDetailsJsonObj['pipeline_name'];
@@ -921,22 +925,22 @@ console.log('bulklauncher.js');
         return interminableElements;
     }
 
-    XNAT.plugin.batchLaunch.launchTable.showAllJobsBtnAction = function() {
+    XNAT.plugin.batchLaunch.launchTable.showAllJobsBtnAction = function () {
         if (multipleProjects) {
-            XNAT.plugin.batchLaunch.fakeFormPost( {
+            XNAT.plugin.batchLaunch.fakeFormPost({
                 search_xml: $('#xss').val()
             });
         } else {
-            window.location.href = window.location.href.replace(/\/job\/[^\/]*/,'');
+            window.location.href = window.location.href.replace(/\/job\/[^\/]*/, '');
         }
     };
 
-    XNAT.plugin.batchLaunch.fakeFormPost = function(fields) {
+    XNAT.plugin.batchLaunch.fakeFormPost = function (fields) {
         var $form = $('<form>', {
             action: XNAT.url.csrfUrl(url),
             method: 'post'
         });
-        $.each(fields, function(key, val) {
+        $.each(fields, function (key, val) {
             $('<input>').attr({
                 type: "hidden",
                 name: key,
