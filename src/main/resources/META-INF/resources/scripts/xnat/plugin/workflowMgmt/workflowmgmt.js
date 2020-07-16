@@ -485,7 +485,9 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
             }).ready(function(){
                 function expandAndCollapse(node, expand) {
                     if (node.folder) {
-                        node.children.forEach(expandAndCollapse, expand);
+                        if (node.children) {
+                            node.children.forEach(expandAndCollapse, expand);
+                        }
                         node.setExpanded(expand);
                     }
                 }
