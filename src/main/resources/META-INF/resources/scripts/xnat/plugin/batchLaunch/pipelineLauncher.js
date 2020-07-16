@@ -240,7 +240,7 @@ var XNAT = getObject(XNAT || {});
             targetLabels = $.map(targets, function(t) {return t.replace(/.*\//,'');});
         }
 
-        xmodal.loading.open({ title: 'Configuring Container Launcher' });
+        xmodal.loading.open({ title: 'Configuring Launcher' });
 
         var launchUrl = getPipelineDetailsUrl(projectId,pipelineName);
 
@@ -346,7 +346,7 @@ var XNAT = getObject(XNAT || {});
 	                            //});
 
 	                            if (runContainer) {
-	                                if (!bulkLaunch) xmodal.loading.open({ title: 'Launching Container...' });
+	                                if (!bulkLaunch) xmodal.loading.open({ title: 'Launching Job...' });
 
 	                                // gather form input values
 	                                //Need to resolve the schemaLink values
@@ -364,7 +364,7 @@ var XNAT = getObject(XNAT || {});
 	                                    beforeSend: function() {
 	                                        if (bulkLaunch) {
 	                                            XNAT.ui.dialog.closeAll();
-	                                            XNAT.ui.dialog.alert("Containers are being launched in the background. " +
+	                                            XNAT.ui.dialog.alert("Jobs are being launched in the background. " +
 	                                                "You may continue to work, monitoring workflows to see updated progress.");
 	                                        }
 	                                        return true;
@@ -373,12 +373,11 @@ var XNAT = getObject(XNAT || {});
 	                                    data: JSON.stringify(dataToPost),
 	                                    success: function(data){
 	                                        if (bulkLaunch) {
-	                                            // bulk launch success returns two arrays -- containers that successfully launched, and containers that failed to launch
 	                                            var messageContent = [],
-	                                                totalLaunchAttempts = data.successes.concat(data.failures).length;
-	                                            if (data.failures.length > 0) {
-	                                                messageContent.push( spawn('div.message',data.successes.length + ' of '+totalLaunchAttempts+' jobs successfully queued for launch.') );
-	                                            } else if(data.successes.length > 0) {
+	                                                totalLaunchAttempts = data.successes + data.failures;
+	                                            if (data.failures > 0) {
+	                                                messageContent.push( spawn('div.message',data.successes + ' of '+ totalLaunchAttempts+' jobs successfully queued for launch.') );
+	                                            } else if (data.successes > 0) {
 	                                                messageContent.push( spawn('div.success','All jobs successfully queued for launch.') );
 	                                            } else {
 	                                                errorHandler({
@@ -450,7 +449,7 @@ var XNAT = getObject(XNAT || {});
 	                            } else {
 	                                // don't run container if invalid characters are found
 	                                XNAT.dialog.open({
-	                                    title: 'Cannot Launch Container',
+	                                    title: 'Cannot Launch Job',
 	                                    content: 'Illegal characters were found in your inputs. Please correct this and try again.',
 	                                    width: 400,
 	                                    buttons: [
