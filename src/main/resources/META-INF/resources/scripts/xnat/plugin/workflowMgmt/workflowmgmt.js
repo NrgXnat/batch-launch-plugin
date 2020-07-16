@@ -68,6 +68,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
         if (!percent) {
             return '';
         }
+        percent = Math.round(parseFloat(percent));
         if (XNAT.plugin.batchLaunch.isWorkflowFailed(status)) {
             return spawn("div.progressbar-div", {}, spawn("div.progress-bar-done",
                 {style: "width: "+percent+"%;"}, percent.toString() + "%"));
