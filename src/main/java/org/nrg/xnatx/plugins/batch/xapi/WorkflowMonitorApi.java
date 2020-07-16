@@ -334,10 +334,10 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
                         public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                             try {
                                 String fpath = buildDirPrefix.relativize(file).toString();
+                                String url = makeRootUrl("/xapi/workflows/" + wfid + "/get_file?path=" + fpath);
                                 jGenerator.writeStartObject();
                                 jGenerator.writeStringField("title",
-                                        "<a href='/xapi/workflows/" + wfid +
-                                                "/get_file?path=" + fpath + "'>" + file.getFileName().toString() + "</a>");
+                                        "<a href='" + url + "'>" + file.getFileName().toString() + "</a>");
                                 jGenerator.writeStringField("path", fpath);
                                 jGenerator.writeEndObject();
                             } catch (IOException e) {
@@ -710,4 +710,13 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
         }
     }
 
+    /**
+     * Prepend site URL to path if needed
+     * @param path the path
+     * @return the URL
+     */
+    private String makeRootUrl(String path) {
+        return StringUtils.removeEnd(preferences.getSiteUrl(), "/") +
+                StringUtils.prependIfMissing(path, "/");
+    }
 }
