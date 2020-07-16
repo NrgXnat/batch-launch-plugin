@@ -590,7 +590,6 @@ console.log('bulklauncher.js');
             url: XNAT.url.rootUrl(availUrl),
             data: data,
             success: function (responseData) {
-                loadingDialog.close();
                 responseData.forEach(function (availableCommand) {
                     var pipelineName = availableCommand['wrapper-name'];
                     if (availableCommand.enabled) {
@@ -617,7 +616,6 @@ console.log('bulklauncher.js');
                 $actionsDropdown.prop("disabled", false);
             },
             error: function (o) {
-                loadingDialog.close();
                 XNAT.dialog.open({
                     title: 'Error',
                     content: 'Could not get actions associated with ' + XNAT.plugin.batchLaunch.dataType + ': '
@@ -631,12 +629,24 @@ console.log('bulklauncher.js');
                         }
                     ]
                 });
+            },
+            complete: function() {
+                loadingDialog.close();
             }
         });
 
         //Load site wide pipelines for the datatype
+        var loadingDialog2 = XNAT.ui.dialog.loading;
+        loadingDialog2.open();
+        var pipelineUrl = '/xapi/pipelines';
+        if (XNAT.plugin.batchLaunch.projectId) {
+            pipelineUrl += '/project/' + XNAT.plugin.batchLaunch.projectId;
+        } else {
+            pipelineUrl += '/site';
+        }
         XNAT.xhr.getJSON({
-            url: XNAT.url.rootUrl('/xapi/pipelines/site?xsiType=' + XNAT.plugin.batchLaunch.dataType),
+            url: XNAT.url.rootUrl(pipelineUrl),
+            data: {xsiType: XNAT.plugin.batchLaunch.dataType},
             success: function (responseData) {
                 responseData.ResultSet.Result.forEach(function (configuredPipeline) {
                     var pipelineName = configuredPipeline['Name'];
@@ -650,7 +660,7 @@ console.log('bulklauncher.js');
                 });
             },
             error: function (o) {
-                console.log("Encouneterd error " + o);
+                console.log("Error " + o);
                 XNAT.dialog.open({
                     title: 'Error',
                     content: 'Could not get pipelines for data type: ' + o,
@@ -663,6 +673,9 @@ console.log('bulklauncher.js');
                         }
                     ]
                 });
+            },
+            complete: function() {
+                loadingDialog2.close();
             }
         });
     }
