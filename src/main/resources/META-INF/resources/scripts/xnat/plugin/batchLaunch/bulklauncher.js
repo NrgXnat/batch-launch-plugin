@@ -3,6 +3,9 @@
  */
 
 var XNAT = getObject(XNAT || {});
+XNAT.app = getObject(XNAT.app || {});
+XNAT.app.displayNames = getObject(XNAT.app.displayNames || {});
+XNAT.app.displayNames.singular = getObject(XNAT.app.displayNames.singular || {});
 XNAT.plugin = getObject(XNAT.plugin || {});
 XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
 
@@ -215,8 +218,10 @@ console.log('bulklauncher.js');
                 });
 
                 columnsToShow['Project']['show'] = multipleProjects;
+                columnsToShow['Project']['label'] = XNAT.app.displayNames.singular.project;
                 if (columnsToShow.hasOwnProperty('Subject')) {
                     columnsToShow['Subject']['show'] = true;
+                    columnsToShow['Subject']['label'] = XNAT.app.displayNames.singular.subject;
                 }
                 if (columnsToShow.hasOwnProperty('Experiment')) {
                     columnsToShow['Experiment']['show'] = true;
