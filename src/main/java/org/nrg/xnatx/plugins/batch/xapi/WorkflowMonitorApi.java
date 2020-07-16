@@ -263,6 +263,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     @ApiOperation(value = "Returns json representation of build directory.", response = String.class, responseContainer = "String")
     @ApiResponses({@ApiResponse(code = 200, message = "Build directory contents successfully retrieved."),
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 403, message = "User account does not have access to requested data."),
             @ApiResponse(code = 422, message = "Not a pipeline or container or no build directory."),
             @ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(value = "/{wfid}/build_dir", produces = {MediaType.APPLICATION_JSON_VALUE}, method = RequestMethod.GET)
@@ -274,7 +275,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
         try {
             wrk = getWorkflowById(wfid, user);
         } catch (NotFoundException e) {
-            return new ResponseEntity<>("Access denied or no such workflow", HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>("Access denied or no such workflow", HttpStatus.FORBIDDEN);
         }
 
         try {
@@ -282,7 +283,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             final Path buildDirPrefix = Paths.get(preferences.getBuildPath());
             List<String> buildDirs = new ArrayList<>();
             if (!checkAccess("read", user, wrk)) {
-                return new ResponseEntity<>("Access denied", HttpStatus.UNAUTHORIZED);
+                return new ResponseEntity<>("Access denied", HttpStatus.FORBIDDEN);
             }
 
             switch (workflowService.getWorkflowType(wrk)) {
@@ -292,7 +293,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
                     String containerId = workflowService.getContainerId(wrk);
                     final Container container = containerService.retrieve(containerId);
                     if (container == null) {
-                        return new ResponseEntity<>("Access denied or no such container", HttpStatus.UNAUTHORIZED);
+                        return new ResponseEntity<>("Access denied or no such container", HttpStatus.FORBIDDEN);
                     }
                     for (Container.ContainerMount mount : container.mounts()) {
                         String xnatPath = mount.xnatHostPath();
@@ -310,6 +311,14 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
                     }
                     buildDirs.add(buildDir);
                     break;
+            }
+
+            boolean hasDir = false;
+            for (String buildDir : buildDirs) {
+                hasDir |= Files.exists(Paths.get(buildDir));
+            }
+            if (!hasDir) {
+                return new ResponseEntity<>("Build directories no longer exist", HttpStatus.UNPROCESSABLE_ENTITY);
             }
 
             //JSON stream
@@ -372,7 +381,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             }
             jGenerator.writeEndArray();
             jGenerator.close();
-            String json = new String(stream.toByteArray(), "UTF-8");
+            String json = new String(stream.toByteArray(), StandardCharsets.UTF_8);
             return new ResponseEntity<>(json, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
