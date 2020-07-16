@@ -62,16 +62,21 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
     }
 
     XNAT.plugin.batchLaunch.renderPercentComplete = function(status, percent) {
-        if (status === "Complete") {
+        if (XNAT.plugin.batchLaunch.isWorkflowComplete(status)) {
             return spawn("div.progressbar-div", {}, spawn("div.progress-bar-done", {style: "width: 100%;"}, "100%"));
         }
         if (!percent) {
             return '';
         }
+        if (XNAT.plugin.batchLaunch.isWorkflowFailed(status)) {
+            return spawn("div.progressbar-div", {}, spawn("div.progress-bar-done",
+                {style: "width: "+percent+"%;"}, percent.toString() + "%"));
+        }
         if (percent >= 100) {
             percent = 99;
         }
-        return spawn("div.progressbar-div", {}, spawn("div.progress-bar", {style: "width: "+percent+"%;"}, percent.toString() + "%"));
+        return spawn("div.progressbar-div", {}, spawn("div.progress-bar",
+            {style: "width: "+percent+"%;"}, percent.toString() + "%"));
     };
 
     XNAT.plugin.batchLaunch.spawnStatusCell = function(status) {
