@@ -458,13 +458,8 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
                     ]),
                 buttons: [
                     {
-                        label: 'Close',
-                        isDefault: true,
-                        close: true
-                    },
-                    {
                         label: 'Download',
-                        isDefault: false,
+                        isDefault: true,
                         close: true,
                         action: function() {
                             var paths = $.map($("#buildDirZipTree").fancytree('getTree').getSelectedNodes(), function(node){
@@ -481,6 +476,10 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
                                 value: paths
                             })).submit();
                         }
+                    },
+                    {
+                        label: 'Close',
+                        close: true
                     }
                 ]
             }).ready(function(){
