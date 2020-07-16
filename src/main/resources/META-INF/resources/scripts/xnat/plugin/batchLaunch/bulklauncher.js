@@ -207,6 +207,9 @@ console.log('bulklauncher.js');
                     //     experimentIdKey = key;
                     // }
                     keyAndHeaderMap[header] = key;
+                    if (label.includes('/')) {
+                        label = label.replace(/.*\//,'');
+                    }
                     columnsToShow[header] = {
                         show: false,
                         label: label,
