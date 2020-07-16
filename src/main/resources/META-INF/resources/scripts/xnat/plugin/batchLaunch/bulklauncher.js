@@ -775,12 +775,13 @@ console.log('bulklauncher.js');
         };
 
         // Pipeline or container?
+        let jobName;
         if (pipelineIsSelected(commandDetailsJsonObj)) {
             if (!XNAT.plugin.batchLaunch.projectId) {
                 XNAT.dialog.alert('Pipelines cannot be terminated across projects');
                 return false;
             }
-            var pipelineName = commandDetailsJsonObj['pipeline_name'];
+            var pipelineName = jobName = commandDetailsJsonObj['pipeline_name'];
             postConfig['url'] = XNAT.url.restUrl('/xapi/pipelines/terminate/' + pipelineName + '/project/' +
                 XNAT.plugin.batchLaunch.projectId);
             var pipelinePath = commandDetailsJsonObj['pipeline_path'];
@@ -790,7 +791,8 @@ console.log('bulklauncher.js');
             postConfig['data'] = dataToPost;
             postConfig['contentType'] = 'application/json; charset=utf-8';
         } else {
-            postConfig['url'] = XNAT.url.restUrl('/xapi/workflows/' + commandDetailsJsonObj['wrapper-name'] + '/killactive');
+            jobName = commandDetailsJsonObj['wrapper-name'];
+            postConfig['url'] = XNAT.url.restUrl('/xapi/workflows/' + jobName + '/killactive');
             postConfig['data'] = {'elements': targets};
             postConfig['dataType'] = 'json';
         }
@@ -799,7 +801,7 @@ console.log('bulklauncher.js');
         XNAT.ui.dialog.open({
             title: 'Terminate process confirmation',
             content: spawn('div', {}, [
-                spawn('p', {}, 'Are you SURE you want to terminate the <strong>' + pipelineName +
+                spawn('p', {}, 'Are you SURE you want to terminate the <strong>' + jobName +
                     '</strong> job for the following <strong>' + targets.length +
                     '</strong> elements?'),
                 spawn('p', {}, '<em>Note: REVIEW THEM, this cannot be undone!</em>'),
