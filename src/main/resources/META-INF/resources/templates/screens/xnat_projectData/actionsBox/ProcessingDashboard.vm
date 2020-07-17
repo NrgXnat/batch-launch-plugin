@@ -22,25 +22,81 @@
 		<a href="$content.getURI($batchLaunchHistoryUri)">Processing Dashboard</a>
 	</li>
 #elseif($xsiTypes.size() > 1)
-	<li class="yuimenuitem" id="processing-dashboard">
-		<a class="yuimenuitemlabel" href="#processingBoardbox">Processing Dashboard</a>
-		<div id="#processingBoardbox" class="yuimenu">
-			<div class="bd">
-				<ul class="first-of-type">
-					#foreach ($xsiType in $xsiTypes)
-						#set($batchLaunchHistoryTitle = "")
-						#set($batchLaunchHistoryTitle = $!data.getSession().getAttribute("userHelper").getBrowseableElementDisplay($!xsiType).getSchemaElement().getPluralDescription())
-						#if ($!batchLaunchHistoryTitle && $batchLaunchHistoryTitle != "")
-							<li class="yuimenuitem $!li_class">
-								#set($batchLaunchHistoryUri = "/app/template/XDATScreen_bulk_action.vm/project/$om.getId()/dataType/$xsiType")
-								<a href="$content.getURI($batchLaunchHistoryUri)">$!batchLaunchHistoryTitle</a>
-							</li>
-						#end
-					#end
-				</ul>
-			</div>
-		</div>
+	<script type="application/javascript">
+		const procDashTableId = 'processing-dashboard-dttable';
+		$(document).ready(function(){
+			let data = [];
+			#foreach ($xsiType in $xsiTypes)
+				#set($batchLaunchHistoryTitle = "")
+				#set($batchLaunchHistoryTitle = $!data.getSession().getAttribute("userHelper").getBrowseableElementDisplay($!xsiType).getSchemaElement().getPluralDescription())
+				#if ($!batchLaunchHistoryTitle && $batchLaunchHistoryTitle != "")
+					data.push({
+						name: '$!batchLaunchHistoryTitle',
+						item: spawn('a.truncate', {
+							href: '$content.getURI("/app/template/XDATScreen_bulk_action.vm/project/$om.getId()/dataType/$xsiType")',
+							title: '$!batchLaunchHistoryTitle',
+							style: { width: '100%' }
+						}, '$!batchLaunchHistoryTitle')
+					});
+				#end
+			#end
+			const menuItem = spawn('li.table-list');
+			XNAT.table.dataTable([], {
+				container: menuItem,
+				sortable: false,
+				filter: 'item',
+				header: false,
+				body: false,
+				items: {
+					item: 'list-item'
+				}
+			});
+			XNAT.table.dataTable(data, {
+				container: menuItem,
+				sortable: false,
+				header: false,
+				items: {
+					_name: '~data-name',
+					item: 'list-item'
+				}
+			});
+
+			let plink = $('a#processing-dashboard-link');
+			const pos = plink.offset();
+			const datatypeList = spawn('div#' + procDashTableId, {
+				style: "position: absolute; " +
+						"top: " + (pos.top + plink.outerHeight() - 5) + "px; " +
+						"left: " + (pos.left + 10) + "px; " +
+						"display:none;"
+			}, spawn('ul', {classes: 'shadowed dark-shadow'}, menuItem));
+			$('#page_wrapper').append(datatypeList.element);
+		});
+
+		$(document).on('mouseenter', '#processing-dashboard-link', function(){
+			$('div#' + procDashTableId).show();
+		});
+		$(document).on('mouseleave', '#processing-dashboard-link', function(){
+			let procTable = $('div#' + procDashTableId);
+			if (!procTable.is(':hover')) {
+				procTable.hide();
+			}
+		});
+		$(document).on('mouseleave', 'div#' + procDashTableId, function(){
+			$(this).hide();
+		});
+	</script>
+	<style>
+		#processing-dashboard-dttable ul {
+			list-style: none;
+			padding-left: 0px;
+		}
+
+		#processing-dashboard-dttable ul li a {
+			font-weight: bold;
+			color: #222;
+		}
+	</style>
+	<li id="processing-dashboard" class="yuimenuitem-hassubmenu yuimenuitem">
+		<a id="processing-dashboard-link">Processing Dashboard</a>
 	</li>
 #end
-
-
