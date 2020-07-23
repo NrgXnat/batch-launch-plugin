@@ -20,7 +20,7 @@
       <pattern>%d [%t] %-5p %c - %m%n</pattern>
     </encoder>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>${xnat.home}/logs/batch_launch.log.%d{'.'yyy-MM-dd}</fileNamePattern>
+      <fileNamePattern>${xnat.home}/logs/batch_launch.log.%d{yyyy-MM-dd}</fileNamePattern>
     </rollingPolicy>
   </appender>
   <logger name="org.nrg.xnatx.plugins.batch" additivity="false" level="INFO">
