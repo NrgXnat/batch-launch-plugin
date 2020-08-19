@@ -30,9 +30,7 @@ import org.springframework.stereotype.Repository;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.util.*;
@@ -44,18 +42,16 @@ public class WorkflowRepository implements PageableRepository {
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private Map<String, Long> workflowDurationMap = null;
     private long workflowDurationMapExpiration = System.currentTimeMillis();
-    private int WF_DURATION_EXP_SEC = 14400; // 4 hours
+
+    private static final int WF_DURATION_EXP_SEC = 14400; // 4 hours
 
     private static final List<String> inactiveStatuses = Arrays.asList(PersistentWorkflowUtils.COMPLETE,
             PersistentWorkflowUtils.FAILED, PersistentWorkflowUtils.QUEUED, ContainerServiceImpl.CREATED);
 
-    private static final RowMapper<WorkflowDuration> DURATION_WF_MAPPER = new RowMapper<WorkflowDuration>() {
-        @Override
-        public WorkflowDuration mapRow(final ResultSet resultSet, final int index) throws SQLException {
-            final String name = resultSet.getString("pipeline_name");
-            final Long duration = resultSet.getLong("max_duration");
-            return new WorkflowDuration(name, duration);
-        }
+    private static final RowMapper<WorkflowDuration> DURATION_WF_MAPPER = (resultSet, index) -> {
+        final String name = resultSet.getString("pipeline_name");
+        final Long duration = resultSet.getLong("max_duration");
+        return new WorkflowDuration(name, duration);
     };
 
     // Pipeline max duration
@@ -91,27 +87,24 @@ public class WorkflowRepository implements PageableRepository {
             .put("last_modified", new ColumnDataType("modTime", Timestamp.class))
             .build();
 
-    private static final RowMapper<Workflow> WF_ROW_MAPPER = new RowMapper<Workflow>() {
-        @Override
-        public Workflow mapRow(final ResultSet resultSet, final int index) throws SQLException {
-            ResultSetMetaData metaData = resultSet.getMetaData();
-            Workflow w = new Workflow();
-            for (int i=1; i<=metaData.getColumnCount(); i++) {
-                String columnName = metaData.getColumnName(i);
-                Object item = resultSet.getObject(columnName);
-                if (!COLUMN_INFO.containsKey(columnName) || item == null) {
-                    continue;
-                }
-                ColumnDataType cdt = COLUMN_INFO.get(columnName);
-                Class columnClass = cdt.dataType;
-                if (columnClass.equals(Timestamp.class)) {
-                    item = new Date(((Timestamp) item).getTime());
-                    columnClass = Date.class;
-                }
-                w.setProperty(cdt.columnName, item, columnClass);
+    private static final RowMapper<Workflow> WF_ROW_MAPPER = (resultSet, index) -> {
+        ResultSetMetaData metaData = resultSet.getMetaData();
+        Workflow w = new Workflow();
+        for (int i=1; i<=metaData.getColumnCount(); i++) {
+            String columnName = metaData.getColumnName(i);
+            Object item = resultSet.getObject(columnName);
+            if (!COLUMN_INFO.containsKey(columnName) || item == null) {
+                continue;
             }
-            return w;
+            ColumnDataType cdt = COLUMN_INFO.get(columnName);
+            Class columnClass = cdt.dataType;
+            if (columnClass.equals(Timestamp.class)) {
+                item = new Date(((Timestamp) item).getTime());
+                columnClass = Date.class;
+            }
+            w.setProperty(cdt.columnName, item, columnClass);
         }
+        return w;
     };
 
     // Pipelines for project or for entries within project (experiments, subjects, etc)
@@ -159,7 +152,6 @@ public class WorkflowRepository implements PageableRepository {
             XnatProjectdata.SCHEMA_ELEMENT_NAME + "'";
 
 
-    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
     public WorkflowRepository(final NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
@@ -471,12 +463,8 @@ public class WorkflowRepository implements PageableRepository {
         }
 
         List<String> dataTypes = jdbcTemplate.query("SELECT DISTINCT(data_type) FROM wrk_workflowData",
-                new RowMapper<String>() {
-                    @Override
-                    public String mapRow(ResultSet resultSet, int rowNum) throws SQLException {
-                        return resultSet.getString("data_type");
-                    }
-                });
+                (resultSet, rowNum) -> resultSet.getString("data_type"));
+
         String experimentTable = SchemaElement.GetElement(XnatExperimentdata.SCHEMA_ELEMENT_NAME).getSQLName();
         for (int i = 0; i < dataTypes.size(); i++) {
             String outname = "wrk" + i;
