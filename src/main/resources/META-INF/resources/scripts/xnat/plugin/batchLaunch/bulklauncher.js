@@ -510,7 +510,6 @@ console.log('bulklauncher.js');
                     addActions();
                 }
                 XNAT.plugin.batchLaunch.resizeTableCols($container.find("table#" + tableId));
-                populateBreadCrumbs();
                 // Now get the actions associated with the datatype
                 renderActionOptions();
             },
@@ -552,25 +551,6 @@ console.log('bulklauncher.js');
             killXnatJob();
         });
         XNAT.plugin.batchLaunch.addClickActions($container);
-    }
-
-    function populateBreadCrumbs() {
-        var projectId = XNAT.plugin.batchLaunch.projectId;
-        if (!projectId) return;
-
-        // wrap it up to keep things
-        // out of global scope
-        (function () {
-
-            var crumbs = [];
-            crumbs.push({
-                id: projectId,
-                type: 'PROJECT',
-                link: '/app/action/DisplayItemAction/search_element/xnat%3AprojectData/search_field/xnat%3AprojectData.ID/search_value/' + projectId,
-                label: projectId
-            });
-            XNAT.ui.breadcrumbs.render('#breadcrumbs', crumbs);
-        })();
     }
 
     function renderActionOptions() {
