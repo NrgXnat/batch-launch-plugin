@@ -28,6 +28,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -198,21 +199,20 @@ public class WorkflowRepository implements PageableRepository {
         String query;
         switch(dataType) {
             case "xdat:user":
-                query = makeUserLevelQuery(user, namedParams);
+                query = makeQueryPerUserPermissions(user, namedParams, buildQueryWithDataTypeLabels(), true);
                 break;
             case XnatProjectdata.SCHEMA_ELEMENT_NAME:
                 namedParams.addValue("arcId",
                         XnatProjectdata.getXnatProjectdatasById(id, user, false)
                                 .getArcSpecification().getId());
-                query = "SELECT wrkSub.*, meta.last_modified FROM (" +
-                        buildQueryWithDataTypeLabels(QUERY_PROJECT_WFS, "externalid = :id") + ") AS wrkSub " +
-                        "LEFT JOIN wrk_workflowdata_meta_data meta ON wrkSub.workflowData_info = meta.meta_data_id";
+                query = makeQueryPerUserPermissions(user, namedParams,
+                            buildQueryWithDataTypeLabels(QUERY_PROJECT_WFS, "externalid = :id"));
                 break;
             case XnatSubjectdata.SCHEMA_ELEMENT_NAME:
-                query = QUERY_SUBJECT_WFS;
+                query = makeQueryPerUserPermissions(user, namedParams, QUERY_SUBJECT_WFS);
                 break;
             default:
-                query = QUERY_EXPT_WFS;
+                query = makeQueryPerUserPermissions(user, namedParams, QUERY_EXPT_WFS);
                 break;
         }
         query = "SELECT * FROM (" + query + ") AS q"; //Allow for WHERE in query suffix
@@ -226,31 +226,63 @@ public class WorkflowRepository implements PageableRepository {
     }
 
     /**
-     * Make query to retrieve workflows for user dashboard:
+     * Make query to retrieve workflows based on user's permissions:
      *  - Workflows user has launched and workflows associated with data user can read
      *  - if site admin: the above plus all workflows with ADMIN externalId
      *  - if all data admin: return all workflows
      *
      * @param user the user
      * @param namedParams the map SQL params
+     * @param workflowBaseQuery base query to execute
+     *                          (e.g., all workflows for projectA, or all workflows for sessionB, etc.)
      * @return the query
-     * @throws Exception for issues collecting datatypes
      */
     @Language("SQL")
-    private String makeUserLevelQuery(UserI user, MapSqlParameterSource namedParams) throws Exception {
+    private String makeQueryPerUserPermissions(UserI user,
+                                               MapSqlParameterSource namedParams,
+                                               @Nonnull String workflowBaseQuery) {
+        return makeQueryPerUserPermissions(user, namedParams, workflowBaseQuery, false);
+    }
+
+    /**
+     * Make query to retrieve workflows per <strong>workflowBaseQuery</strong>, restricted by user's permissions
+     * (a.k.a., workflows on data user can read -- if all data admin: all workflows from workflowBaseQuery)
+     *
+     * If <strong>includeUserWorkflows</strong> is true:
+     *  - All workflows user has launched and workflows associated with data user can read
+     *  - If site admin: the above plus all workflows with ADMIN externalId
+     *
+     * @param user the user
+     * @param namedParams the map SQL params
+     * @param workflowBaseQuery base query to execute
+     *                          (e.g., all workflows for projectA, or all workflows for sessionB, etc.)
+     * @param includeUserWorkflows include workflows user has launched / admin workflows if admin user
+     * @return the query
+     */
+    @Language("SQL")
+    private String makeQueryPerUserPermissions(UserI user,
+                                               MapSqlParameterSource namedParams,
+                                               @Nonnull String workflowBaseQuery,
+                                               boolean includeUserWorkflows) {
         @Language("SQL") String query;
         @Language("SQL") String wrkSubQ = "SELECT wrkSub.*, meta.last_modified, meta.insert_user_xdat_user_id " +
-                "           FROM (" + buildQueryWithDataTypeLabels() + ") AS wrkSub " +
+                "           FROM (" + workflowBaseQuery + ") AS wrkSub " +
                 "               LEFT JOIN wrk_workflowdata_meta_data meta " +
                 "                   ON wrkSub.workflowData_info = meta.meta_data_id";
         if (Groups.isDataAdmin(user)) {
-            // Access to all workflows across the whole site
+            // Access to all workflows from workflowBaseQuery
             query = wrkSubQ;
         } else {
-            String adminWfs = "";
-            if (Groups.isSiteAdmin(user)) {
-                // Add site admin workflows
-                adminWfs = " OR wrkSubQ.externalId = '" + PersistentWorkflowUtils.ADMIN_EXTERNAL_ID + "' ";
+            String usrLaunchedWfs = "";
+            if (includeUserWorkflows) {
+                usrLaunchedWfs = "SELECT wrkSubQ.* " +
+                        "   FROM wrkSubQ " +
+                        "   WHERE insert_user_xdat_user_id = :userId OR create_user = :username ";
+                if (Groups.isSiteAdmin(user)) {
+                    // Add site admin workflows
+                    usrLaunchedWfs += " OR wrkSubQ.externalId = '" + PersistentWorkflowUtils.ADMIN_EXTERNAL_ID + "' ";
+                }
+                usrLaunchedWfs += "UNION ";
             }
             namedParams.addValue("userId", user.getID())
                     .addValue("username", user.getLogin());
@@ -276,10 +308,7 @@ public class WorkflowRepository implements PageableRepository {
                     "       FROM permSub1 " +
                     "           INNER JOIN arc_project ap ON permSub1.data_type = '" + XnatProjectdata.SCHEMA_ELEMENT_NAME + "' AND permSub1.project = ap.id), " +
                     "permSubQ AS (SELECT * FROM permSub1 UNION SELECT * FROM permSub2)" +
-                    "SELECT wrkSubQ.* " +
-                    "   FROM wrkSubQ " +
-                    "   WHERE insert_user_xdat_user_id = :userId OR create_user = :username " + adminWfs +
-                    "UNION " +
+                    usrLaunchedWfs +
                     "SELECT wrkSubQ.* " +
                     "   FROM wrkSubQ " +
                     "       INNER JOIN permSubQ " +
@@ -418,7 +447,7 @@ public class WorkflowRepository implements PageableRepository {
 
     /**
      * Return query that contains unions of data type queries that select label field
-     * @param initialQuery intial query onto which the unions will be appended
+     * @param initialQuery initial query onto which the unions will be appended
      * @param addlConstraints constraints to apply
      * @return the query string
      * @throws Exception for issues retrieving xnat data types
