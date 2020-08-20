@@ -633,10 +633,11 @@ console.log('bulklauncher.js');
             success: function (responseData) {
                 responseData.ResultSet.Result.forEach(function (configuredPipeline) {
                     var pipelineName = configuredPipeline['Name'];
+                    var pipelineStepId = configuredPipeline['StepId'];
                     console.log("Adding " + pipelineName);
                     $('#actionsDropdown').append(spawn('option', {
                         value: JSON.stringify({
-                            'pipeline_name': pipelineName,
+                            'pipeline_name': pipelineStepId,
                             'pipeline_path': configuredPipeline['Path']
                         })
                     }, pipelineName).html);
