@@ -1,7 +1,7 @@
 // Copyright 2019 Radiologics, Inc
 // Developer: Kate Alpert <kate@radiologics.com>
 
-package org.nrg.xnatx.plugins.batch.model;
+package org.nrg.xnatx.plugins.batch.workflows.model;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;

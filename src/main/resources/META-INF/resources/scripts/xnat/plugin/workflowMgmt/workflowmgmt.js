@@ -197,76 +197,6 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
         });
     };
 
-    XNAT.plugin.batchLaunch.toggleColumn = function($container, target, show) {
-        var $columns = $container.find("th." + target + ", td." + target);
-        if (show) {
-            $columns.show();
-        } else {
-            $columns.hide();
-        }
-    };
-
-    XNAT.plugin.batchLaunch.addColumnToggleContents = function(colClass, displayName, show) {
-        var checked = (show) ? "|checked='checked'" : "";
-        return [
-            $.spawn("input" + checked, {
-                id: "show-" + colClass,
-                type: "checkbox"
-            }),
-            $.spawn("label|for='show-" + colClass + "'", {}, displayName)
-        ];
-    };
-
-    XNAT.plugin.batchLaunch.applyColumnToggle = function($container){
-        var dropdown = "div.show-hide-columns-list.bl-dropdown-menu";
-        $container.find(dropdown + ' input').each(function(){
-            XNAT.plugin.batchLaunch.toggleColumn($container, this.id.replace("show-", ""), $(this).prop("checked"));
-        });
-    };
-
-    XNAT.plugin.batchLaunch.addColumnToggle = function(showHideList, $container){
-        // Toggle columns
-        var $actionsRow = $container.find('.data-table-actionsrow');
-        var button = "button.show-hide-columns";
-        var dropdown = "div.show-hide-columns-list.bl-dropdown-menu";
-        var $button = $actionsRow.find(button);
-        if ($button.length) {
-            // Just remove so we don't get duplicate actions
-            $button.remove();
-            $actionsRow.find(dropdown).remove();
-        }
-        $button = $.spawn(button, {classes: "btn btn-sm"}, ["Columns", "&nbsp;", $.spawn("i.fa.fa-caret-down")]);
-        $actionsRow.append($button);
-        var $dropdown = $.spawn(dropdown, {}, showHideList);
-        $actionsRow.append($dropdown);
-
-        $container.on('click', button, function () {
-            if ($dropdown.css("visibility") === "visible") {
-                $button.find("i").removeClass("fa-caret-up").addClass("fa-caret-down");
-                $dropdown.css({
-                    visibility: "hidden",
-                    transform: "translate3d(0,0,0)"
-                });
-            } else {
-                var coords = $button.offset();
-                var listcoords = $dropdown.offset();
-                var leftt = coords['left'] - listcoords['left'],
-                    topt = coords['top'] - listcoords['top'] + XNAT.plugin.batchLaunch.cssToNumber($button, "height");
-                $(this).find("i").removeClass("fa-caret-down").addClass("fa-caret-up");
-                $dropdown.css({
-                    visibility: "visible",
-                    transform: "translate3d(" + leftt + "px, " + topt + "px, 0)"
-                });
-            }
-            return false;
-        });
-        $container.on('click', dropdown + ' input', function () {
-            XNAT.plugin.batchLaunch.toggleColumn($container, this.id.replace("show-", ""), $(this).prop("checked"));
-            XNAT.plugin.batchLaunch.resizeTableCols($container.find("table"));
-            $button.click().click(); // keep it in view, but be sure to transform if table size changes
-        });
-    };
-
     XNAT.plugin.batchLaunch.viewWorkflowFile = function(workflowId, fileType) {
         // FileType is stdout or stderr
         var logFileUrl = XNAT.url.rootUrl('xapi/workflows/' + workflowId + '/logs/' + fileType);
@@ -576,35 +506,5 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
             /* set dimensions of table containers */
             $(container).css('height', availableTableHeight);
         }
-    };
-
-    XNAT.plugin.batchLaunch.cssToNumber = function($item, attrName) {
-        var ws = $item.css(attrName) || "0";
-        return Number(ws.replace(/[^\d\.]/g, ""));
-    };
-
-    XNAT.plugin.batchLaunch.resizeTableCols = function($table){
-        var $headerCells = $table.find("thead tr:not(:hidden):first").children(":not(:hidden)"),
-            $filterCells = $table.find("thead tr:not(:hidden):last").children(":not(:hidden)"),
-            $bodyCells = $table.find("tbody tr:not(:hidden):first").children(":not(:hidden)");
-
-        // Set common width for thead & tbody cells (needed for scrollable tbody)
-        var colWidths = [];
-        $bodyCells.each(function (i, v) {
-            var wid = Math.max(
-                XNAT.plugin.batchLaunch.cssToNumber($(v), "width"),
-                XNAT.plugin.batchLaunch.cssToNumber($($headerCells[i]), "width")
-            );
-            $(v).css("width", wid);
-            $($headerCells[i]).css("width", wid);
-            $($filterCells[i]).css("width", wid);
-            colWidths.push(wid);
-        });
-
-        $table.find("tbody tr").each(function(rind, row) {
-            $(row).children(":not(:hidden)").each(function (i, v) {
-                $(v).css("width", colWidths[i]);
-            });
-        });
     };
 }));

@@ -1,7 +1,7 @@
 // Copyright 2019 Radiologics, Inc
 // Developer: Kate Alpert <kate@radiologics.com>
 
-package org.nrg.xnatx.plugins.batch.xapi;
+package org.nrg.xnatx.plugins.batch.workflows.xapi;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -9,12 +9,12 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import io.swagger.annotations.*;
 import org.nrg.action.ClientException;
 import org.nrg.action.ServerException;
+import org.nrg.framework.ajax.sql.SortOrFilterException;
 import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xnat.archive.ResourceData;
-import org.nrg.xnatx.plugins.batch.exceptions.FilterException;
-import org.nrg.xnatx.plugins.batch.model.Workflow;
-import org.nrg.xnatx.plugins.batch.model.WorkflowListingRequest;
-import org.nrg.xnatx.plugins.batch.services.WorkflowService;
+import org.nrg.xnatx.plugins.batch.workflows.model.Workflow;
+import org.nrg.xnatx.plugins.batch.workflows.model.WorkflowPaginatedRequest;
+import org.nrg.xnatx.plugins.batch.workflows.services.WorkflowService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.containers.model.container.auto.Container;
@@ -35,7 +35,6 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xnat.services.archive.CatalogService;
 import org.nrg.xnat.turbine.utils.ArchivableItem;
 import org.nrg.xnat.utils.WorkflowUtils;
-import org.restlet.data.Status;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
@@ -95,30 +94,24 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             @ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST)
     @ResponseBody
-    public ResponseEntity<List<Workflow>> getWorkflows(@RequestBody WorkflowListingRequest workflowListingRequest)
+    public ResponseEntity<List<Workflow>> getWorkflows(@RequestBody WorkflowPaginatedRequest workflowPaginatedRequest)
             throws ClientException, ServerException {
 
-        if (workflowListingRequest.getPage() < 1 || workflowListingRequest.getSize() < 1) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-
         final UserI user = getSessionUser();
-        if (!checkAccess("read", user, workflowListingRequest.getId(),
-                workflowListingRequest.getDataType())) {
+        if (!checkAccess("read", user, workflowPaginatedRequest.getId(),
+                workflowPaginatedRequest.getDataType())) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
         try {
-            return new ResponseEntity<>(workflowService.getWorkflows(workflowListingRequest.getId(),
-                    workflowListingRequest.getDataType(), user, workflowListingRequest.getSortColumn(),
-                    workflowListingRequest.getSortDir(), workflowListingRequest.getPage(),
-                    workflowListingRequest.getSize(), workflowListingRequest.getFiltersMap()), HttpStatus.OK);
-        } catch (FilterException e) {
+            return new ResponseEntity<>(workflowService.getWorkflows(workflowPaginatedRequest.getId(),
+                    workflowPaginatedRequest.getDataType(), user, workflowPaginatedRequest), HttpStatus.OK);
+        } catch (SortOrFilterException | RuntimeException e) {
             log.error("Error querying workflows", e);
-            throw new ClientException(Status.CLIENT_ERROR_BAD_REQUEST, e);
+            throw new ClientException(e);
         } catch (Exception e) {
             log.error("Error querying workflows", e);
-            throw new ServerException(Status.SERVER_ERROR_INTERNAL, e);
+            throw new ServerException(e);
         }
     }
 
@@ -656,26 +649,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             }
         } else {
             throw new ClientException("Unable to terminate non-container workflows at this time");
-//                //Could be service request is created but not yet in preparing status
-//                WrkWorkflowdata workflow = (WrkWorkflowdata) wrkFlow;
-//                EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.PROJECT_ADMIN,
-//                        EventUtils.TYPE.WEB_SERVICE, EventUtils.getDeleteAction(workflow.getXSIType()));
-//
-//                final PersistentWorkflowI deletedWorkflow = WorkflowUtils.getOrCreateWorkflowData(null, user,
-//                        WrkWorkflowdata.SCHEMA_ELEMENT_NAME, workflow.getId(), proj.getId(), eventDetails);
-//                final EventMetaI ciDeleted = deletedWorkflow.buildEvent();
-//                try {
-//                    // If the workflow exists, delete it -
-//                    final EventMetaI ci = workflow.buildEvent();
-//                    SaveItemHelper.authorizedDelete(workflow.getCurrentDBVersion(), user, ci);
-//                    PersistentWorkflowUtils.complete(deletedWorkflow, ciDeleted);
-//                    //TODO
-//                    //Remove the request from Docker Also
-//
-//                } catch (Exception de) {
-//                    PersistentWorkflowUtils.fail(deletedWorkflow, ciDeleted);
-//                    throw de;
-//                }
+            // pipeline termination implemented in xnat-web PipelineApi
         }
         return rtn;
     }
@@ -683,7 +657,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     @ApiOperation(value = "Gets the container/service ID from a workflow")
     @ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(value = "/{workflowid}/container", method = RequestMethod.GET, produces = {MediaType.TEXT_PLAIN_VALUE})
-    public ResponseEntity<String> getContainerOrServiceId(@PathVariable("workflowid") final String workflowId) throws Exception {
+    public ResponseEntity<String> getContainerOrServiceId(@PathVariable("workflowid") final String workflowId) {
         //Get the workflow
         final UserI user = getSessionUser();
         try {

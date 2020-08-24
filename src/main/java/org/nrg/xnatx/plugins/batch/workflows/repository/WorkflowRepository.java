@@ -1,11 +1,17 @@
-// Copyright 2019 Radiologics, Inc
-// Developer: Kate Alpert <kate@radiologics.com>
+/*
+ * web: org.nrg.xnatx.plugins.batch.workflows.repositories.WorkflowRepository
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2005-2020, Washington University School of Medicine and Howard Hughes Medical Institute
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ */
 
-package org.nrg.xnatx.plugins.batch.repositories;
+package org.nrg.xnatx.plugins.batch.workflows.repository;
 
 import com.google.common.collect.ImmutableMap;
 import org.intellij.lang.annotations.Language;
-import org.nrg.containers.services.impl.ContainerServiceImpl;
+import org.nrg.framework.ajax.sql.PageableRepository;
 import org.nrg.xdat.om.*;
 import org.nrg.xdat.schema.SchemaElement;
 import org.nrg.xdat.schema.SchemaField;
@@ -13,14 +19,14 @@ import org.nrg.xdat.security.helpers.Groups;
 import org.nrg.xft.exception.ElementNotFoundException;
 import org.nrg.xft.exception.FieldNotFoundException;
 import org.nrg.xft.exception.XFTInitException;
-import org.nrg.xnatx.plugins.batch.model.Workflow;
-import org.nrg.xnatx.plugins.batch.xapi.PageRequest;
-import org.nrg.xnatx.plugins.batch.model.WorkflowDuration;
+import org.nrg.xnatx.plugins.batch.workflows.model.Workflow;
+import org.nrg.xnatx.plugins.batch.workflows.model.WorkflowDuration;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
+import org.nrg.xnatx.plugins.batch.workflows.model.WorkflowPaginatedRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.RowMapper;
@@ -44,9 +50,6 @@ public class WorkflowRepository implements PageableRepository {
     private long workflowDurationMapExpiration = System.currentTimeMillis();
 
     private static final int WF_DURATION_EXP_SEC = 14400; // 4 hours
-
-    private static final List<String> inactiveStatuses = Arrays.asList(PersistentWorkflowUtils.COMPLETE,
-            PersistentWorkflowUtils.FAILED, PersistentWorkflowUtils.QUEUED, ContainerServiceImpl.CREATED);
 
     private static final RowMapper<WorkflowDuration> DURATION_WF_MAPPER = (resultSet, index) -> {
         final String name = resultSet.getString("pipeline_name");
@@ -174,13 +177,13 @@ public class WorkflowRepository implements PageableRepository {
      * @param id        item id
      * @param dataType  item type
      * @param user      user (no permissions checking, just used if item type == xdat:user)
-     * @param request   the request object
+     * @param request   the pagination/filter/sort object
      * @return list of model
      * @throws DataAccessException for issues accessing data
      * @throws Exception for issues retrieving xnat data types
      */
     public List<Workflow> getWorkflows(String id, String dataType, UserI user,
-                                       PageRequest request) throws Exception {
+                                       WorkflowPaginatedRequest request) throws Exception {
 
         MapSqlParameterSource namedParams = new MapSqlParameterSource();
 
@@ -208,7 +211,8 @@ public class WorkflowRepository implements PageableRepository {
                 break;
         }
         query = "SELECT * FROM (" + query + ") AS q"; //Allow for WHERE in query suffix
-        query += request.getQuerySuffix(namedParams);
+        query += request.getQuerySuffix(getColumnMapping(), getAllowableFilterColumns(), getAllowableSortColumns(),
+                namedParams);
 
         List<Workflow> wfs = jdbcTemplate.query(query, namedParams, WF_ROW_MAPPER);
 
@@ -338,12 +342,7 @@ public class WorkflowRepository implements PageableRepository {
      * @return T/F
      */
     private boolean isActiveStatus(String status) {
-        for (String is : inactiveStatuses) {
-            if (status.contains(is)) {
-                return false;
-            }
-        }
-        return true;
+        return status.equalsIgnoreCase(PersistentWorkflowUtils.RUNNING);
     }
 
     /**

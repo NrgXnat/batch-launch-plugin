@@ -56,7 +56,7 @@ console.log('bulklauncher.js');
     }
 
     function updateAfterFiltering($table) {
-        XNAT.plugin.batchLaunch.resizeTableCols($table);
+        XNAT.ui.ajaxTable.resizeTableCols($table);
         setStateSelectAllToggle($('.selectable-select-all'));
         $("span#table-visible-count").text($('#' + tableId + ' tbody tr:not(:hidden)').length);
     }
@@ -360,7 +360,7 @@ console.log('bulklauncher.js');
                     $('tr#xnat-table-header-row2').append($("<td class='" + labelClean + "'></td>").append($filterInput));
 
                     //Toggle columns checkbox list
-                    var dropdownItemContents = XNAT.plugin.batchLaunch.addColumnToggleContents(labelClean, label, true);
+                    var dropdownItemContents = XNAT.ui.ajaxTable.addColumnToggleContents(labelClean, label, true);
                     if (!currentJob && columnsToShow[header_col]['pipeline']) {
                         dropdownItemContents.push("&nbsp;");
                         dropdownItemContents.push($.spawn('a', {
@@ -383,7 +383,7 @@ console.log('bulklauncher.js');
                 }
 
                 // Toggle columns
-                XNAT.plugin.batchLaunch.addColumnToggle(showHideList, $container);
+                XNAT.ui.ajaxTable.addColumnToggle(showHideList, $container);
 
                 // Row counts
                 var nres = rows.length.toString();
@@ -509,7 +509,7 @@ console.log('bulklauncher.js');
                 } else {
                     addActions();
                 }
-                XNAT.plugin.batchLaunch.resizeTableCols($container.find("table#" + tableId));
+                XNAT.ui.ajaxTable.resizeTableCols($container.find("table#" + tableId));
                 // Now get the actions associated with the datatype
                 renderActionOptions();
             },

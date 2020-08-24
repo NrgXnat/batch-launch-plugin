@@ -2,7 +2,6 @@
 
 <link rel="stylesheet" type="text/css" href="$!content.getURI("scripts/xnat/plugin/workflowMgmt/dependencies/skin-win8/ui.fancytree.min.css")"/>
 <link rel="stylesheet" type="text/css" href="$!content.getURI("scripts/xnat/app/scanTable/scanTable.css")"/>
-<link rel="stylesheet" type="text/css" href="$!content.getURI("style/xnat/plugin/batchLaunch/batchLaunch.css")"/>
 <script type="text/javascript" src="$!content.getURI("scripts/xnat/plugin/workflowMgmt/dependencies/jquery.fancytree-all-deps.min.js")"></script>
 <script type="text/javascript" src="$!content.getURI("scripts/xnat/plugin/workflowMgmt/workflow_table.js")"></script>
 
@@ -22,8 +21,6 @@
         <div class="tab-container"><div class="data-table-container"  id="workflows-data-table-container"></div></div>
     #end
     <script type="text/javascript">
-        XNAT.plugin.batchLaunch.workflowTable.load();
-
         $('#workflow-callouts-container').append($('<div id="active-workflows-callout" class="warning workflows-callout">\n' +
                 '            Processing is active. See the <a class="scroll-to" href="#workflows-data-table-container">history table</a> for more.\n' +
                 '        <span class="close"><i class="fa fa-close"></i></span>\n' +
@@ -32,5 +29,7 @@
                 '            Some processing has recently failed. See the <a class="scroll-to" href="#workflows-data-table-container">history table</a> for more.\n' +
                 '        <span class="close"><i class="fa fa-close"></i></span>\n' +
                 '        </div>'));
+
+        XNAT.plugin.batchLaunch.workflowTable.load();
     </script>
 #end

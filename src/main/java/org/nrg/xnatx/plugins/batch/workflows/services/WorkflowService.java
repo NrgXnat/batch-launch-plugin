@@ -1,12 +1,12 @@
 // Copyright 2019 Radiologics, Inc
 // Developer: Kate Alpert <kate@radiologics.com>
 
-package org.nrg.xnatx.plugins.batch.services;
+package org.nrg.xnatx.plugins.batch.workflows.services;
 
-import org.nrg.xnatx.plugins.batch.model.Workflow;
-import org.nrg.xnatx.plugins.batch.model.WorkflowFilter;
-import org.nrg.xnatx.plugins.batch.repositories.WorkflowRepository;
-import org.nrg.xnatx.plugins.batch.xapi.PageRequest;
+import org.nrg.containers.services.impl.ContainerServiceImpl;
+import org.nrg.xnatx.plugins.batch.workflows.model.Workflow;
+import org.nrg.xnatx.plugins.batch.workflows.model.WorkflowPaginatedRequest;
+import org.nrg.xnatx.plugins.batch.workflows.repository.WorkflowRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.xdat.model.WrkXnatexecutionenvironmentParameterI;
@@ -17,9 +17,7 @@ import org.nrg.xft.security.UserI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Service
@@ -35,11 +33,8 @@ public class WorkflowService {
         this.workflowRepository = workflowRepository;
     }
 
-    public List<Workflow> getWorkflows(String id, String dataType, UserI user,
-                                       String sortColumn, String sortDir, @Nullable Integer page, @Nullable Integer size,
-                                       @Nullable Map<String, WorkflowFilter> filtersMap) throws Exception {
-        return workflowRepository.getWorkflows(id, dataType, user,
-                new PageRequest(workflowRepository, sortColumn, sortDir, filtersMap, page, size));
+    public List<Workflow> getWorkflows(String id, String dataType, UserI user, WorkflowPaginatedRequest request) throws Exception {
+        return workflowRepository.getWorkflows(id, dataType, user, request);
     }
 
     public Workflow getWorkflowModelFromWorkflowI(PersistentWorkflowI wrk, UserI user) {
@@ -52,7 +47,8 @@ public class WorkflowService {
 
     public WorkflowType getWorkflowType(PersistentWorkflowI wrk) {
         String justification = wrk.getJustification();
-        if (justification != null && justification.equals("Container launch") && StringUtils.isNotEmpty(getContainerId(wrk))) {
+        if (justification != null && justification.equals(ContainerServiceImpl.containerLaunchJustification)
+                && StringUtils.isNotEmpty(getContainerId(wrk))) {
             return WorkflowType.CONTAINER;
         } else if (wrk.getPipelineName().endsWith(".xml")) {
             return WorkflowType.PIPELINE;
