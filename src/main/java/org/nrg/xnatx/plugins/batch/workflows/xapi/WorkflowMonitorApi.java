@@ -59,17 +59,16 @@ import java.util.zip.ZipOutputStream;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @Slf4j
-@Api(description = "XNAT Workflow Extended API")
+@Api()
 @XapiRestController
 @RequestMapping(value = "/workflows")
 public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
-    private ContainerService containerService;
-    private       SiteConfigPreferences preferences;
-    private       WorkflowService       workflowService;
-    private final CatalogService        catalogService;
+    private final ContainerService containerService;
+    private final SiteConfigPreferences preferences;
+    private final WorkflowService workflowService;
+    private final CatalogService catalogService;
     private final ExecutorService executorService;
 
-    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
     public WorkflowMonitorApi(final SiteConfigPreferences preferences,
                               final ContainerService containerService,
@@ -467,7 +466,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     @ApiOperation(value = "Gets the log file for a given workflow")
     @ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(value = "/{workflowid}/logs/{file}", method = RequestMethod.GET, produces = {MediaType.TEXT_PLAIN_VALUE})
-    public ResponseEntity<String> getFile(@PathVariable("workflowid") final String workflowId, final @PathVariable("file") @ApiParam(allowableValues = "stdout, stderr") String file) throws Exception {
+    public ResponseEntity<String> getFile(@PathVariable("workflowid") final String workflowId, final @PathVariable("file") @ApiParam(allowableValues = "stdout, stderr") String file) {
         //Get the workflow
         final UserI user = getSessionUser();
         try {
@@ -561,35 +560,32 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
                 }
 
                 try {
-                    executorService.submit(new Runnable() {
-                        @Override
-                        public void run() {
-                            boolean flag = false;
-                            ArchivableItem item;
-                            try {
-                                ResourceData resourceData = catalogService.getResourceDataFromUri(uri);
-                                item = resourceData.getItem();
-                                if (!checkAccess("edit", user, item)) {
-                                    log.error("User {} doesn't have edit permissions for {}", user.getLogin(), uri);
-                                    return;
-                                }
-                            } catch (ClientException e) {
-                                log.error("Cannot determine security item for {}", uri);
+                    executorService.submit(() -> {
+                        boolean flag = false;
+                        ArchivableItem item;
+                        try {
+                            ResourceData resourceData = catalogService.getResourceDataFromUri(uri);
+                            item = resourceData.getItem();
+                            if (!checkAccess("edit", user, item)) {
+                                log.error("User {} doesn't have edit permissions for {}", user.getLogin(), uri);
                                 return;
                             }
-                            for (final PersistentWorkflowI wrk : WorkflowUtils.getOpenWorkflowsForPipeline(user,
-                                    item.getId(), item.getXSIType(), containerName)) {
-                                flag = true;
-                                try {
-                                    killJob(wrk, user);
-                                } catch (ServerException|ClientException e) {
-                                    log.error("Unable to kill {} workflow {}", uri, wrk.getWorkflowId(), e);
-                                }
+                        } catch (ClientException e) {
+                            log.error("Cannot determine security item for {}", uri);
+                            return;
+                        }
+                        for (final PersistentWorkflowI wrk : WorkflowUtils.getOpenWorkflowsForPipeline(user,
+                                item.getId(), item.getXSIType(), containerName)) {
+                            flag = true;
+                            try {
+                                killJob(wrk, user);
+                            } catch (ServerException|ClientException e) {
+                                log.error("Unable to kill {} workflow {}", uri, wrk.getWorkflowId(), e);
                             }
-                            if (!flag) {
-                                log.debug("Experiment {}: No {} workflows in a state that can be terminated",
-                                        uri, containerName);
-                            }
+                        }
+                        if (!flag) {
+                            log.debug("Experiment {}: No {} workflows in a state that can be terminated",
+                                    uri, containerName);
                         }
                     });
                     successMessages.add(uri + ": queued for termination" + errMsg);
@@ -611,7 +607,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             writeKillJsonReport(jGenerator, "successes", successMessages);
             jGenerator.writeEndObject();
             jGenerator.close();
-            String json = new String(stream.toByteArray(), "UTF-8");
+            String json = new String(stream.toByteArray(), StandardCharsets.UTF_8);
             return new ResponseEntity<>(json, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
