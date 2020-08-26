@@ -396,14 +396,20 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
                     {
                         label: 'Download',
                         isDefault: true,
-                        close: true,
-                        action: function() {
-                            var paths = $.map($("#buildDirZipTree").fancytree('getTree').getSelectedNodes(), function(node){
-                                if (!node.folder) return node.data.path;
+                        close: false,
+                        action: function(modal) {
+                            let paths = [];
+                            $("#buildDirZipTree").fancytree('getTree').getRootNode().visit(function(node) {
+                                // get selected file nodes, selected folder nodes with downloadAll (>50 children, not displayed),
+                                // and selected lazy-load folder nodes without expanded children (meaning never loaded)
+                                if (node.selected && !node.isPagingNode() &&
+                                    (!node.folder || node.data.downloadAll || (node.lazy && !node.children))) {
+                                    paths.push(node.data.path);
+                                }
                             });
-                            if (!paths || paths.length === 0) {
+                            if (paths.length === 0) {
                                 XNAT.ui.dialog.alert("Nothing selected for download");
-                                return false;
+                                return;
                             }
                             $("form#buildDirZipForm").append($('<input>').attr({
                                 type: 'hidden',
@@ -411,6 +417,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
                                 name: 'inputPaths',
                                 value: paths
                             })).submit();
+                            modal.close();
                         }
                     },
                     {
@@ -419,30 +426,39 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
                     }
                 ]
             }).ready(function(){
-                function expandAndCollapse(node, expand) {
-                    if (node.folder) {
-                        if (node.children) {
-                            node.children.forEach(expandAndCollapse, expand);
-                        }
-                        node.setExpanded(expand);
-                    }
-                }
                 $("#buildDirZipTree").fancytree({
                     // Don't use fancytree loading bc if the REST call errors, we want to default to a nice error modal
                     source: buildEntry,
                     checkbox: true,
                     selectMode: 3,
-                    click: function(event, data) {
-                        var node = data.node, targetType = data.targetType;
-                        if (node.folder && targetType !== 'expander') {
-                            var expand = !node.expanded;
-                            if (targetType === 'checkbox') {
-                                expand = !node.selected;
-                                expandAndCollapse(node, expand);
-                            } else {
-                                node.setExpanded(expand);
-                            }
+                    lazyLoad: function(event, data){
+                        let node = data.node;
+                        data.result = {
+                            url: XNAT.url.rootUrl(node.data.url),
+                            data: {inputPath: node.data.fullpath},
+                            cache: true
+                        };
+                    },
+                    loadChildren: function(event, data) {
+                        let node = data.node;
+                        if (node.children && node.children.length === 1 && node.children[0].isPagingNode()) {
+                            // we need to change this node, now that it has been loaded, to a folder with > 50 children
+                            node.data.downloadAll = true;
+                        } else {
+                            // apply parent's state to newly loaded child nodes
+                            node.fixSelection3AfterClick();
                         }
+                    },
+                    click: function(event, data) {
+                        let node = data.node, targetType = data.targetType;
+                        if (node.folder && targetType !== 'checkbox' && targetType !== 'expander') {
+                            node.setExpanded(!node.expanded);
+                        }
+                    },
+                    clickPaging: function(event, data) {
+                        let parent = data.node.parent;
+                        parent.setSelected(!parent.selected);
+                        parent.setExpanded(false);
                     }
                 });
             });
