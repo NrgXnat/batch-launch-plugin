@@ -52,6 +52,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.zip.ZipEntry;
@@ -390,6 +391,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
                 jGenerator.writeBooleanField("icon", false);
                 jGenerator.writeEndObject();
             } else {
+                Arrays.sort(files);
                 // recursively add all files and dirs to json
                 for (File f : files) {
                     if (f.isDirectory()) {
