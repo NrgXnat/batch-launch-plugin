@@ -61,15 +61,10 @@
 				}
 			});
 
-			let plink = $('a#processing-dashboard-link');
-			const pos = plink.offset();
 			const datatypeList = spawn('div#' + procDashTableId, {
-				style: "position: absolute; " +
-						"top: " + (pos.top + plink.outerHeight() - 5) + "px; " +
-						"left: " + (pos.left + 10) + "px; " +
-						"display:none;"
+				style: "position: absolute; display:none;"
 			}, spawn('ul', {classes: 'shadowed dark-shadow'}, menuItem));
-			$('#page_wrapper').append(datatypeList.element);
+			$('a#processing-dashboard-link').append(datatypeList.element);
 		});
 
 		$(document).on('mouseenter', '#processing-dashboard-link', function(){
@@ -86,12 +81,25 @@
 		});
 	</script>
 	<style>
-		#processing-dashboard-dttable ul {
-			list-style: none;
-			padding-left: 0px;
+		#actionsMenu .bd ul #processing-dashboard-dttable {
+			z-index: 1;
 		}
 
-		#processing-dashboard-dttable ul li a {
+		#actionsMenu .bd ul #processing-dashboard-dttable ul {
+			list-style: none;
+			padding: 0;
+		}
+
+		#actionsMenu .bd ul #processing-dashboard-dttable tr.filter > td {
+			background: #f0f0f0;
+			padding: 6px 12px;
+		}
+
+		#actionsMenu .bd ul #processing-dashboard-dttable tr.filter > td input {
+			padding: 5px 7px;
+		}
+
+		#actionsMenu .bd ul #processing-dashboard-dttable ul li a {
 			font-weight: bold;
 			color: #222;
 		}
