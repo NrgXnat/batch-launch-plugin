@@ -9,14 +9,14 @@
 <link rel="stylesheet" href="$content.getURI("scripts/xnat/plugin/containerService/commandUI.css")"></link>
 <script type="text/javascript" src="$content.getURI("/scripts/lib/jquery-ui/jquery-ui.js")"></script>
 
-#if($xss)
-    <textarea id="xss" style="display:none">$xss</textarea>
+#if($!xss)
+    <textarea id="xss" style="display:none">$!xss</textarea>
 #end
 #if($!timezoneOffset)
-    <span id="timezoneOffset" style="display:none">$timezoneOffset</span>
+    <span id="timezoneOffset" style="display:none">$!timezoneOffset</span>
 #end
 #if($!job)
-    <span id="currentJob" style="display:none">$currentJob</span>
+    <span id="currentJob" style="display:none">$!job</span>
 #end
 
 

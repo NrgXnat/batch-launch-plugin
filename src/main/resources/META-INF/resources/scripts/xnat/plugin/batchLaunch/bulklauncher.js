@@ -555,7 +555,7 @@ console.log('bulklauncher.js');
             .find('option')
             .remove()
             .end()
-            .append('<option value="Select" selected="true">Select job</option>');
+            .append('<option value="Select">Select job</option>');
         var data = {xsiType: XNAT.plugin.batchLaunch.dataType};
         var availUrl = '/xapi/commands/available';
         if (XNAT.plugin.batchLaunch.projectId) {
@@ -563,6 +563,7 @@ console.log('bulklauncher.js');
         } else {
             availUrl += '/site';
         }
+        var currentJob = $('span#currentJob').text();
         var loadingDialog = XNAT.ui.dialog.loading;
         loadingDialog.open();
         XNAT.xhr.getJSON({
@@ -571,8 +572,11 @@ console.log('bulklauncher.js');
             success: function (responseData) {
                 responseData.forEach(function (availableCommand) {
                     var pipelineName = availableCommand['wrapper-name'];
-                    if (availableCommand.enabled) {
+                    var selected = pipelineName === currentJob;
+                    var attr = selected ? {selected: 'selected'} : {};
+                    if (availableCommand.enabled || selected) {
                         $('#actionsDropdown').append(spawn('option', {
+                            attr: attr,
                             value: JSON.stringify({
                                 'root-element-name': availableCommand['root-element-name'],
                                 'wrapper-id': availableCommand['wrapper-id'],
@@ -582,7 +586,6 @@ console.log('bulklauncher.js');
                         }, pipelineName).html);
                     } else {
                         var info = columnsToShow[pipelineName];
-                        var currentJob = $('span#currentJob').text();
                         if (info && info['show'] === 1 && !currentJob) {
                             //Hide this column
                             //$('.show-hide-columns-list input#show-' + info['labelClean']).prop("checked", false);
@@ -630,8 +633,11 @@ console.log('bulklauncher.js');
                 responseData.ResultSet.Result.forEach(function (configuredPipeline) {
                     var pipelineName = configuredPipeline['Name'];
                     var pipelineStepId = configuredPipeline['StepId'];
+                    var attr = configuredPipeline.Path.replace(/\./g, '_') === currentJob ?
+                        {selected: 'selected'} : {};
                     console.log("Adding " + pipelineName);
                     $('#actionsDropdown').append(spawn('option', {
+                        attr: attr,
                         value: JSON.stringify({
                             'pipeline_name': pipelineStepId,
                             'pipeline_path': configuredPipeline['Path']
