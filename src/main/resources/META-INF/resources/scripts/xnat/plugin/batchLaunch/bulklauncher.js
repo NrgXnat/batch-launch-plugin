@@ -365,17 +365,13 @@ console.log('bulklauncher.js');
                         dropdownItemContents.push("&nbsp;");
                         dropdownItemContents.push($.spawn('a', {
                             id: label,
+                            data: {job: header_col},
                             onclick: function () {
-                                var job = $(this).prop('id');
-                                if (multipleProjects) {
-                                    XNAT.plugin.batchLaunch.fakeFormPost({
-                                        job: job,
-                                        search_xml: $('#xss').val()
-                                    });
-                                } else {
-                                    window.location.href = window.location.href.replace(/\/job\/[^\/]*/, '') +
-                                        '/job/' + job;
-                                }
+                                var job = $(this).data('job');
+                                XNAT.plugin.batchLaunch.fakeFormPost({
+                                    job: job,
+                                    search_xml: $('#xss').val()
+                                });
                             }
                         }, '[More details]'));
                     }
@@ -925,18 +921,14 @@ console.log('bulklauncher.js');
     }
 
     XNAT.plugin.batchLaunch.launchTable.showAllJobsBtnAction = function () {
-        if (multipleProjects) {
-            XNAT.plugin.batchLaunch.fakeFormPost({
-                search_xml: $('#xss').val()
-            });
-        } else {
-            window.location.href = window.location.href.replace(/\/job\/[^\/]*/, '');
-        }
+        XNAT.plugin.batchLaunch.fakeFormPost({
+            search_xml: $('#xss').val()
+        });
     };
 
     XNAT.plugin.batchLaunch.fakeFormPost = function (fields) {
         var $form = $('<form>', {
-            action: XNAT.url.csrfUrl(url),
+            action: multipleProjects ? XNAT.url.csrfUrl(url) : XNAT.url.rootUrl(url),
             method: 'post'
         });
         $.each(fields, function (key, val) {
