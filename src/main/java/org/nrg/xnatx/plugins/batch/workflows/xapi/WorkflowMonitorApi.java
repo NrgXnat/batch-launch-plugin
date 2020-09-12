@@ -159,7 +159,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
                 item = XnatExperimentdata.getXnatExperimentdatasById(id, user, false);
                 break;
         }
-        return checkAccess(accessType, user, item);
+        return item != null && checkAccess(accessType, user, item);
     }
 
     /**

@@ -32,7 +32,7 @@ console.log('bulklauncher.js');
     var toServerTime = parseInt($('span#timezoneOffset').text()) - new Date(Date.now()).getTimezoneOffset() * 60 * 1000 * -1;
 
     var url = window.location.pathname;
-    var multipleProjects = url.indexOf('BulkLaunchAction') > -1;
+    var searchForm = url.indexOf('BulkLaunchAction') > -1;
 
     // Similar to table.js, but no way to use it from there
     function cacheRows() {
@@ -127,6 +127,7 @@ console.log('bulklauncher.js');
         $dataRows = [];
         $container = $('#selectable-table-bulk');
 
+        XNAT.plugin.batchLaunch.projectId = $('#projectId').text();
         var xml = $('#xss').val();
         var projectLabelKey = "id";
         var subjectLabelKey = "";
@@ -220,7 +221,7 @@ console.log('bulklauncher.js');
                     };
                 });
 
-                columnsToShow['Project']['show'] = multipleProjects;
+                columnsToShow['Project']['show'] = !!XNAT.plugin.batchLaunch.projectId;
                 columnsToShow['Project']['label'] = XNAT.app.displayNames.singular.project;
                 if (columnsToShow.hasOwnProperty('Subject')) {
                     columnsToShow['Subject']['show'] = true;
@@ -394,7 +395,6 @@ console.log('bulklauncher.js');
                     })));
 
                 // AddDataTableRows:
-                var allSameProject = true;
                 $.each(rows, function (i, d) {
                     var project, label, project_url, subject_url, expt_url;
                     var uri = d.uri, element_url = '/data' + uri + '?format=html';
@@ -418,15 +418,6 @@ console.log('bulklauncher.js');
                                 label = d[experimentLabelKey];
                                 expt_url = element_url;
                             }
-                        }
-                    }
-
-                    if (allSameProject) {
-                        if (XNAT.plugin.batchLaunch.projectId && project !== XNAT.plugin.batchLaunch.projectId) {
-                            allSameProject = false;
-                            XNAT.plugin.batchLaunch.projectId = '';
-                        } else {
-                            XNAT.plugin.batchLaunch.projectId = project;
                         }
                     }
 
@@ -934,7 +925,7 @@ console.log('bulklauncher.js');
 
     XNAT.plugin.batchLaunch.fakeFormPost = function (fields) {
         var $form = $('<form>', {
-            action: multipleProjects ? XNAT.url.csrfUrl(url) : XNAT.url.rootUrl(url),
+            action: searchForm ? XNAT.url.csrfUrl(url) : XNAT.url.rootUrl(url),
             method: 'post'
         });
         $.each(fields, function (key, val) {

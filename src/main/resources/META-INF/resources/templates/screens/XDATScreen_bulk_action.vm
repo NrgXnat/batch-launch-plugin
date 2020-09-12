@@ -18,6 +18,9 @@
 #if($!job)
     <span id="currentJob" style="display:none">$!job</span>
 #end
+#if($!projectId)
+    <span id="projectId" style="display:none">$!projectId</span>
+#end
 
 
 #set($hide=true)

@@ -110,46 +110,92 @@ public class WorkflowRepository implements PageableRepository {
         return w;
     };
 
-    // Pipelines for project or for entries within project (experiments, subjects, etc)
+    // Pipelines for project
     @Language("SQL")
-    public static final String QUERY_PROJECT_WFS = "SELECT wrk.*, p.id AS label, md.insert_date as item_time FROM " +
-            "wrk_workflowData wrk INNER JOIN xnat_projectdata p ON p.id = wrk.id LEFT JOIN " +
-            "xnat_projectdata_meta_data md ON p.projectdata_info = md.meta_data_id WHERE " +
-            "wrk.id = :id AND wrk.data_type = '" +
-            XnatProjectdata.SCHEMA_ELEMENT_NAME+ "' UNION " +
-            "SELECT wrk.*, p.id AS label, md.insert_date as item_time FROM " +
-            "wrk_workflowData wrk INNER JOIN arc_project a ON a.arc_project_id::varchar = wrk.id " +
-            "INNER JOIN xnat_projectdata p ON p.id = a.id LEFT JOIN " +
-            "xnat_projectdata_meta_data md ON p.projectdata_info = md.meta_data_id WHERE " +
-            "wrk.id = :arcId AND wrk.data_type = 'arc:project'";
+    public static final String QUERY_PROJECT_WFS = "SELECT wrk.*, p.id AS label, md.insert_date AS item_time, " +
+            "NULL::varchar AS shared_project " +
+            "FROM wrk_workflowData wrk " +
+            "         INNER JOIN xnat_projectdata p ON p.id = wrk.id " +
+            "         LEFT JOIN " +
+            "     xnat_projectdata_meta_data md ON p.projectdata_info = md.meta_data_id " +
+            "WHERE wrk.id = :id " +
+            "  AND wrk.data_type = '" + XnatProjectdata.SCHEMA_ELEMENT_NAME + "' " +
+            "UNION " +
+            "SELECT wrk.*, p.id AS label, md.insert_date as item_time, NULL::varchar AS shared_project " +
+            "FROM wrk_workflowData wrk " +
+            "         INNER JOIN arc_project a ON a.arc_project_id::varchar = wrk.id " +
+            "         INNER JOIN xnat_projectdata p ON p.id = a.id " +
+            "         LEFT JOIN " +
+            "     xnat_projectdata_meta_data md ON p.projectdata_info = md.meta_data_id " +
+            "WHERE wrk.id = :arcId " +
+            "  AND wrk.data_type = 'arc:project'";
 
     // SQL from WorkflowBasedHistoryBuilder
     // Pipelines on subject
     @Language("SQL")
-    public static final String QUERY_SUBJECT_WFS = "SELECT wrk.*, s.label, md.insert_date AS item_time, " +
-            "meta.last_modified FROM (SELECT * FROM wrk_workflowData WHERE id = :id OR " +
-            "id IN (SELECT DISTINCT id FROM (SELECT sad.id FROM xnat_subjectassessordata sad WHERE subject_id=:id " +
-            "UNION SELECT iad.id FROM xnat_subjectassessordata sad LEFT JOIN xnat_imageassessordata iad " +
-            "ON sad.id=iad.imagesession_id WHERE iad.id IS NOT NULL AND subject_id=:id UNION " +
-            "SELECT sad.id FROM xnat_subjectassessordata_history sad WHERE subject_id=:id UNION " +
-            "SELECT iad.id FROM xnat_subjectassessordata sad LEFT JOIN xnat_imageassessordata_history iad " +
-            "ON sad.id=iad.imagesession_id WHERE iad.id IS NOT NULL AND subject_id=:id UNION " +
-            "SELECT iad.id FROM xnat_subjectassessordata_history sad LEFT JOIN xnat_imageassessordata_history iad " +
-            "ON sad.id=iad.imagesession_id WHERE iad.id IS NOT NULL AND subject_id=:id) AS idq)) AS wrk INNER JOIN " +
-            "xnat_subjectdata s ON wrk.id=s.id LEFT JOIN xnat_subjectdata_meta_data md " +
-            "ON s.subjectdata_info = md.meta_data_id LEFT JOIN wrk_workflowdata_meta_data meta " +
-            "ON wrk.workflowData_info = meta.meta_data_id";
+    public static final String QUERY_SUBJECT_WFS = "SELECT wrk.*, " +
+            "       s.label, " +
+            "       md.insert_date AS item_time, " +
+            "       " + getSharedProjectJoinSQL("s", true)[0] + " AS shared_project " +
+            "FROM (SELECT * " +
+            "      FROM wrk_workflowData " +
+            "      WHERE id = :id " +
+            "         OR id IN (SELECT DISTINCT id " +
+            "                   FROM (SELECT sad.id " +
+            "                         FROM xnat_subjectassessordata sad " +
+            "                         WHERE subject_id = :id " +
+            "                         UNION " +
+            "                         SELECT iad.id " +
+            "                         FROM xnat_subjectassessordata sad " +
+            "                                  LEFT JOIN xnat_imageassessordata iad " +
+            "                                            ON sad.id = iad.imagesession_id " +
+            "                         WHERE iad.id IS NOT NULL " +
+            "                           AND subject_id = :id " +
+            "                         UNION " +
+            "                         SELECT sad.id " +
+            "                         FROM xnat_subjectassessordata_history sad " +
+            "                         WHERE subject_id = :id " +
+            "                         UNION " +
+            "                         SELECT iad.id " +
+            "                         FROM xnat_subjectassessordata sad " +
+            "                                  LEFT JOIN xnat_imageassessordata_history iad " +
+            "                                            ON sad.id = iad.imagesession_id " +
+            "                         WHERE iad.id IS NOT NULL " +
+            "                           AND subject_id = :id " +
+            "                         UNION " +
+            "                         SELECT iad.id " +
+            "                         FROM xnat_subjectassessordata_history sad " +
+            "                                  LEFT JOIN xnat_imageassessordata_history iad " +
+            "                                            ON sad.id = iad.imagesession_id " +
+            "                         WHERE iad.id IS NOT NULL " +
+            "                           AND subject_id = :id) AS idq)) AS wrk " +
+            "         INNER JOIN " +
+            "     xnat_subjectdata s ON wrk.id = s.id " +
+            "         LEFT JOIN xnat_subjectdata_meta_data md " +
+            "                   ON s.subjectdata_info = md.meta_data_id " +
+                getSharedProjectJoinSQL("s", true)[1];
 
     // Pipelines on experiment
     @Language("SQL")
-    public static final String QUERY_EXPT_WFS = "SELECT wrk.*, xnat_experimentdata.label, " + getExperimentItemTimeSQL() +
-            ", meta.last_modified FROM (SELECT * FROM wrk_workflowData WHERE id = :id OR " +
-            "id IN (SELECT DISTINCT id FROM (SELECT iad.id FROM xnat_imageassessordata iad " +
-            "WHERE iad.id IS NOT NULL AND iad.imagesession_id=:id UNION " +
-            "SELECT iad.id FROM xnat_imageassessordata_history iad " +
-            "WHERE iad.id IS NOT NULL AND iad.imagesession_id=:id) AS idq)) as wrk INNER JOIN " +
-            "xnat_experimentdata ON wrk.id=xnat_experimentdata.id LEFT JOIN wrk_workflowdata_meta_data meta " +
-            "ON wrk.workflowData_info=meta.meta_data_id";
+    public static final String QUERY_EXPT_WFS = "SELECT wrk.*, " +
+            "       xnat_experimentdata.label, " +
+            getSharedProjectJoinSQL("xnat_experimentdata", false)[0] + " AS shared_project, " +
+            getExperimentItemTimeSQL() + " AS item_time " +
+            "FROM (SELECT * " +
+            "      FROM wrk_workflowData " +
+            "      WHERE id = :id " +
+            "         OR id IN (SELECT DISTINCT id " +
+            "                   FROM (SELECT iad.id " +
+            "                         FROM xnat_imageassessordata iad " +
+            "                         WHERE iad.id IS NOT NULL " +
+            "                           AND iad.imagesession_id = :id " +
+            "                         UNION " +
+            "                         SELECT iad.id " +
+            "                         FROM xnat_imageassessordata_history iad " +
+            "                         WHERE iad.id IS NOT NULL " +
+            "                           AND iad.imagesession_id = :id) AS idq)) as wrk " +
+            "         INNER JOIN xnat_experimentdata ON wrk.id = xnat_experimentdata.id " +
+                    getSharedProjectJoinSQL("xnat_experimentdata", false)[1];
 
     private static final String PROJECT_PLINE_DATATYPES = "'" + ArcProject.SCHEMA_ELEMENT_NAME + "','" +
             XnatProjectdata.SCHEMA_ELEMENT_NAME + "'";
@@ -201,7 +247,8 @@ public class WorkflowRepository implements PageableRepository {
                         XnatProjectdata.getXnatProjectdatasById(id, user, false)
                                 .getArcSpecification().getId());
                 query = makeQueryPerUserPermissions(user, namedParams,
-                            buildQueryWithDataTypeLabels(QUERY_PROJECT_WFS, "externalid = :id"));
+                            buildQueryWithDataTypeLabels(QUERY_PROJECT_WFS,
+                                    "(externalid = :id OR shared_project = :id)"));
                 break;
             case XnatSubjectdata.SCHEMA_ELEMENT_NAME:
                 query = makeQueryPerUserPermissions(user, namedParams, QUERY_SUBJECT_WFS);
@@ -267,11 +314,12 @@ public class WorkflowRepository implements PageableRepository {
                 "                   ON wrkSub.workflowData_info = meta.meta_data_id";
         if (Groups.isDataAdmin(user)) {
             // Access to all workflows from workflowBaseQuery
-            query = wrkSubQ;
+            query = "SELECT DISTINCT " + String.join(", ", COLUMN_INFO.keySet()) +
+                    " FROM (" + wrkSubQ + ") AS wsqF";
         } else {
             String usrLaunchedWfs = "";
             if (includeUserWorkflows) {
-                usrLaunchedWfs = "SELECT wrkSubQ.* " +
+                usrLaunchedWfs = "SELECT " + getReturnColumns() +
                         "   FROM wrkSubQ " +
                         "   WHERE insert_user_xdat_user_id = :userId OR create_user = :username ";
                 if (Groups.isSiteAdmin(user)) {
@@ -285,36 +333,37 @@ public class WorkflowRepository implements PageableRepository {
             // Workflows user has launched and workflows associated with data user can read
             query = "WITH wrkSubQ AS " +
                     "   (" + wrkSubQ + "), " +
-                    "permSub1 AS (SELECT DISTINCT " +
-                    "   REGEXP_REPLACE(REGEXP_REPLACE(m.field, '(/project|/ID)$', ''), '/sharing/share$', '') AS data_type, " +
-                    "   m.field_value  AS project, " +
-                    "   m.read_element AS read, " +
-                    "   m.edit_element AS edit " +
-                    "       FROM xdat_field_mapping m " +
-                    "          LEFT JOIN xdat_field_mapping_set s ON m.xdat_field_mapping_set_xdat_field_mapping_set_id = s.xdat_field_mapping_set_id " +
-                    "          LEFT JOIN xdat_element_access a ON s.permissions_allow_set_xdat_elem_xdat_element_access_id = a.xdat_element_access_id " +
-                    "          LEFT JOIN xdat_usergroup g ON a.xdat_usergroup_xdat_usergroup_id = g.xdat_usergroup_id " +
-                    "          LEFT JOIN xdat_user_groupid i ON g.id = i.groupid " +
-                    "          LEFT JOIN xdat_user u ON i.groups_groupid_xdat_user_xdat_user_id = u.xdat_user_id " +
-                    "       WHERE u.login = :username AND (m.read_element = 1 OR m.edit_element = 1))," +
+                    "permSub1 AS (SELECT * FROM data_type_fns_get_user_access_by_project(:username)), " +
                     "permSub2 AS (SELECT 'arc:project'::varchar AS data_type, " +
-                    "   ap.arc_project_id::varchar AS project, " +
-                    "   permSub1.read, " +
-                    "   permSub1.edit " +
+                    "   ap.arc_project_id::varchar              AS project, " +
+                    "   FALSE                                   AS shared, " +
+                    "   permSub1.can_create, " +
+                    "   permSub1.can_read, " +
+                    "   permSub1.can_edit, " +
+                    "   permSub1.can_delete, " +
+                    "   permSub1.can_active " +
                     "       FROM permSub1 " +
-                    "           INNER JOIN arc_project ap ON permSub1.data_type = '" + XnatProjectdata.SCHEMA_ELEMENT_NAME + "' AND permSub1.project = ap.id), " +
-                    "permSubQ AS (SELECT * FROM permSub1 UNION SELECT * FROM permSub2)" +
+                    "           INNER JOIN arc_project ap ON permSub1.data_type = '" +
+                                    XnatProjectdata.SCHEMA_ELEMENT_NAME + "' AND permSub1.project = ap.id), " +
+                    "permSubQ AS (SELECT DISTINCT data_type, project, shared FROM " +
+                    "   (SELECT * FROM permSub1 UNION SELECT * FROM permSub2) AS dta " +
+                    "       WHERE dta.data_type IN (" + PROJECT_PLINE_DATATYPES + ") AND dta.can_edit " +
+                    "       OR dta.data_type NOT IN (" + PROJECT_PLINE_DATATYPES + ") AND dta.can_read)" +
                     usrLaunchedWfs +
-                    "SELECT wrkSubQ.* " +
+                    "SELECT DISTINCT " + getReturnColumns() +
                     "   FROM wrkSubQ " +
-                    "       INNER JOIN permSubQ " +
-                    "           ON (" +
-                    "              (permSubQ.data_type IN (" + PROJECT_PLINE_DATATYPES + ") AND permSubQ.edit = 1 AND " +
-                    "                   permSubQ.data_type = wrkSubQ.data_type AND permSubQ.project = wrkSubQ.id) " +
+                    "       INNER JOIN permSubQ ON " +
+                    "              (permSubQ.data_type IN (" + PROJECT_PLINE_DATATYPES + ") AND " +
+                    "                   permSubQ.data_type = wrkSubQ.data_type AND NOT permSubQ.shared AND " +
+                    "                   permSubQ.project = wrkSubQ.id) " +
                     "              OR " +
                     "              (permSubQ.data_type NOT IN (" + PROJECT_PLINE_DATATYPES + ") AND " +
-                    "                   permSubQ.data_type = wrkSubQ.data_type AND permSubQ.project = wrkSubQ.externalId)" +
-                    "           )";
+                    "                   permSubQ.data_type = wrkSubQ.data_type AND NOT permSubQ.shared AND " +
+                    "                   permSubQ.project = wrkSubQ.externalId) " +
+                    "               OR " +
+                    "              (permSubQ.data_type NOT IN (" + PROJECT_PLINE_DATATYPES + ") AND " +
+                    "                   permSubQ.data_type = wrkSubQ.data_type AND permSubQ.shared AND " +
+                    "                   permSubQ.project = wrkSubQ.shared_project) ";
         }
         return query;
     }
@@ -456,9 +505,9 @@ public class WorkflowRepository implements PageableRepository {
             qb = new StringBuilder();
         }
 
-        String constraints = "";
+        String constraints = null;
         if (addlConstraints != null && addlConstraints.length > 0) {
-            constraints = " AND " + StringUtils.join(addlConstraints," AND ");
+            constraints = StringUtils.join(addlConstraints," AND ");
         }
 
         List<String> dataTypes = jdbcTemplate.query("SELECT DISTINCT(data_type) FROM wrk_workflowData",
@@ -469,10 +518,12 @@ public class WorkflowRepository implements PageableRepository {
             String outname = "wrk" + i;
             String type = dataTypes.get(i);
             String tableName;
-            String timeStr = "md.insert_date as item_time";
+            String timeStr = "md.insert_date";
             String labelCol = "label";
             String idCol = "id";
             String mdJoin = null;
+            String sharedProjectJoin = null;
+            String sharedProjectCol = "NULL::varchar";
 
             SchemaElement se;
             try {
@@ -490,6 +541,9 @@ public class WorkflowRepository implements PageableRepository {
                 case XnatSubjectdata.SCHEMA_ELEMENT_NAME:
                     tableName = se.getSQLName();
                     mdJoin = getMetaDataJoinSQL(tableName, se);
+                    String[] sinfo = getSharedProjectJoinSQL(tableName, true);
+                    sharedProjectCol = sinfo[0];
+                    sharedProjectJoin = sinfo[1];
                     break;
                 case ArcProject.SCHEMA_ELEMENT_NAME:
                     tableName = se.getSQLName();
@@ -504,6 +558,9 @@ public class WorkflowRepository implements PageableRepository {
                     if (se.instanceOf(XnatExperimentdata.SCHEMA_ELEMENT_NAME)) {
                         tableName = experimentTable;
                         timeStr = getExperimentItemTimeSQL();
+                        String[] einfo = getSharedProjectJoinSQL(tableName, false);
+                        sharedProjectCol = einfo[0];
+                        sharedProjectJoin = einfo[1];
                     } else {
                         ArrayList pks = se.getAllPrimaryKeys();
                         if (pks.size() != 1) {
@@ -518,14 +575,23 @@ public class WorkflowRepository implements PageableRepository {
             }
 
             qb.append(unionStr);
-            qb.append(" SELECT " + outname + ".*, " + tableName + "." + labelCol + "::varchar AS label, " + timeStr +
-                    " FROM (SELECT * FROM wrk_workflowData WHERE data_type = '" + type + "' " + constraints + ") " +
+            qb.append(" SELECT * FROM (");
+            qb.append(" SELECT " + outname + ".*, " + tableName + "." + labelCol + "::varchar AS label, " +
+                    timeStr + " AS item_time, " + sharedProjectCol + " AS shared_project " +
+                    " FROM (SELECT * FROM wrk_workflowData WHERE data_type = '" + type + "') " +
                     "AS " + outname + " LEFT JOIN " + tableName + " ON " + outname + ".id = " +
                     tableName + "." + idCol + "::varchar");
             if (mdJoin != null) {
                 qb.append(mdJoin);
             }
-            unionStr = " UNION";
+            if (sharedProjectJoin != null) {
+                qb.append(sharedProjectJoin);
+            }
+            qb.append(") AS " + outname + "F ");
+            if (constraints != null) {
+                qb.append(" WHERE " + constraints);
+            }
+            unionStr = " UNION ";
         }
         return qb.toString();
     }
@@ -547,8 +613,7 @@ public class WorkflowRepository implements PageableRepository {
         return "CASE " +
                 "WHEN xnat_experimentdata.date IS null THEN null::timestamp " +
                 "ELSE nullif(concat_ws(' ', xnat_experimentdata.date, xnat_experimentdata.time),'')::timestamp " +
-                "END " +
-                "AS item_time";
+                "END ";
     }
 
     /**
@@ -560,6 +625,54 @@ public class WorkflowRepository implements PageableRepository {
     private String getMetaDataJoinSQL(String tableName, SchemaElement se) {
         return " LEFT JOIN " + tableName + "_meta_data md ON " + tableName +
                 "." + se.getGenericXFTElement().getName() + "_info = md.meta_data_id";
+    }
+
+    /**
+     * Get join SQL for adding project share table
+     * @param tableName the table
+     * @param isSubject subject data?
+     * @return the name of the joined table and SQL join string
+     */
+    private static String[] getSharedProjectJoinSQL(String tableName, boolean isSubject) {
+        String joinedTableName;
+        String sql;
+        if (isSubject) {
+            joinedTableName = "pp";
+            sql = " LEFT JOIN xnat_projectparticipant " + joinedTableName +
+                    " ON " + tableName + ".id = " + joinedTableName+ ".subject_id ";
+        } else {
+            joinedTableName = "es";
+            sql = " LEFT JOIN xnat_experimentdata_share " + joinedTableName +
+                    " ON " + tableName + ".id = " + joinedTableName + ".sharing_share_xnat_experimentda_id ";
+        }
+        return new String[]{joinedTableName + ".project", sql};
+    }
+    
+    private String getReturnColumns() {
+        return "wrk_workflowdata_id, " +
+                "          id, " +
+                "          label, " +
+                "          item_time, " +
+                "          externalid, " +
+                "          pipeline_name, " +
+                "          wrkSubQ.data_type, " +
+                "          comments, " +
+                "          details, " +
+                "          justification, " +
+                "          description, " +
+                "          src, " +
+                "          type, " +
+                "          category, " +
+                "          current_step_launch_time, " +
+                "          launch_time, " +
+                "          current_step_id, " +
+                "          status, " +
+                "          create_user, " +
+                "          next_step_id, " +
+                "          step_description, " +
+                "          percentagecomplete, " +
+                "          jobid, " +
+                "          wrkSubQ.last_modified ";
     }
 
 }

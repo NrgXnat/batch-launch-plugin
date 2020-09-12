@@ -44,6 +44,7 @@ public class XDATScreen_bulk_action extends SecureScreen {
             final List<String> scanTypes = SearchXMLBuilder.getItemList(data, "scan_types");
             try {
                 context.put("xss", (new SearchXMLBuilder()).execute(Collections.singletonList(project), dataType, user, String.format(SEARCH_TEMPLATE, dataType, project), job, resources, scanTypes));
+                context.put("projectId", project);
             } catch (XFTInitException | ElementNotFoundException e) {
                 throw new ClientException("Issue generating search xml", e);
             }
