@@ -422,7 +422,7 @@ console.log('bulklauncher.js');
                         }
                     }
 
-                    var itemid = uri.replace(/\/archive\/[^\/]*/).replace(/\/scans\//, '-');
+                    var itemid = uri.replace(/\/archive\/[^\/]*\//, '').replace(/\/scans\//, '-');
                     var single_select_checkbox_id = "select-" + itemid;
                     var id_json = JSON.stringify({
                         uri: uri,
