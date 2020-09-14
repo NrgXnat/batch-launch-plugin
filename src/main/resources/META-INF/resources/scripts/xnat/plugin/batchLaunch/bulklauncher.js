@@ -76,7 +76,8 @@ console.log('bulklauncher.js');
 
             // Grab text from table into CSV formatted string
             csv = '"' + $rows.map(function (i, row) {
-                var $row = $(row), $cols = $row.find('td:not(.element-selector),th:not(.toggle-all)');
+                var $row = $(row), $cols = $row.find('td:not(.element-selector):not(:hidden),' +
+                    'th:not(.toggle-all):not(:hidden)');
 
                 return $cols.map(function (j, col) {
                     var $col = $(col), text = $col.text();
