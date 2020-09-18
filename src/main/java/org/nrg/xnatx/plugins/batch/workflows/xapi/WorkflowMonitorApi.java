@@ -9,6 +9,8 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import io.swagger.annotations.*;
 import org.nrg.action.ClientException;
 import org.nrg.action.ServerException;
+import org.nrg.containers.exceptions.DockerServerException;
+import org.nrg.containers.exceptions.NoDockerServerException;
 import org.nrg.framework.ajax.sql.SortOrFilterException;
 import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xnat.archive.ResourceData;
@@ -565,7 +567,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     @ApiOperation(value = "Gets the log file for a given workflow")
     @ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(value = "/{workflowid}/logs/{file}", method = RequestMethod.GET, produces = {MediaType.TEXT_PLAIN_VALUE})
-    public ResponseEntity<String> getFile(@PathVariable("workflowid") final String workflowId, final @PathVariable("file") @ApiParam(allowableValues = "stdout, stderr") String file) throws NoContentException, NotFoundException, ServerException {
+    public ResponseEntity<String> getFile(@PathVariable("workflowid") final String workflowId, final @PathVariable("file") @ApiParam(allowableValues = "stdout, stderr") String file) throws NoContentException, NotFoundException, ServerException, DockerServerException, NoDockerServerException {
         //Get the workflow
         final UserI user = getSessionUser();
         PersistentWorkflowI wrkFlow = WorkflowUtils.getUniqueWorkflow(user, workflowId);
