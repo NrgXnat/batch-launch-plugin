@@ -1,4 +1,4 @@
-## Copyright 2019 Radiologics, Inc
+## 
 
 #parse("/screens/workflow_table.vm")
 

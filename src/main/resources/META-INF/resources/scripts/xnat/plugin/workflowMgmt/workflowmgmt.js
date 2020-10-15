@@ -1,5 +1,4 @@
 /*
- * Copyright 2019 Radiologics, Inc
  */
 
 var XNAT = getObject(XNAT || {});

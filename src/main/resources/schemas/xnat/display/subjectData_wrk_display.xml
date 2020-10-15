@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright 2019 Radiologics, Inc
+
   -->
 <Displays xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xdat/display.xsd" schema-element="xnat:subjectData" full-description="Subject" brief-description="Subject">
 	<DisplayField id="WRK_STATUS" header="STATUS" visible="true" searchable="false" data-type="string" xsi:type="SubQueryField">

@@ -1,5 +1,4 @@
 /*
- * Copyright 2019 Radiologics, Inc
  */
 
 $(document).ready(function() {

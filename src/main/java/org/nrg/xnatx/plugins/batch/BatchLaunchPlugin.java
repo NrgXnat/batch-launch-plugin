@@ -1,4 +1,3 @@
-// Copyright 2019 Radiologics, Inc
 
 package org.nrg.xnatx.plugins.batch;
 

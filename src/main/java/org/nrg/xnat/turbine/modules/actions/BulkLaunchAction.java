@@ -1,4 +1,3 @@
-// Copyright 2019 Radiologics, Inc
 // Developer: Mohana Ramaratnam <mohana@radiologics.com>
 
 package org.nrg.xnat.turbine.modules.actions;

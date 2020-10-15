@@ -1,4 +1,4 @@
-## Copyright 2019 Radiologics, Inc
+## 
 
 #* @vtlvariable name="user" type="org.nrg.xdat.security.XDATUser" *#
 #* @vtlvariable name="siteConfig" type="org.nrg.xdat.preferences.SiteConfigPreferences" *#
