@@ -38,7 +38,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
         return status === "Complete" || status.includes('(Dismissed)');
     };
     XNAT.plugin.batchLaunch.isWorkflowQueued = function(status) {
-        return status.includes("Queued");
+        return status.includes("Queued") || status.includes("Staging");
     };
     XNAT.plugin.batchLaunch.isWorkflowFinalizing = function(status) {
         return status.includes("Finalizing") || status.includes("Waiting");
