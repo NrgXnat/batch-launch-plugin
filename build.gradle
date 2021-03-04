@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        vXnat = "1.8.0-SNAPSHOT"
+        vXnat = "1.8.0"
     }
     repositories {
         mavenLocal()
@@ -24,7 +24,7 @@ apply plugin: "io.franzbecker.gradle-lombok"
 apply plugin: "xnat-data-builder"
 
 group "org.nrg.xnatx.plugins"
-version "0.4.0-RC1"
+version "0.4.0"
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -50,7 +50,7 @@ dependencies {
     // Even though container-service plugin version is specified in the parent
     // BOM, it needs to be added here because the copyPlugins task in docker-compose
     // won't resolve it properly against the BOM.
-    implementation "org.nrg.xnatx.plugins:container-service:3.0.0-RC1:fat"
+    implementation "org.nrg.xnatx.plugins:container-service:3.0.0:fat"
 
     implementation "org.nrg.xnat:web"
     implementation "io.springfox:springfox-swagger2"
