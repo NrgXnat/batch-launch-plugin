@@ -14,6 +14,7 @@ buildscript {
         gradleApi()
         classpath "io.franzbecker:gradle-lombok:4.0.0"
         classpath "org.nrg.xnat.build:xnat-data-builder:${vXnat}"
+    	classpath 'com.github.jk1:gradle-license-report:1.16'
     }
 }
 
@@ -22,6 +23,7 @@ apply plugin: "maven-publish"
 apply plugin: "eclipse"
 apply plugin: "io.franzbecker.gradle-lombok"
 apply plugin: "xnat-data-builder"
+apply plugin: 'com.github.jk1.dependency-license-report'
 
 group "org.nrg.xnatx.plugins"
 version "0.3.0"
