@@ -10,7 +10,11 @@ import org.nrg.action.ClientException;
 import org.nrg.containers.model.command.auto.Command.CommandWrapper;
 import org.nrg.containers.model.command.auto.Command.CommandWrapperOutput;
 import org.nrg.containers.model.command.auto.CommandSummaryForContext;
+import org.nrg.containers.model.orchestration.auto.Orchestration;
 import org.nrg.containers.services.CommandService;
+import org.nrg.containers.services.OrchestrationEntityService;
+import org.nrg.framework.constants.Scope;
+import org.nrg.framework.exceptions.NotFoundException;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.ArcProjectDescendantI;
 import org.nrg.xdat.model.ArcProjectDescendantPipelineI;
@@ -26,10 +30,7 @@ import org.restlet.data.Status;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 @Slf4j
 public class SearchXMLBuilder {
@@ -225,14 +226,38 @@ public class SearchXMLBuilder {
 		return resources;
 	}
 
-	private List<String> containerWrappersForDataType(List<String> projects, String xsiType, UserI user)
+	private Set<String> containerWrappersForDataType(List<String> projects, String xsiType, UserI user)
 			throws ElementNotFoundException {
-		List<String> wrapperNames = new ArrayList<>();
 		CommandService cmdService = XDAT.getContextService().getBean(CommandService.class);
-		for(String project: projects){
+		Set<String> wrapperNames = new LinkedHashSet<>();
+		if (projects.size() == 1) {
+			// List wrappers in orchestration order if we have one
+			OrchestrationEntityService oes = XDAT.getContextService().getBean(OrchestrationEntityService.class);
+			String project = projects.get(0);
+			Map<Long, String> unordered = new HashMap<>();
 			List<CommandSummaryForContext> cmdSummary = cmdService.available(project, xsiType, user);
-			for (CommandSummaryForContext c:cmdSummary) {
-				if(!wrapperNames.contains(c.wrapperName())){
+			for (CommandSummaryForContext c : cmdSummary) {
+				unordered.put(c.wrapperId(), c.wrapperName());
+			}
+			try {
+				Orchestration orchestration = oes.find(Scope.Project, project);
+				for (Long id : orchestration.getWrapperIds()) {
+					if (!unordered.containsKey(id)) {
+						// orchestration context isn't this xsiType, revert to default
+						break;
+					}
+					wrapperNames.add(unordered.get(id));
+					unordered.remove(id);
+				}
+			} catch (NotFoundException e) {
+				// No orchestration, revert to default
+			}
+			// Add any wrappers that aren't orchestrated
+			wrapperNames.addAll(unordered.values());
+		} else {
+			for (String project : projects) {
+				List<CommandSummaryForContext> cmdSummary = cmdService.available(project, xsiType, user);
+				for (CommandSummaryForContext c : cmdSummary) {
 					wrapperNames.add(c.wrapperName());
 				}
 			}
