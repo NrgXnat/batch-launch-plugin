@@ -633,7 +633,8 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public ResponseEntity<String> killActive(@PathVariable final String containerName,
-                @RequestParam("elements[]") List<String> elements) throws ClientException, ServerException {
+                                             @RequestParam("elements[]") List<String> elements)
+            throws ClientException, ServerException {
 
         if (elements.isEmpty()) {
             throw new ClientException("No elements specified");
@@ -649,7 +650,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             if (isFirst) {
                 isFirst = false;
                 ResourceData resourceData = catalogService.getResourceDataFromUri(uri);
-                if (!checkAccess("edit", user, resourceData.getItem())) {
+                if (!checkAccess("read", user, resourceData.getItem())) {
                     failureMessages.add("Insufficient permissions to terminate " + containerName + " workflows for " +
                             uri + ". It's likely that attempts to terminate other elements will also fail.");
                     errMsg = "; however, termination may fail due to permissions";
@@ -664,8 +665,8 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
                     try {
                         ResourceData resourceData = catalogService.getResourceDataFromUri(uri);
                         item = resourceData.getItem();
-                        if (!checkAccess("edit", user, item)) {
-                            log.error("User {} doesn't have edit permissions for {}", user.getLogin(), uri);
+                        if (!checkAccess("read", user, item)) {
+                            log.error("User {} doesn't have read permissions for {}", user.getLogin(), uri);
                             return;
                         }
                     } catch (ClientException e) {
@@ -677,7 +678,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
                         flag = true;
                         try {
                             killJob(wrk, user);
-                        } catch (ServerException|ClientException e) {
+                        } catch (ServerException|ClientException|InsufficientPrivilegesException e) {
                             log.error("Unable to kill {} workflow {}", uri, wrk.getWorkflowId(), e);
                         }
                     }
@@ -720,9 +721,6 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
      */
     private String killJob(String workflowId, UserI user) throws Exception {
         PersistentWorkflowI wrkFlow = getWorkflowById(workflowId, user); //Throws exception if null
-        if (!checkAccess("edit", user, wrkFlow.getId(), wrkFlow.getDataType())) {
-            throw new ClientException("Insufficient privilege");
-        }
         return killJob(wrkFlow, user);
     }
 
@@ -732,10 +730,14 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
      * @param user      the user
      * @return  string status
      */
-    private String killJob(PersistentWorkflowI wrkFlow, UserI user) throws ServerException, ClientException {
+    private String killJob(PersistentWorkflowI wrkFlow, UserI user)
+            throws ServerException, ClientException, InsufficientPrivilegesException {
         String rtn;
         if (workflowService.getWorkflowType(wrkFlow) == WorkflowService.WorkflowType.CONTAINER) {
             String containerId = workflowService.getContainerId(wrkFlow);
+            if (!containerService.canKill(containerId, user)) {
+                throw new InsufficientPrivilegesException(user.getUsername());
+            }
             try {
                 rtn = containerService.kill(containerId, user);
             } catch (Exception e) {
