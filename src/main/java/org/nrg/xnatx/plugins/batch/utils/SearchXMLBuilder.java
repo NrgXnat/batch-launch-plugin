@@ -12,9 +12,7 @@ import org.nrg.containers.model.command.auto.Command.CommandWrapperOutput;
 import org.nrg.containers.model.command.auto.CommandSummaryForContext;
 import org.nrg.containers.model.orchestration.auto.Orchestration;
 import org.nrg.containers.services.CommandService;
-import org.nrg.containers.services.OrchestrationEntityService;
-import org.nrg.framework.constants.Scope;
-import org.nrg.framework.exceptions.NotFoundException;
+import org.nrg.containers.services.OrchestrationService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.ArcProjectDescendantI;
 import org.nrg.xdat.model.ArcProjectDescendantPipelineI;
@@ -232,15 +230,15 @@ public class SearchXMLBuilder {
 		Set<String> wrapperNames = new LinkedHashSet<>();
 		if (projects.size() == 1) {
 			// List wrappers in orchestration order if we have one
-			OrchestrationEntityService oes = XDAT.getContextService().getBean(OrchestrationEntityService.class);
+			OrchestrationService orchestrationService = XDAT.getContextService().getBean(OrchestrationService.class);
 			String project = projects.get(0);
 			Map<Long, String> unordered = new HashMap<>();
 			List<CommandSummaryForContext> cmdSummary = cmdService.available(project, xsiType, user);
 			for (CommandSummaryForContext c : cmdSummary) {
 				unordered.put(c.wrapperId(), c.wrapperName());
 			}
-			try {
-				Orchestration orchestration = oes.find(Scope.Project, project);
+			Orchestration orchestration = orchestrationService.findForProject(project);
+			if (orchestration != null) {
 				for (Long id : orchestration.getWrapperIds()) {
 					if (!unordered.containsKey(id)) {
 						// orchestration context isn't this xsiType, revert to default
@@ -249,8 +247,6 @@ public class SearchXMLBuilder {
 					wrapperNames.add(unordered.get(id));
 					unordered.remove(id);
 				}
-			} catch (NotFoundException e) {
-				// No orchestration, revert to default
 			}
 			// Add any wrappers that aren't orchestrated
 			wrapperNames.addAll(unordered.values());
