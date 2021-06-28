@@ -1,14 +1,24 @@
+/*
+ * xnatx-batch-launch-plugin: build.gradle
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2017-2021, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ */
+
 buildscript {
     ext {
         vXnat = "1.8.3-SNAPSHOT"
     }
     repositories {
         mavenLocal()
-        maven { url "https://plugins.gradle.org/m2" }
-        mavenCentral()
-        jcenter()
+        gradlePluginPortal()
+        maven { url "https://nrgxnat.jfrog.io/nrgxnat/gradle-plugins-release" }
+        maven { url "https://nrgxnat.jfrog.io/nrgxnat/gradle-plugins-snapshot" }
         maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
         maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
+        mavenCentral()
     }
     dependencies {
         gradleApi()
