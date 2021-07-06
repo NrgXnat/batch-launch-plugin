@@ -4,7 +4,7 @@
 
 #set($xsiTypes = [])
 #if($data.getSession().getAttribute("userHelper").canRead("xnat:subjectData/project","$om.getId()"))
-	#if($om.getParticipants_participant().size() > 0)
+	#if($om.getSubjectCount() > 0)
 		#set($junk = $xsiTypes.add("xnat:subjectData"))
 	#end
 #end
