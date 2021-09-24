@@ -23,7 +23,7 @@
 	</li>
 #elseif($xsiTypes.size() > 1)
 	<script type="application/javascript">
-		const procDashTableId = 'processing-dashboard-dttable';
+		const procDashTableId = '#processing-dashboard-dttable';
 		$(document).ready(function(){
 			let data = [];
 			#foreach ($xsiType in $xsiTypes)
@@ -60,24 +60,21 @@
 					item: 'list-item'
 				}
 			});
-
-			const datatypeList = spawn('div#' + procDashTableId, {
+			const datatypeList = spawn('div' + procDashTableId, {
 				style: "position: absolute; display:none;"
-			}, spawn('ul', {classes: 'shadowed dark-shadow'}, menuItem));
+			}, spawn('ul', {
+				classes: 'shadowed dark-shadow'
+			}, menuItem));
 			$('a#processing-dashboard-link').append(datatypeList.element);
 		});
-
-		$(document).on('mouseenter', '#processing-dashboard-link', function(){
-			$('div#' + procDashTableId).show();
+		$(document).on('mouseenter', '#processing-dashboard', function() {
+			$('div' + procDashTableId).show();
 		});
-		$(document).on('mouseleave', '#processing-dashboard-link', function(){
-			let procTable = $('div#' + procDashTableId);
-			if (!procTable.is(':hover')) {
+		$(document).on('mouseleave', '#processing-dashboard, ' + procDashTableId, function() {
+			let procTable = $('div' + procDashTableId);
+			if (!procTable.is(':hover') && !$('#processing-dashboard').is(':hover')) {
 				procTable.hide();
 			}
-		});
-		$(document).on('mouseleave', 'div#' + procDashTableId, function(){
-			$(this).hide();
 		});
 	</script>
 	<style>
