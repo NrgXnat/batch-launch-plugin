@@ -11,33 +11,25 @@ buildscript {
     ext {
         vXnat = "1.8.4-SNAPSHOT"
     }
-    repositories {
-        mavenLocal()
-        gradlePluginPortal()
-        maven { url "https://nrgxnat.jfrog.io/nrgxnat/gradle-plugins-release" }
-        maven { url "https://nrgxnat.jfrog.io/nrgxnat/gradle-plugins-snapshot" }
-        maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
-        maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
-        mavenCentral()
-    }
-    dependencies {
-        gradleApi()
-        classpath "io.franzbecker:gradle-lombok:4.0.0"
-        classpath "org.nrg.xnat.build:xnat-data-builder:${vXnat}"
-    }
 }
 
-apply plugin: "java"
-apply plugin: "maven-publish"
-apply plugin: "eclipse"
-apply plugin: "io.franzbecker.gradle-lombok"
-apply plugin: "xnat-data-builder"
+plugins {
+    id "eclipse"
+    id "groovy"
+    id "idea"
+    id "java-library"
+    id "maven-publish"
+    id "com.dorongold.task-tree" version "1.5"
+    id "com.palantir.git-version" version "0.12.1"
+    id "io.franzbecker.gradle-lombok" version "4.0.0"
+    id "io.spring.dependency-management" version "1.0.11.RELEASE"
+    id "net.linguica.maven-settings" version "0.5"
+    id "org.nrg.xnat.build.xnat-data-builder" version "1.8.3"
+}
 
 group "org.nrg.xnatx.plugins"
 version "0.6.0-SNAPSHOT"
-
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+description "XNAT Batch Launch Plugin"
 
 repositories {
     mavenLocal()
@@ -46,10 +38,13 @@ repositories {
     mavenCentral()
 }
 
-configurations.all {
-    exclude group: "javax.sql"
-    exclude group: "javax.transaction"
-    exclude group: "javax.jms"
+configurations {
+    all {
+        exclude group: "javax.sql"
+        exclude group: "javax.transaction"
+        exclude group: "javax.jms"
+    }
+    implementation.extendsFrom(implementAndInclude)
 }
 
 dependencies {
@@ -64,14 +59,91 @@ dependencies {
     implementation "io.springfox:springfox-swagger2"
 }
 
-task sourceJar(type: Jar, dependsOn: classes) {
-    classifier "sources"
-    from sourceSets.main.allSource
+// Pulls in the Jenkins BUILD_NUMBER environment variable if available.
+def buildDate = new Date()
+def buildNumber = System.getenv().BUILD_NUMBER?.toInteger() ?: "Manual"
+def isDirty, branchName, gitHash, gitHashFull, commitDistance, lastTag, isCleanTag
+
+try {
+    def gitDetails = versionDetails()
+    isDirty = gitVersion().endsWith ".dirty"
+    branchName = gitDetails.branchName ?: "Unknown"
+    gitHash = gitDetails.gitHash
+    gitHashFull = gitDetails.gitHashFull
+    commitDistance = gitDetails.commitDistance
+    lastTag = gitDetails.lastTag
+    isCleanTag = gitDetails.isCleanTag
+} catch (IllegalArgumentException e) {
+    logger.info "Got an error trying to read VCS metadata from git. It's possible this project is not under VCS control. Using placeholder values for manifest entries."
+    isDirty = true
+    branchName = "Unknown"
+    gitHash = "None"
+    gitHashFull = "None"
+    commitDistance = 0
+    lastTag = "None"
+    isCleanTag = false
 }
 
-task javadocJar(type: Jar) {
-    classifier "javadoc"
-    from javadoc.destinationDir
+ext.gitManifest = manifest {
+    attributes "Application-Name": project.description,
+            "Build-Date": buildDate,
+            "Build-Number": buildNumber,
+            "Implementation-Version": project.version,
+            "Implementation-Sha": gitHash,
+            "Implementation-Sha-Full": gitHashFull,
+            "Implementation-Commit": commitDistance,
+            "Implementation-LastTag": lastTag,
+            "Implementation-Branch": branchName,
+            "Implementation-CleanTag": isCleanTag,
+            "Implementation-Dirty": isDirty
+}
+
+logger.info """
+Building artifacts with manifest attributes:
+
+ * Build-Date:              ${buildDate}
+ * Build-Number:            ${buildNumber}
+ * Implementation-Version:  ${version}
+ * Implementation-Sha-Full: ${gitHashFull}
+ * Implementation-Sha:      ${gitHash}
+ * Implementation-Commit:   ${commitDistance}
+ * Implementation-LastTag:  ${lastTag}
+ * Implementation-Branch:   ${branchName}
+ * Implementation-CleanTag: ${isCleanTag}
+ * Implementation-Dirty:    ${isDirty}
+"""
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+
+    manifest {
+        from gitManifest
+    }
+
+    withSourcesJar()
+    withJavadocJar()
+}
+
+task xnatPluginJar(type: Jar) {
+    dependsOn sourcesJar, javadocJar
+    zip64 true
+    archiveClassifier.set "xpl"
+    manifest {
+        from gitManifest
+    }
+    // files and folders with "-dev" or "--xx" in their name
+    // will not be in the compiled jar
+    exclude "**/resources/**/*-dev**"
+    exclude "**/resources/**/*--xx**"
+    from {
+        configurations.implementAndInclude.collect { it.isDirectory() ? it : zipTree(it) }
+    } {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+    with jar
 }
 
 publishing {
@@ -80,7 +152,7 @@ publishing {
             from components.java
 
             artifacts {
-                artifact sourceJar
+                artifact sourcesJar
                 artifact javadocJar
             }
 
