@@ -1,5 +1,11 @@
 ## Copyright 2019 Radiologics, Inc
 
+#set($preventSort=false)
+<script>
+    XNAT.plugin.batchLaunch.workflowTable =getObject(XNAT.plugin.batchLaunch.workflowTable || {});
+    XNAT.plugin.batchLaunch.workflowTable.sortable=true;
+    XNAT.plugin.batchLaunch.workflowTable.days=-1;
+</script>
 #parse("/screens/workflow_table.vm")
 
 <div>

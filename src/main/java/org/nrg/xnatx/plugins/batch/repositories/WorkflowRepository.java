@@ -45,6 +45,8 @@ public class WorkflowRepository implements PageableRepository {
     private long workflowDurationMapExpiration = System.currentTimeMillis();
     private int WF_DURATION_EXP_SEC = 14400; // 4 hours
 
+    private static final String wrkFields=" wrk.wrk_workflowdata_id,wrk.id,wrk.externalid,wrk.pipeline_name,wrk.data_type,wrk.details,wrk.launch_time,wrk.status,wrk.step_description,wrk.percentagecomplete ";
+
     private static final List<String> inactiveStatuses = Arrays.asList(PersistentWorkflowUtils.COMPLETE,
             PersistentWorkflowUtils.FAILED, PersistentWorkflowUtils.QUEUED, ContainerServiceImpl.CREATED);
 
@@ -67,27 +69,16 @@ public class WorkflowRepository implements PageableRepository {
             .put("wrk_workflowdata_id", new ColumnDataType("wfid", int.class))
             .put("id", new ColumnDataType("id", String.class))
             .put("label", new ColumnDataType("label", String.class))
-            .put("item_time", new ColumnDataType("itemTime", Timestamp.class))
             .put("externalid", new ColumnDataType("externalId", String.class))
             .put("pipeline_name", new ColumnDataType("pipelineName", String.class))
             .put("data_type", new ColumnDataType("dataType", String.class))
-            .put("comments", new ColumnDataType("comments", String.class))
             .put("details", new ColumnDataType("details", String.class))
-            .put("justification", new ColumnDataType("justification", String.class))
-            .put("description", new ColumnDataType("description", String.class))
-            .put("src", new ColumnDataType("src", String.class))
-            .put("type", new ColumnDataType("type", String.class))
-            .put("category", new ColumnDataType("category", String.class))
-            .put("current_step_launch_time", new ColumnDataType("currentStepLaunchTime", Timestamp.class))
             .put("launch_time", new ColumnDataType("launchTime", Timestamp.class))
-            .put("current_step_id", new ColumnDataType("currentStepId", String.class))
             .put("status", new ColumnDataType("status", String.class))
-            .put("create_user", new ColumnDataType("createUser", String.class))
-            .put("next_step_id", new ColumnDataType("nextStepId", String.class))
             .put("step_description", new ColumnDataType("stepDescription", String.class))
             .put("percentagecomplete", new ColumnDataType("percentageComplete", String.class))
-            .put("jobid", new ColumnDataType("jobId", String.class))
             .put("last_modified", new ColumnDataType("modTime", Timestamp.class))
+            .put("create_user", new ColumnDataType("createUser", String.class))
             .build();
 
     private static final RowMapper<Workflow> WF_ROW_MAPPER = new RowMapper<Workflow>() {
@@ -115,12 +106,12 @@ public class WorkflowRepository implements PageableRepository {
 
     // Pipelines for project or for entries within project (experiments, subjects, etc)
     @Language("SQL")
-    public static final String QUERY_PROJECT_WFS = "SELECT wrk.*, p.id AS label, md.insert_date as item_time FROM " +
+    public static final String QUERY_PROJECT_WFS = "SELECT " + wrkFields + ", workflowData_info, p.id AS label, md.insert_date as item_time FROM " +
             "wrk_workflowData wrk INNER JOIN xnat_projectdata p ON p.id = wrk.id LEFT JOIN " +
             "xnat_projectdata_meta_data md ON p.projectdata_info = md.meta_data_id WHERE " +
             "wrk.id = :id AND wrk.data_type = '" +
             XnatProjectdata.SCHEMA_ELEMENT_NAME+ "' UNION " +
-            "SELECT wrk.*, p.id AS label, md.insert_date as item_time FROM " +
+            "SELECT " + wrkFields + ", workflowData_info, p.id AS label, md.insert_date as item_time FROM " +
             "wrk_workflowData wrk INNER JOIN arc_project a ON a.arc_project_id::varchar = wrk.id " +
             "INNER JOIN xnat_projectdata p ON p.id = a.id LEFT JOIN " +
             "xnat_projectdata_meta_data md ON p.projectdata_info = md.meta_data_id WHERE " +
@@ -129,7 +120,7 @@ public class WorkflowRepository implements PageableRepository {
     // SQL from WorkflowBasedHistoryBuilder
     // Pipelines on subject
     @Language("SQL")
-    public static final String QUERY_SUBJECT_WFS = "SELECT wrk.*, s.label, md.insert_date AS item_time, " +
+    public static final String QUERY_SUBJECT_WFS = "SELECT " + wrkFields + ", s.label, md.insert_date AS item_time, " +
             "meta.last_modified FROM (SELECT * FROM wrk_workflowData WHERE id = :id OR " +
             "id IN (SELECT DISTINCT id FROM (SELECT sad.id FROM xnat_subjectassessordata sad WHERE subject_id=:id " +
             "UNION SELECT iad.id FROM xnat_subjectassessordata sad LEFT JOIN xnat_imageassessordata iad " +
@@ -145,7 +136,7 @@ public class WorkflowRepository implements PageableRepository {
 
     // Pipelines on experiment
     @Language("SQL")
-    public static final String QUERY_EXPT_WFS = "SELECT wrk.*, xnat_experimentdata.label, " + getExperimentItemTimeSQL() +
+    public static final String QUERY_EXPT_WFS = "SELECT " + wrkFields + ", xnat_experimentdata.label, " + getExperimentItemTimeSQL() +
             ", meta.last_modified FROM (SELECT * FROM wrk_workflowData WHERE id = :id OR " +
             "id IN (SELECT DISTINCT id FROM (SELECT iad.id FROM xnat_imageassessordata iad " +
             "WHERE iad.id IS NOT NULL AND iad.imagesession_id=:id UNION " +
@@ -198,7 +189,7 @@ public class WorkflowRepository implements PageableRepository {
         String query;
         switch(dataType) {
             case "xdat:user":
-                query = makeUserLevelQuery(user, namedParams);
+                query = makeUserLevelQuery(user, namedParams, request.getLimit(),request.getOffset(), request.getSortable(),request.getDays());
                 break;
             case XnatProjectdata.SCHEMA_ELEMENT_NAME:
                 namedParams.addValue("arcId",
@@ -216,7 +207,9 @@ public class WorkflowRepository implements PageableRepository {
                 break;
         }
         query = "SELECT * FROM (" + query + ") AS q"; //Allow for WHERE in query suffix
-        query += request.getQuerySuffix(namedParams);
+        if(request.getSortable()) {
+            query += request.getQuerySuffix(namedParams);
+        }
 
         List<Workflow> wfs = jdbcTemplate.query(query, namedParams, WF_ROW_MAPPER);
 
@@ -237,12 +230,16 @@ public class WorkflowRepository implements PageableRepository {
      * @throws Exception for issues collecting datatypes
      */
     @Language("SQL")
-    private String makeUserLevelQuery(UserI user, MapSqlParameterSource namedParams) throws Exception {
+    private String makeUserLevelQuery(UserI user, MapSqlParameterSource namedParams, int limit, int offset, Boolean sortable, int days) throws Exception {
         @Language("SQL") String query;
-        @Language("SQL") String wrkSubQ = "SELECT wrkSub.*, meta.last_modified, meta.insert_user_xdat_user_id " +
-                "           FROM (" + buildQueryWithDataTypeLabels() + ") AS wrkSub " +
+        @Language("SQL") String wrkSubQ = "SELECT " + wrkFields + ", meta.last_modified, meta.insert_user_xdat_user_id, u.login as create_user " +
+                "           FROM (" + buildQueryWithDataTypeLabels() + ") AS wrk " +
                 "               LEFT JOIN wrk_workflowdata_meta_data meta " +
-                "                   ON wrkSub.workflowData_info = meta.meta_data_id";
+                "                   ON wrk.workflowData_info = meta.meta_data_id\n" +
+                "               LEFT JOIN xdat_user u ON meta.insert_user_xdat_user_id=u.xdat_user_id";
+        if(days>0) {
+            wrkSubQ+= "               WHERE wrk.launch_time > (NOW() - INTERVAL '" + days + " days')";
+        }
         if (Groups.isDataAdmin(user)) {
             // Access to all workflows across the whole site
             query = wrkSubQ;
@@ -252,44 +249,85 @@ public class WorkflowRepository implements PageableRepository {
                 // Add site admin workflows
                 adminWfs = " OR wrkSubQ.externalId = '" + PersistentWorkflowUtils.ADMIN_EXTERNAL_ID + "' ";
             }
-            namedParams.addValue("userId", user.getID())
-                    .addValue("username", user.getLogin());
-            // Workflows user has launched and workflows associated with data user can read
-            query = "WITH wrkSubQ AS " +
-                    "   (" + wrkSubQ + "), " +
-                    "permSub1 AS (SELECT DISTINCT " +
-                    "   REGEXP_REPLACE(REGEXP_REPLACE(m.field, '(/project|/ID)$', ''), '/sharing/share$', '') AS data_type, " +
-                    "   m.field_value  AS project, " +
-                    "   m.read_element AS read, " +
-                    "   m.edit_element AS edit " +
-                    "       FROM xdat_field_mapping m " +
-                    "          LEFT JOIN xdat_field_mapping_set s ON m.xdat_field_mapping_set_xdat_field_mapping_set_id = s.xdat_field_mapping_set_id " +
-                    "          LEFT JOIN xdat_element_access a ON s.permissions_allow_set_xdat_elem_xdat_element_access_id = a.xdat_element_access_id " +
-                    "          LEFT JOIN xdat_usergroup g ON a.xdat_usergroup_xdat_usergroup_id = g.xdat_usergroup_id " +
-                    "          LEFT JOIN xdat_user_groupid i ON g.id = i.groupid " +
-                    "          LEFT JOIN xdat_user u ON i.groups_groupid_xdat_user_xdat_user_id = u.xdat_user_id " +
-                    "       WHERE u.login = :username AND (m.read_element = 1 OR m.edit_element = 1))," +
-                    "permSub2 AS (SELECT 'arc:project'::varchar AS data_type, " +
-                    "   ap.arc_project_id::varchar AS project, " +
-                    "   permSub1.read, " +
-                    "   permSub1.edit " +
-                    "       FROM permSub1 " +
-                    "           INNER JOIN arc_project ap ON permSub1.data_type = '" + XnatProjectdata.SCHEMA_ELEMENT_NAME + "' AND permSub1.project = ap.id), " +
-                    "permSubQ AS (SELECT * FROM permSub1 UNION SELECT * FROM permSub2)" +
-                    "SELECT wrkSubQ.* " +
-                    "   FROM wrkSubQ " +
-                    "   WHERE insert_user_xdat_user_id = :userId OR create_user = :username " + adminWfs +
-                    "UNION " +
-                    "SELECT wrkSubQ.* " +
-                    "   FROM wrkSubQ " +
-                    "       INNER JOIN permSubQ " +
-                    "           ON (" +
-                    "              (permSubQ.data_type IN (" + PROJECT_PLINE_DATATYPES + ") AND permSubQ.edit = 1 AND " +
-                    "                   permSubQ.data_type = wrkSubQ.data_type AND permSubQ.project = wrkSubQ.id) " +
-                    "              OR " +
-                    "              (permSubQ.data_type NOT IN (" + PROJECT_PLINE_DATATYPES + ") AND " +
-                    "                   permSubQ.data_type = wrkSubQ.data_type AND permSubQ.project = wrkSubQ.externalId)" +
-                    "           )";
+            if(sortable){
+                namedParams.addValue("userId", user.getID())
+                        .addValue("username", user.getLogin());
+                // Workflows user has launched and workflows associated with data user can read
+                query = "WITH wrkSubQ AS " +
+                        "   (" + wrkSubQ + "), " +
+                        "permSub1 AS (SELECT DISTINCT " +
+                        "   REGEXP_REPLACE(REGEXP_REPLACE(m.field, '(/project|/ID)$', ''), '/sharing/share$', '') AS data_type, " +
+                        "   m.field_value  AS project, " +
+                        "   m.read_element AS read, " +
+                        "   m.edit_element AS edit " +
+                        "       FROM xdat_field_mapping m " +
+                        "          LEFT JOIN xdat_field_mapping_set s ON m.xdat_field_mapping_set_xdat_field_mapping_set_id = s.xdat_field_mapping_set_id " +
+                        "          LEFT JOIN xdat_element_access a ON s.permissions_allow_set_xdat_elem_xdat_element_access_id = a.xdat_element_access_id " +
+                        "          LEFT JOIN xdat_usergroup g ON a.xdat_usergroup_xdat_usergroup_id = g.xdat_usergroup_id " +
+                        "          LEFT JOIN xdat_user_groupid i ON g.id = i.groupid " +
+                        "          LEFT JOIN xdat_user u ON i.groups_groupid_xdat_user_xdat_user_id = u.xdat_user_id " +
+                        "       WHERE u.login = :username AND (m.read_element = 1 OR m.edit_element = 1))," +
+                        "permSub2 AS (SELECT 'arc:project'::varchar AS data_type, " +
+                        "   ap.arc_project_id::varchar AS project, " +
+                        "   permSub1.read, " +
+                        "   permSub1.edit " +
+                        "       FROM permSub1 " +
+                        "           INNER JOIN arc_project ap ON permSub1.data_type = '" + XnatProjectdata.SCHEMA_ELEMENT_NAME + "' AND permSub1.project = ap.id), " +
+                        "permSubQ AS (SELECT * FROM permSub1 UNION SELECT * FROM permSub2)" +
+                        "SELECT wrkSubQ.* " +
+                        "   FROM wrkSubQ " +
+                        "   WHERE insert_user_xdat_user_id = :userId OR create_user = :username " + adminWfs +
+                        "UNION " +
+                        "SELECT wrkSubQ.* " +
+                        "   FROM wrkSubQ " +
+                        "       INNER JOIN permSubQ " +
+                        "           ON (" +
+                        "              (permSubQ.data_type IN (" + PROJECT_PLINE_DATATYPES + ") AND permSubQ.edit = 1 AND " +
+                        "                   permSubQ.data_type = wrkSubQ.data_type AND permSubQ.project = wrkSubQ.id) " +
+                        "              OR " +
+                        "              (permSubQ.data_type NOT IN (" + PROJECT_PLINE_DATATYPES + ") AND " +
+                        "                   permSubQ.data_type = wrkSubQ.data_type AND permSubQ.project = wrkSubQ.externalId)" +
+                        "           )";
+            }else {
+                namedParams.addValue("userId", user.getID()).addValue("rowLimit", limit).addValue("rowOffset", offset);
+                //workflows associated with data user can read
+                query = "WITH PERMS AS (\n" +
+                        "SELECT  m.field_value, a.element_Name\n" +
+                        "FROM xdat_field_mapping m\n" +
+                        "LEFT JOIN xdat_field_mapping_set s ON m.xdat_field_mapping_set_xdat_field_mapping_set_id = s.xdat_field_mapping_set_id\n" +
+                        "LEFT JOIN xdat_element_access a ON s.permissions_allow_set_xdat_elem_xdat_element_access_id = a.xdat_element_access_id\n" +
+                        "LEFT JOIN xdat_usergroup g ON a.xdat_usergroup_xdat_usergroup_id = g.xdat_usergroup_id\n" +
+                        "LEFT JOIN xdat_user_groupid i ON g.id = i.groupid\n" +
+                        "WHERE i.groups_groupid_xdat_user_xdat_user_id =:userId AND m.read_element=1 GROUP BY m.field_value, a.element_name\n" +
+                        "),\n" +
+                        "WRK AS (\n" +
+                        "SELECT wrk.*\n" +
+                        "FROM PERMS\n" +
+                        "LEFT JOIN wrk_workflowData wrk ON PERMS.element_name=wrk.data_type AND (PERMS.field_value=wrk.externalid OR PERMS.field_value=wrk.id)\n" +
+                        "WHERE wrk.wrk_workflowData_id IS NOT NULL\n";
+                if(days>0){
+                    query+=" AND wrk.launch_time > (NOW() - INTERVAL '" + days + " days') ";
+                }
+                query+= "GROUP BY wrk.wrk_workflowData_id ORDER BY wrk.wrk_workflowdata_id DESC LIMIT :rowLimit OFFSET :rowOffset\n" +
+                        ")\n" +
+                        "SELECt " + wrkFields + ", COALESCE(expt.label,subj.label,proj.ID) AS label, COALESCE(CASE WHEN expt.date IS null THEN null :: timestamp ELSE nullif(\n" +
+                        "concat_ws(\n" +
+                        "' ',\n" +
+                        "expt.date,\n" +
+                        "expt.time\n" +
+                        "),\n" +
+                        "''\n" +
+                        ") :: timestamp END, subj_meta.insert_date, proj_meta.insert_date) AS item_time, wrk_meta.last_modified, u.login AS create_user\n" +
+                        "FROM WRK\n" +
+                        "LEFT JOIN wrk_workflowdata_meta_data wrk_meta ON wrk.workflowdata_info=wrk_meta.meta_data_id\n" +
+                        "LEFT JOIN xdat_user u ON wrk_meta.insert_user_xdat_user_id=u.xdat_user_id\n" +
+                        "LEFT JOIN xnat_experimentData expt ON wrk.id=expt.id\n" +
+                        "LEFT JOIN xnat_experimentData_meta_data expt_meta ON expt.experimentData_info=expt_meta.meta_data_id\n" +
+                        "LEFT JOIN xnat_subjectData subj ON wrk.id=subj.id\n" +
+                        "LEFT JOIN xnat_subjectData_meta_data subj_meta ON subj.subjectData_info=subj_meta.meta_data_id\n" +
+                        "LEFT JOIN xnat_projectData proj ON wrk.id=proj.id\n" +
+                        "LEFT JOIN xnat_projectData_meta_data proj_meta ON proj.projectData_info=proj_meta.meta_data_id";
+            }
         }
         return query;
     }
@@ -376,9 +414,7 @@ public class WorkflowRepository implements PageableRepository {
      * @return      Worflow model object
      */
     public Workflow getWorkflow(PersistentWorkflowI wrk, UserI user) {
-        Date cslt = (wrk.getCurrentStepLaunchTime() instanceof Date) ? (Date) wrk.getCurrentStepLaunchTime() : null;
         String label;
-        Date itemTime;
         Date lastMod = null;
         try {
             lastMod = ((WrkWorkflowdata) wrk).getItem().getMeta().getDateProperty("last_modified");
@@ -391,26 +427,18 @@ public class WorkflowRepository implements PageableRepository {
             case XnatProjectdata.SCHEMA_ELEMENT_NAME:
                 XnatProjectdata proj = XnatProjectdata.getXnatProjectdatasById(wrk.getId(), user, false);
                 label = proj.getId();
-                itemTime = proj.getInsertDate();
                 break;
             case XnatSubjectdata.SCHEMA_ELEMENT_NAME:
                 XnatSubjectdata subj = XnatSubjectdata.getXnatSubjectdatasById(wrk.getId(), user, false);
                 label = subj.getLabel();
-                itemTime = subj.getInsertDate();
                 break;
             default:
                 XnatExperimentdata exp = XnatExperimentdata.getXnatExperimentdatasById(wrk.getId(), user, false);
                 label = exp.getLabel();
-                itemTime = exp.getInsertDate();
                 break;
         }
-        Workflow wf = new Workflow(wrk.getWorkflowId(), wrk.getId(), label, itemTime, wrk.getExternalid(),
-                wrk.getPipelineName(), wrk.getDataType(),
-                wrk.getComments(), wrk.getDetails(), wrk.getJustification(), null, null, wrk.getType(),
-                wrk.getCategory(), cslt, wrk.getLaunchTimeDate(), wrk.getCurrentStepId(), wrk.getStatus(),
-                wrk.getCreateUser(), null, wrk.getStepDescription(), wrk.getPercentagecomplete(),
-                null, lastMod
-        );
+        Workflow wf = new Workflow(wrk.getWorkflowId(), wrk.getId(), label, wrk.getExternalid(), wrk.getPipelineName(), wrk.getDataType(), wrk.getDetails(), wrk.getLaunchTimeDate(), wrk.getStatus(), wrk.getStepDescription(), wrk.getPercentagecomplete(), lastMod, wrk.getCreateUser());
+
         // Estimate % complete if not provided
         updateWorkflowProgress(wf);
         return wf;
@@ -502,7 +530,7 @@ public class WorkflowRepository implements PageableRepository {
             }
 
             qb.append(unionStr);
-            qb.append(" SELECT " + outname + ".*, " + tableName + "." + labelCol + "::varchar AS label, " + timeStr +
+            qb.append(" SELECT " + wrkFields.replace("wrk.",outname+".") + ", workflowData_info, " + tableName + "." + labelCol + "::varchar AS label, " + timeStr +
                     " FROM (SELECT * FROM wrk_workflowData WHERE data_type = '" + type + "' " + constraints + ") " +
                     "AS " + outname + " LEFT JOIN " + tableName + " ON " + outname + ".id = " +
                     tableName + "." + idCol + "::varchar");
