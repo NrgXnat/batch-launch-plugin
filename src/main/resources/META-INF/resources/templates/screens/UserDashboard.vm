@@ -1,6 +1,46 @@
 ## Copyright 2019 Radiologics, Inc
 
 <h1>User dashboard</h1>
+
+<div style="text-align: right">
+    <a id="toggle-days-7" href="$content.getURI("/app/template/UserDashboard.vm/days/7")"> Last 7 Days</a> | <a id="toggle-days-30" href="$content.getURI("/app/template/UserDashboard.vm/days/30")"> Last 30 Days</a> | <a id="toggle-days-90" href="$content.getURI("/app/template/UserDashboard.vm/days/90")"> Last 90 Days</a> | <a id="toggle-days-365" href="$content.getURI("/app/template/UserDashboard.vm/days/365")"> Last 365 Days</a> | <a id="toggle-sort-false" href="$content.getURI("/app/template/UserDashboard.vm/allowSort/false/days/-1")">View All (No sorting/filtering)</a>
+</div>
+<script>
+    XNAT.plugin.batchLaunch.workflowTable =getObject(XNAT.plugin.batchLaunch.workflowTable || {});
+
+#if($days=="-1")
+    #set($preventSort=true)
+    XNAT.plugin.batchLaunch.workflowTable.sortable=false;
+    XNAT.plugin.batchLaunch.workflowTable.days=-1;
+    $("#toggle-sort-false").html("");
+    $("#toggle-sort-false").after("View All (No sorting/filtering)");
+#elseif($days=="30")
+    #set($preventSort=false)
+    XNAT.plugin.batchLaunch.workflowTable.sortable=true;
+    XNAT.plugin.batchLaunch.workflowTable.days=30;
+    $("#toggle-days-30").html("");
+    $("#toggle-days-30").after("Last 30 Days");
+#elseif($days=="90")
+    #set($preventSort=false)
+    XNAT.plugin.batchLaunch.workflowTable.sortable=true;
+    XNAT.plugin.batchLaunch.workflowTable.days=90;
+    $("#toggle-days-90").html("");
+    $("#toggle-days-90").after("Last 90 Days");
+#elseif($days=="365")
+    #set($preventSort=false)
+    XNAT.plugin.batchLaunch.workflowTable.sortable=true;
+    XNAT.plugin.batchLaunch.workflowTable.days=365;
+    $("#toggle-days-365").html("");
+    $("#toggle-days-365").after("Last 365 Days");
+#else
+    #set($preventSort=false)
+    XNAT.plugin.batchLaunch.workflowTable.sortable=true;
+    XNAT.plugin.batchLaunch.workflowTable.days=7;
+    $("#toggle-days-7").html("");
+    $("#toggle-days-7").after("Last 7 Days");
+#end
+</script>
+
 <div id="workflow-callouts-container"></div>
 
 <div class="section">

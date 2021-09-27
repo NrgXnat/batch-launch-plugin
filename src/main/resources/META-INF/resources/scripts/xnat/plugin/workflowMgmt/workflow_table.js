@@ -23,17 +23,18 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
 
     XNAT.plugin.batchLaunch.workflowTable.tableId = "workflows-data-table";
     var columnIds = ["externalId", "label", "status", "pipelineName", "launchTime", "modTime", "details",
-        "percentageComplete", "stepDescription"];
+        "percentageComplete", "stepDescription","createUser"];
     var labelMap = {
         externalId: {label: "Project", show: true, type: "string"},
         label: {label: "Label", show: true, type: "string"},
         status: {label: "Status", show: true, type: "string"},
         pipelineName: {label: "Name", show: true, type: "string"},
         launchTime: {label: "Launch time", show: true, type: "datetime"},
-        modTime: {label: "Last mod", show: true, type: "datetime"},
-        details: {label: "Details", show: true, type: "string"},
-        percentageComplete: {label: "&percnt;", show: true, type: "number"},
-        stepDescription: {label: "Progress", show: true, type: "string"}
+        modTime: {label: "Last mod", show: false, type: "datetime"},
+        details: {label: "Details", show: false, type: "string"},
+        percentageComplete: {label: "&percnt;", show: false, type: "number"},
+        stepDescription: {label: "Progress", show: false, type: "string"},
+        createUser: {label: "User", show: true, type: "string"}
     };
     var noLinkDataTypes = ['xdat:element_action_type', 'xdat:user', 'xdat:userGroup', 'xdat:element_security',
         'xnat:fieldDefinitionGroup', 'xnat:investigatorData', 'pipe:PipelineRepository', 'arc:ArchiveSpecification'];
@@ -103,8 +104,8 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                 classes: "clean fixed-header selectable scrollable-table",
                 style: "width: auto;"
             },
-            sortable: 'externalId, label, status, pipelineName, launchTime, modTime',
-            filter: 'externalId, label, status, pipelineName',
+            sortable: XNAT.plugin.batchLaunch.sortableCols,
+            filter: XNAT.plugin.batchLaunch.filterCols,
             sortAndFilterAjax: parseSortAndFilterParams,
             items: {
                 // by convention, name 'custom' columns with ALL CAPS
@@ -207,6 +208,13 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                     apply: function(){
                         return this['stepDescription'];
                     }
+                },
+                createUser: {
+                    th: {className: 'createUser'},
+                    label: labelMap['createUser']['label'],
+                    apply: function(){
+                        return this['createUser'];
+                    }
                 }
             }
         }
@@ -280,7 +288,7 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
             $container.append([
                 $('<div class="data-table-titlerow"><h3 class="data-table-title">'+title+'</h3></div>'),
                 $('<div class="data-table-actionsrow clearfix">' +
-                    '<span class="textlink-sm data-table-action">All workflows</span>' +
+                    '<span class="textlink-sm data-table-action"></span>' +
                     '<button class="btn btn-sm" id="wf-table-reload">Reload</button>' +
                     '</div>'),
                 $('<div id="'+div_id+'"></div>')
@@ -302,6 +310,18 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
         }
         if (XNAT.plugin.batchLaunch.workflowTable.filters) {
             dataObj['filters'] = XNAT.plugin.batchLaunch.workflowTable.filters;
+        }
+
+        if (XNAT.plugin.batchLaunch.workflowTable.sortable) {
+            dataObj['sortable'] = XNAT.plugin.batchLaunch.workflowTable.sortable;
+        }else{
+            dataObj['sortable'] = "false";
+        }
+
+        if (XNAT.plugin.batchLaunch.workflowTable.days) {
+            dataObj['days'] = XNAT.plugin.batchLaunch.workflowTable.days;
+        }else{
+            dataObj['days'] = 90;
         }
 
         // API call
@@ -366,6 +386,10 @@ XNAT.plugin.batchLaunch = getObject(XNAT.plugin.batchLaunch || {});
                         // Stop trying, no more results
                         XNAT.plugin.batchLaunch.workflowTable.tableBody.off("scroll");
                     }
+                }
+
+                if(data.length != 50){
+                    XNAT.plugin.batchLaunch.workflowTable.tableBody.off("scroll");
                 }
             },
             error: function(e) {

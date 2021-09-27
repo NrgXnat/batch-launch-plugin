@@ -1,10 +1,22 @@
 ## Copyright 2019 Radiologics, Inc
 
+
 <link rel="stylesheet" type="text/css" href="$!content.getURI("scripts/xnat/plugin/workflowMgmt/dependencies/skin-win8/ui.fancytree.min.css")"/>
 <link rel="stylesheet" type="text/css" href="$!content.getURI("scripts/xnat/app/scanTable/scanTable.css")"/>
 <link rel="stylesheet" type="text/css" href="$!content.getURI("style/xnat/plugin/batchLaunch/batchLaunch.css")"/>
 <script type="text/javascript" src="$!content.getURI("scripts/xnat/plugin/workflowMgmt/dependencies/jquery.fancytree-all-deps.min.js")"></script>
 <script type="text/javascript" src="$!content.getURI("scripts/xnat/plugin/workflowMgmt/workflow_table.js")"></script>
+
+<script>
+
+    #if($preventSort)
+    XNAT.plugin.batchLaunch.sortableCols= '';
+    XNAT.plugin.batchLaunch.filterCols= '';
+    #else
+    XNAT.plugin.batchLaunch.sortableCols= 'externalId, label, status, pipelineName, launchTime, modTime,createUser';
+    XNAT.plugin.batchLaunch.filterCols= 'externalId, label, status, pipelineName,createUser';
+    #end
+</script>
 
 #if(!$!hide)
     #if($!onlyTab)
@@ -14,7 +26,7 @@
             var processingTabs = new YAHOO.widget.TabView('processing_tabs');
             processingTabs.addTab(new YAHOO.widget.Tab({
                 active: true,
-                label: 'All processing',
+                label: 'Activity',
                 content: '<div class="tab-container"><div class="data-table-container"  id="workflows-data-table-container"></div></div>'
             }));
         </script>

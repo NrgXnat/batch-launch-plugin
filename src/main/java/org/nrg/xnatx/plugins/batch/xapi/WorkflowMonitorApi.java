@@ -112,7 +112,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             return new ResponseEntity<>(workflowService.getWorkflows(workflowListingRequest.getId(),
                     workflowListingRequest.getDataType(), user, workflowListingRequest.getSortColumn(),
                     workflowListingRequest.getSortDir(), workflowListingRequest.getPage(),
-                    workflowListingRequest.getSize(), workflowListingRequest.getFiltersMap()), HttpStatus.OK);
+                    workflowListingRequest.getSize(), workflowListingRequest.getFiltersMap(), workflowListingRequest.getSortable(), workflowListingRequest.getDays()), HttpStatus.OK);
         } catch (FilterException e) {
             log.error("Error querying workflows", e);
             throw new ClientException(Status.CLIENT_ERROR_BAD_REQUEST, e);

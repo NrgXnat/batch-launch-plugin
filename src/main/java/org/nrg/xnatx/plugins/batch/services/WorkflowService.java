@@ -37,9 +37,9 @@ public class WorkflowService {
 
     public List<Workflow> getWorkflows(String id, String dataType, UserI user,
                                        String sortColumn, String sortDir, @Nullable Integer page, @Nullable Integer size,
-                                       @Nullable Map<String, WorkflowFilter> filtersMap) throws Exception {
+                                       @Nullable Map<String, WorkflowFilter> filtersMap, Boolean sortable, Integer days) throws Exception {
         return workflowRepository.getWorkflows(id, dataType, user,
-                new PageRequest(workflowRepository, sortColumn, sortDir, filtersMap, page, size));
+                new PageRequest(workflowRepository, sortColumn, sortDir, filtersMap, page, size, sortable, days));
     }
 
     public Workflow getWorkflowModelFromWorkflowI(PersistentWorkflowI wrk, UserI user) {

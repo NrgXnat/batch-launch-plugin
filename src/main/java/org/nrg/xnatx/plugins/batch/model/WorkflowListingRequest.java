@@ -11,10 +11,12 @@ import java.util.Map;
 public class WorkflowListingRequest {
     @JsonProperty(value = "data_type", required = true) String dataType;
     @Nullable @JsonProperty(value = "id") String id;
-    @JsonProperty(value = "sort_col", defaultValue = "launchTime") String sortColumn = "launchTime";
+    @JsonProperty(value = "sort_col", defaultValue = "wfid") String sortColumn = "wfid";
     @JsonProperty(value = "sort_dir", defaultValue = "DESC") String sortDir = "DESC";
     @JsonProperty(value = "page", defaultValue = "1") int page = 1;
     @JsonProperty(value = "size", defaultValue = "50") int size = 50;
+    @JsonProperty(value = "sortable", defaultValue = "false") boolean sortable = false;
+    @JsonProperty(value = "days", defaultValue = "90") int days = 90;
     @Nullable @JsonProperty(value = "filters") Map<String, WorkflowFilter> filtersMap;
 
     public String getDataType() {
@@ -62,8 +64,20 @@ public class WorkflowListingRequest {
         return size;
     }
 
+    public int getDays() { return days;}
+
+    public void setDays() { this.days=days;}
+
     public void setSize(int size) {
         this.size = size;
+    }
+
+    public boolean getSortable() {
+        return sortable;
+    }
+
+    public void setSortable(boolean sortable) {
+        this.sortable = sortable;
     }
 
     @Nullable

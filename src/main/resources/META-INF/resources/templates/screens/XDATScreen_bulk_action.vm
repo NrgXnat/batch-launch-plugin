@@ -26,6 +26,12 @@
 
 
 #set($hide=true)
+#set($preventSort=false)
+<script>
+    XNAT.plugin.batchLaunch.workflowTable =getObject(XNAT.plugin.batchLaunch.workflowTable || {});
+    XNAT.plugin.batchLaunch.workflowTable.sortable=true;
+    XNAT.plugin.batchLaunch.workflowTable.days=-1;
+</script>
 #parse("/screens/workflow_table.vm")
 <script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/batchLaunch/bulklauncher.js")"></script>
 <script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/batchLaunch/pipelineLauncher.js")"></script>

@@ -4,6 +4,7 @@
 package org.nrg.xnatx.plugins.batch.xapi;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.nrg.xnatx.plugins.batch.exceptions.FilterException;
 import org.nrg.xnatx.plugins.batch.model.WorkflowFilter;
 import org.nrg.xnatx.plugins.batch.repositories.PageableRepository;
@@ -16,21 +17,33 @@ import java.util.Map;
 @Slf4j
 public class PageRequest {
     private final List<String> ALLOWABLE_SORT_DIRECTIONS = Arrays.asList("asc", "desc", "ASC", "DESC");
+    private final Boolean sortable;
     private int offset;
     private int limit;
+    private int days;
     private String sortColumn;
     private String sortDir;
     private Map<String, WorkflowFilter> filtersMap;
     private PageableRepository          repo;
 
     public PageRequest(PageableRepository repo,String sortColumn, String sortDir,
-                       Map<String, WorkflowFilter> filtersMap, Integer page, Integer size) {
+                       Map<String, WorkflowFilter> filtersMap, Integer page, Integer size, Boolean sortable, Integer days) {
         this.repo = repo;
         this.filtersMap = filtersMap;
         this.sortColumn = getDbColumnFromMapping(sortColumn);
         this.sortDir = sortDir;
         this.limit = (size != null && size > 0) ? size : 0;
         this.offset = (page != null && page > 1) ? (page - 1) * limit : 0;
+        this.sortable = sortable;
+        this.days=days;
+    }
+
+    public int getLimit(){
+        return limit;
+    }
+
+    public int getOffset(){
+        return offset;
     }
 
     /**
@@ -64,6 +77,30 @@ public class PageRequest {
         }
 
         return suffix.toString();
+    }
+
+    public Boolean getSortable(){
+        return sortable;
+    }
+
+    public int getDays(){
+        return days;
+    }
+
+    public String getRowOrderSort(){
+        if (StringUtils.isNotBlank(sortDir) && ALLOWABLE_SORT_DIRECTIONS.contains(sortDir)) {
+            return sortDir;
+        }else{
+            return "DESC";
+        }
+    }
+
+    public String getRowOrderBy(){
+        if (StringUtils.isNotBlank(sortColumn) && repo.getAllowableSortColumns().contains(sortColumn)) {
+            return sortColumn;
+        }else{
+            return"wrk_workflowdata_id";
+        }
     }
 
     /**
