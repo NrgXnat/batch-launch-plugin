@@ -1,6 +1,24 @@
 ## 
 
 <h1>User dashboard</h1>
+
+<script>
+    XNAT.plugin.batchLaunch.workflowTableParams = getObject(XNAT.plugin.batchLaunch.workflowTableParams || {});
+    XNAT.plugin.batchLaunch.workflowTableParams.sortable = true;
+    XNAT.plugin.batchLaunch.workflowTableParams.days = 7;
+</script>
+
+<div style="text-align: right">
+    <a class="toggle-days" data-days="7" style="color: black">Last 7 Days</a> |
+    <a class="toggle-days" data-days="30">Last 30 Days</a> |
+    <a class="toggle-days" data-days="90">Last 90 Days</a> |
+    <a class="toggle-days" data-days="365">Last 365 Days</a> |
+    <a class="toggle-days" data-days="-1">View All (No sorting/filtering)</a>
+    #if($turbineUtils.isSiteAdmin($user))
+        | <a class="toggle-days" data-days="-1" data-admin="1">Admin</a>
+    #end
+</div>
+
 <div id="workflow-callouts-container"></div>
 
 <div class="section">
