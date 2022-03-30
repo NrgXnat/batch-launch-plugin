@@ -398,25 +398,25 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
                         close: false,
                         action: function(modal) {
                             let paths = [];
-                            $("#buildDirZipTree").fancytree('getTree').getRootNode().visit(function(node) {
-                                // get selected file nodes, selected folder nodes with downloadAll (>50 children, not displayed),
-                                // and selected lazy-load folder nodes without expanded children (meaning never loaded)
-                                if (node.selected && !node.isPagingNode() &&
-                                    (!node.folder || node.data.downloadAll || (node.lazy && !node.children))) {
-                                    paths.push(node.data.path);
+                            $(document).ready(function() {
+                                var selected = $("#buildDirZipTree").jstree("get_checked",true);
+                                for (const selection of selected) {
+                                    if (typeof selection.original.path !== "undefined") {
+                                        paths.push(selection.original.path);
+                                    }
                                 }
+                                if (paths.length === 0) {
+                                    XNAT.ui.dialog.alert("Nothing selected for download");
+                                    return;
+                                }
+                                $("form#buildDirZipForm").append($('<input>').attr({
+                                    type: 'hidden',
+                                    id: 'inputPaths',
+                                    name: 'inputPaths',
+                                    value: paths
+                                })).submit();
+                                modal.close();
                             });
-                            if (paths.length === 0) {
-                                XNAT.ui.dialog.alert("Nothing selected for download");
-                                return;
-                            }
-                            $("form#buildDirZipForm").append($('<input>').attr({
-                                type: 'hidden',
-                                id: 'inputPaths',
-                                name: 'inputPaths',
-                                value: paths
-                            })).submit();
-                            modal.close();
                         }
                     },
                     {
@@ -425,40 +425,48 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
                     }
                 ]
             }).ready(function(){
-                $("#buildDirZipTree").fancytree({
-                    // Don't use fancytree loading bc if the REST call errors, we want to default to a nice error modal
-                    source: buildEntry,
-                    checkbox: true,
-                    selectMode: 3,
-                    lazyLoad: function(event, data){
-                        let node = data.node;
-                        data.result = {
-                            url: XNAT.url.rootUrl(node.data.url),
-                            data: {inputPath: node.data.fullpath},
-                            cache: true
-                        };
-                    },
-                    loadChildren: function(event, data) {
-                        let node = data.node;
-                        if (node.children && node.children.length === 1 && node.children[0].isPagingNode()) {
-                            // we need to change this node, now that it has been loaded, to a folder with > 50 children
-                            node.data.downloadAll = true;
-                        } else {
-                            // apply parent's state to newly loaded child nodes
-                            node.fixSelection3AfterClick();
+                $(document).ready(function() {
+                    $('#buildDirZipTree').jstree({
+                        'core' : {
+                            'data' : {
+                                'url': function(node) {
+                                    if ('original' in node) {
+                                        return XNAT.url.rootUrl('/xapi/workflows/'+workflowId+'/build_dir_contd/?inputPath='+node.original.path);
+                                    } else {
+                                        return XNAT.url.rootUrl('/xapi/workflows/'+workflowId+'/build_dir');
+                                    }
+
+                                },
+                                'data': function(node) {
+                                    return {"id" : node.id }
+                                }
+                            }
+                        },
+                        'checkbox' : {
+                            'whole_node' : false,
+                            'tie_selection' : false
+                        },
+                        'types': {
+                            "folder": {
+                                "icon": "jstree-icon jstree-folder"
+                            },
+                            "file": {
+                                "icon": "jstree-icon jstree-file"
+                            }
+
+                        },
+                        'plugins' : ["checkbox", "types"],
+                        'search': {
+                            'case_sensitive': false,
+                            'show_only_matches': true
                         }
-                    },
-                    click: function(event, data) {
-                        let node = data.node, targetType = data.targetType;
-                        if (node.folder && targetType !== 'checkbox' && targetType !== 'expander') {
-                            node.setExpanded(!node.expanded);
+                    }).bind("select_node.jstree", function (e, data) {
+                        if ('download_link' in data.node.original) {
+                            var href = data.node.original.download_link;
+                            document.location.href = href;
                         }
-                    },
-                    clickPaging: function(event, data) {
-                        let parent = data.node.parent;
-                        parent.setSelected(!parent.selected);
-                        parent.setExpanded(false);
-                    }
+
+                      });
                 });
             });
         }

@@ -54,6 +54,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.zip.ZipEntry;
@@ -339,78 +340,66 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     private void addJsonForDir(File dir, JsonGenerator jGenerator, Path buildDirPrefix, String wfid,
                                boolean childrenOnly)
             throws IOException {
-        addJsonForDir(dir, jGenerator, buildDirPrefix, wfid, childrenOnly, 0);
-    }
-
-    private void addJsonForDir(File dir, JsonGenerator jGenerator, Path buildDirPrefix, String wfid,
-                               boolean childrenOnly, int depth)
-            throws IOException {
-
-        if (depth > 0) {
-            // if we're nested, we need to be gathering info about base dir
-            childrenOnly = false;
-        }
 
         Path d = dir.toPath();
 
         if (!childrenOnly) {
             // Info about base directory object
             jGenerator.writeStartObject();
-            jGenerator.writeStringField("title", d.getFileName().toString());
+            jGenerator.writeStringField("text", d.getFileName().toString());
             jGenerator.writeStringField("path", buildDirPrefix.relativize(d).toString());
             jGenerator.writeBooleanField("folder", true);
         }
 
         File[] files = dir.listFiles();
-        boolean allOrNone = files.length > 50;
-        boolean lazyLoad = depth > 10;
+
+        boolean allOrNone = dir.listFiles().length > 1000;
 
         if (allOrNone && !childrenOnly) {
             // if childrenOnly, we set this with js
             jGenerator.writeBooleanField("downloadAll", true);
         }
 
-        if (lazyLoad) {
-            // childrenOnly is always false here, only can be true when depth = 0
-            jGenerator.writeStringField("fullpath", d.toAbsolutePath().toString());
-            jGenerator.writeStringField("url", "/xapi/workflows/" + wfid + "/build_dir_contd");
-            jGenerator.writeBooleanField("lazy", true);
+        if (!childrenOnly) {
+            jGenerator.writeFieldName("children");
+        }
+        // make children array
+        jGenerator.writeStartArray();
+        if (allOrNone) {
+            jGenerator.writeStartObject();
+            jGenerator.writeStringField("text", "[Directory contains more than 1000 files and subdirectories. Please download all data if needed.]");
+            jGenerator.writeStringField("statusNodeType", "paging");
+            jGenerator.writeBooleanField("icon", false);
+            jGenerator.writeStringField("type", "folder");
+            jGenerator.writeEndObject();
         } else {
-            if (!childrenOnly) {
-                jGenerator.writeFieldName("children");
-            }
-            // make children array
-            jGenerator.writeStartArray();
-            if (allOrNone) {
-                // add a paging node as a note to user: "sorry you don't get to review children one-by-one, there are too many to display."
-                // we could write an API to support pagination, but is this actually useful?
-                // see https://github.com/mar10/fancytree/issues/169 and
-                // https://github.com/mar10/fancytree/wiki/SpecPaging#current-specification
-                jGenerator.writeStartObject();
-                jGenerator.writeStringField("title", "[Contains more than 50 child items, select all or none]");
-                jGenerator.writeStringField("statusNodeType", "paging");
-                jGenerator.writeBooleanField("icon", false);
-                jGenerator.writeEndObject();
-            } else {
-                Arrays.sort(files);
-                // recursively add all files and dirs to json
-                for (File f : files) {
-                    if (f.isDirectory()) {
-                        addJsonForDir(f, jGenerator, buildDirPrefix, wfid, false, ++depth);
-                    } else {
-                        Path file = f.toPath();
-                        String fpath = buildDirPrefix.relativize(file).toString();
-                        String url = makeRootUrl("/xapi/workflows/" + wfid + "/get_file?path=" + fpath);
-                        jGenerator.writeStartObject();
-                        jGenerator.writeStringField("title",
-                                "<a href='" + url + "'>" + file.getFileName().toString() + "</a>");
-                        jGenerator.writeStringField("path", fpath);
-                        jGenerator.writeEndObject();
-                    }
+            Arrays.sort(files);
+            // recursively add all files and dirs to json
+            for (File f : files) {
+                if (f.isDirectory()) {
+                    jGenerator.writeStartObject();
+                    jGenerator.writeStringField("text", f.toPath().getFileName().toString());
+                    jGenerator.writeStringField("path", buildDirPrefix.relativize(f.toPath()).toString());
+                    jGenerator.writeBooleanField("folder", true);
+                    jGenerator.writeBooleanField("children", true);
+                    jGenerator.writeStringField("type", "folder");
+                    jGenerator.writeEndObject();
+                } else {
+                    Path file = f.toPath();
+                    String fpath = buildDirPrefix.relativize(file).toString();
+                    String url = makeRootUrl("/xapi/workflows/" + wfid + "/get_file?path=" + fpath);
+                    jGenerator.writeStartObject();
+                    jGenerator.writeStringField("text",
+                            "<a href='" + url + "'>" + file.getFileName().toString() + "</a>");
+                    jGenerator.writeStringField("download_link", url);
+                    jGenerator.writeStringField("path", fpath);
+                    jGenerator.writeStringField("type", "file");
+                    jGenerator.writeEndObject();
                 }
             }
-            jGenerator.writeEndArray(); // end children array
         }
+        jGenerator.writeEndArray(); // end children array
+
         if (!childrenOnly) {
             jGenerator.writeEndObject();
         }
