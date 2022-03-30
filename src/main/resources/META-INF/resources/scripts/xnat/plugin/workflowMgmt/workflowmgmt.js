@@ -379,6 +379,7 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
         function displayBuildDir(buildEntry, workflowId) {
             XNAT.ui.dialog.open({
                 title: 'Build directory',
+                width: 700,
                 header: true,
                 maxBtn: true,
                 content: spawn("div",

@@ -1,8 +1,6 @@
 ##
 
-<link rel="stylesheet" type="text/css" href="$!content.getURI("scripts/xnat/plugin/workflowMgmt/dependencies/skin-win8/ui.fancytree.min.css")"/>
 <link rel="stylesheet" type="text/css" href="$!content.getURI("scripts/xnat/app/scanTable/scanTable.css")"/>
-<script type="text/javascript" src="$!content.getURI("scripts/xnat/plugin/workflowMgmt/dependencies/jquery.fancytree-all-deps.min.js")"></script>
 <script type="text/javascript" src="$!content.getURI("scripts/xnat/plugin/workflowMgmt/workflow_table.js")"></script>
 
 #if(!$!hide)
