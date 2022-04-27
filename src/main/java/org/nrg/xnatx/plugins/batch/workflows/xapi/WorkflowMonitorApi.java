@@ -11,6 +11,7 @@ import org.nrg.action.ServerException;
 import org.nrg.containers.exceptions.DockerServerException;
 import org.nrg.containers.exceptions.NoDockerServerException;
 import org.nrg.framework.ajax.sql.SortOrFilterException;
+import org.nrg.xdat.security.helpers.Features;
 import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xnat.archive.ResourceData;
 import org.nrg.xnatx.plugins.batch.workflows.model.Workflow;
@@ -277,6 +278,10 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             throw new InsufficientPrivilegesException("Access denied");
         }
 
+        if (!Features.checkRestrictedFeature(user, wrk.getExternalid(), Features.DATA_DOWNLOAD_FEATURE)) {
+            throw new InsufficientPrivilegesException("Access denied. User does not have access to data downloads.");
+        }
+
         switch (workflowService.getWorkflowType(wrk)) {
             case OTHER:
                 throw new XapiException(HttpStatus.UNPROCESSABLE_ENTITY, "Not a pipeline or container");
@@ -435,6 +440,10 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             throw new InsufficientPrivilegesException(user.getUsername());
         }
 
+        if (!Features.checkRestrictedFeature(user, wrk.getExternalid(), Features.DATA_DOWNLOAD_FEATURE)) {
+            throw new InsufficientPrivilegesException("Access denied. User does not have access to data downloads.");
+        }
+
         try {
             //JSON stream
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
@@ -467,6 +476,10 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             throw new NotFoundException(inputPath + " not found or not a file");
         }
 
+        if (!Features.checkRestrictedFeature(user, wrk.getExternalid(), Features.DATA_DOWNLOAD_FEATURE)) {
+            throw new InsufficientPrivilegesException("Access denied. User does not have access to data downloads.");
+        }
+
         // Get container, may be null if not a container wf
         Container container = getContainerForWorkflow(wrk);
 
@@ -495,6 +508,10 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
 
         final UserI user = getSessionUser();
         final PersistentWorkflowI wrk = getWorkflowById(wfid, user);
+
+        if (!Features.checkRestrictedFeature(user, wrk.getExternalid(), Features.DATA_DOWNLOAD_FEATURE)) {
+            throw new InsufficientPrivilegesException("Access denied. User does not have access to data downloads.");
+        }
 
         // Get container, may be null if not a container workflow, do this outside of checkAccess so we don't repeatedly run it
         final Container container = getContainerForWorkflow(wrk);
