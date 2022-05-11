@@ -41,22 +41,21 @@ import org.nrg.xnat.turbine.utils.ArchivableItem;
 import org.nrg.xnat.utils.WorkflowUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -79,8 +78,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
                               final ContainerService containerService,
                               final WorkflowService workflowService,
                               final CatalogService catalogService,
-                              @Qualifier("batchLaunchThreadPoolExecutorFactoryBean")
-                                  final ThreadPoolExecutorFactoryBean batchLaunchThreadPoolExecutorFactoryBean,
+                              @Qualifier("batchLaunchThreadPoolExecutorFactoryBean") final ThreadPoolExecutorFactoryBean batchLaunchThreadPoolExecutorFactoryBean,
                               final UserManagementServiceI userManagementService,
                               final RoleHolder roleHolder) {
         super(userManagementService, roleHolder);
@@ -98,18 +96,18 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             @ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST)
     @ResponseBody
-    public ResponseEntity<List<Workflow>> getWorkflows(@RequestBody WorkflowPaginatedRequest workflowPaginatedRequest)
-            throws ClientException, ServerException {
+    public List<Workflow> getWorkflows(@RequestBody WorkflowPaginatedRequest workflowPaginatedRequest)
+            throws ClientException, ServerException, InsufficientPrivilegesException {
 
         final UserI user = getSessionUser();
-        if (!checkAccess("read", user, workflowPaginatedRequest.getId(),
+        if (!hasReadAccess(user, workflowPaginatedRequest.getId(),
                 workflowPaginatedRequest.getDataType())) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            throw new InsufficientPrivilegesException("Access denied");
         }
 
         try {
-            return new ResponseEntity<>(workflowService.getWorkflows(workflowPaginatedRequest.getId(),
-                    workflowPaginatedRequest.getDataType(), user, workflowPaginatedRequest), HttpStatus.OK);
+            return workflowService.getWorkflows(workflowPaginatedRequest.getId(),
+                    workflowPaginatedRequest.getDataType(), user, workflowPaginatedRequest);
         } catch (SortOrFilterException | RuntimeException e) {
             log.error("Error querying workflows", e);
             throw new ClientException(e);
@@ -125,29 +123,27 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             @ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(value = "/{wfid}", produces = {MediaType.APPLICATION_JSON_VALUE}, method = RequestMethod.GET)
     @ResponseBody
-    public ResponseEntity<Workflow> getWorkflowStatus(@PathVariable("wfid") String wfid)
+    public Workflow getWorkflowStatus(@PathVariable("wfid") String wfid)
             throws NotFoundException, ServerException {
         final UserI user = getSessionUser();
         PersistentWorkflowI wrk = getWorkflowById(wfid, user);
         try {
-            return new ResponseEntity<>(workflowService.getWorkflowModelFromWorkflowI(wrk, user), HttpStatus.OK);
+            return workflowService.getWorkflowModelFromWorkflowI(wrk, user);
         } catch (Exception e) {
             log.error("Error retrieving workflow", e);
             throw new ServerException(e);
         }
     }
 
-
     /**
      * Check if user can read item indicated by id and dataType.
      *
-     * @param accessType    the type of access (read or edit)
-     * @param user          the user
-     * @param id            the item id
-     * @param dataType      the item data type
+     * @param user     the user
+     * @param id       the item id
+     * @param dataType the item data type
      * @return T/F
      */
-    private boolean checkAccess(String accessType, UserI user, String id, String dataType) {
+    private boolean hasReadAccess(UserI user, String id, String dataType) {
         ArchivableItem item;
         switch (dataType) {
             case "xdat:user":
@@ -162,20 +158,19 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
                 item = XnatExperimentdata.getXnatExperimentdatasById(id, user, false);
                 break;
         }
-        return item != null && checkAccess(accessType, user, item);
+        return item != null;
     }
 
     /**
      * Check if user can access item, swallowing exceptions
      *
-     * @param accessType    the type of access (read or edit)
-     * @param user          the user
-     * @param item          the item
+     * @param user the user
+     * @param item the item
      * @return T/F
      */
-    private boolean checkAccess(String accessType, UserI user, ArchivableItem item) {
+    private boolean hasReadAccess(UserI user, ArchivableItem item) {
         try {
-            return Permissions.can(user, item, accessType);
+            return Permissions.canRead(user, item);
         } catch (Exception e) {
             log.error("Exception checking access for user {} on item {}", user.getLogin(), item.getId(), e);
             return false;
@@ -185,59 +180,21 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     /**
      * Check if user can read item on which workflow was run.
      *
-     * @param accessType    the type of access (read or edit)
-     * @param user      the user
-     * @param wrk       the workflow object
+     * @param user the user
+     * @param wrk  the workflow object
      * @return T/F
      */
-    private boolean checkAccess(String accessType, UserI user, PersistentWorkflowI wrk) {
-        return checkAccess(accessType, user, wrk, null, null);
-    }
-
-    /**
-     * Check if user can read item on which workflow was run. If pathStr provided, ensure that the path is indeed
-     * relevant to the pipeline (within build dir) or container if container provided (e.g., within some directory
-     * mounted for the container run)).
-     *
-     * @param accessType    the type of access (read or edit)
-     * @param user      the user
-     * @param wrk       the workflow
-     * @param pathStr   optional path
-     * @param container the container object
-     * @return T/F
-     */
-    private boolean checkAccess(String accessType, UserI user, PersistentWorkflowI wrk, @Nullable String pathStr,
-                                @Nullable Container container) {
+    private boolean hasReadAccess(UserI user, PersistentWorkflowI wrk) {
         // Get item (to ensure user has access)
         String id = wrk.getId();
         String dataType = wrk.getDataType();
-        if (!checkAccess(accessType, user, id, dataType)) {
-            return false;
-        }
-        if (StringUtils.isBlank(pathStr)) {
-            // No path provided, just want to know if workflow item is readable, which it is if we get here
-            return true;
-        } else {
-            // Item is readable, now ensure that requested path is within container mount dir / pipeline build dir
-            Path path = Paths.get(pathStr);
-            if (container == null) {
-                String buildDir = workflowService.getBuildDir(wrk);
-                return StringUtils.isNotBlank(buildDir) && path.startsWith(buildDir);
-            } else {
-                for (Container.ContainerMount mount : container.mounts()) {
-                    if (path.startsWith(mount.xnatHostPath())) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
+        return hasReadAccess(user, id, dataType);
     }
 
     private PersistentWorkflowI getWorkflowById(String wfid, UserI user) throws NotFoundException {
         PersistentWorkflowI wrk = WorkflowUtils.getUniqueWorkflow(user, wfid);
         if (wrk == null) {
-            throw new NotFoundException("Access denied or no such workflow " + wfid);
+            throw new NotFoundException(wfid + " not valid workflow");
         }
         return wrk;
     }
@@ -261,37 +218,19 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             @ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(value = "/{wfid}/build_dir", produces = {MediaType.APPLICATION_JSON_VALUE}, method = RequestMethod.GET)
     @ResponseBody
-    public ResponseEntity<String> getBuildDirJson(@PathVariable final String wfid) throws XapiException, ServerException {
+    public String getBuildDirJson(@PathVariable final String wfid) throws XapiException, ServerException {
 
-        final UserI user = getSessionUser();
-        PersistentWorkflowI wrk;
-        try {
-            wrk = getWorkflowById(wfid, user);
-        } catch (NotFoundException e) {
-            throw new InsufficientPrivilegesException("Access denied or no such workflow");
-        }
+        PersistentWorkflowI wrk = getWorkflowAndCheckReadAndDownloadAccess(wfid);
 
         //Build dir base
         final Path buildDirPrefix = Paths.get(preferences.getBuildPath());
         List<String> buildDirs = new ArrayList<>();
-        if (!checkAccess("read", user, wrk)) {
-            throw new InsufficientPrivilegesException("Access denied");
-        }
-
-        if (!Features.checkRestrictedFeature(user, wrk.getExternalid(), Features.DATA_DOWNLOAD_FEATURE)) {
-            throw new InsufficientPrivilegesException("Access denied. User does not have access to data downloads.");
-        }
-
         switch (workflowService.getWorkflowType(wrk)) {
             case OTHER:
                 throw new XapiException(HttpStatus.UNPROCESSABLE_ENTITY, "Not a pipeline or container");
 
             case CONTAINER:
-                String containerId = workflowService.getContainerId(wrk);
-                final Container container = containerService.retrieve(containerId);
-                if (container == null) {
-                    throw new InsufficientPrivilegesException("Access denied or no such container");
-                }
+                final Container container = getContainerForWorkflow(wrk);
                 for (Container.ContainerMount mount : container.mounts()) {
                     String xnatPath = mount.xnatHostPath();
                     // Only list mounts relative to build directory
@@ -330,8 +269,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             }
             jGenerator.writeEndArray();
             jGenerator.close();
-            String json = new String(stream.toByteArray(), StandardCharsets.UTF_8);
-            return new ResponseEntity<>(json, HttpStatus.OK);
+            return new String(stream.toByteArray(), StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new ServerException(e);
         }
@@ -419,30 +357,18 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             @ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(value = "/{wfid}/build_dir_contd", produces = {MediaType.APPLICATION_JSON_VALUE}, method = RequestMethod.GET)
     @ResponseBody
-    public ResponseEntity<String> getBuildDirJsonContinued(@PathVariable final String wfid,
-                                                           @RequestParam final String inputPath)
+    public String getBuildDirJsonContinued(@PathVariable final String wfid,
+                                           @RequestParam final String inputPath)
             throws XapiException {
 
-        final UserI user = getSessionUser();
-        final PersistentWorkflowI wrk = getWorkflowById(wfid, user);
+        final PersistentWorkflowI wrk = getWorkflowAndCheckReadAndDownloadAccess(wfid);
 
         // Get container, may be null if not a container workflow, do this outside of checkAccess so we don't repeatedly run it
         final Container container = getContainerForWorkflow(wrk);
         final Path buildPath = Paths.get(preferences.getBuildPath());
 
         // Check that file exists & is relative to container build dir
-        final Path path = buildPath.resolve(inputPath);
-        final File file = path.toFile();
-        if (!file.exists() || !file.isDirectory()) {
-            throw new NotFoundException(inputPath + " not found or not a directory");
-        }
-        if (!checkAccess("read", user, wrk, path.toString(), container)) {
-            throw new InsufficientPrivilegesException(user.getUsername());
-        }
-
-        if (!Features.checkRestrictedFeature(user, wrk.getExternalid(), Features.DATA_DOWNLOAD_FEATURE)) {
-            throw new InsufficientPrivilegesException("Access denied. User does not have access to data downloads.");
-        }
+        final Path path = getBuildDirPathFromUserInput(inputPath, wrk, container);
 
         try {
             //JSON stream
@@ -453,8 +379,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             // start with children of this base directory
             addJsonForDir(path.toFile(), jGenerator, buildPath, wfid, true);
             jGenerator.close();
-            String json = new String(stream.toByteArray(), StandardCharsets.UTF_8);
-            return new ResponseEntity<>(json, HttpStatus.OK);
+            return new String(stream.toByteArray(), StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new XapiException(HttpStatus.INTERNAL_SERVER_ERROR, e);
         }
@@ -463,85 +388,91 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     @ApiOperation(value = "Returns requested file.")
     @XapiRequestMapping(value = "/{wfid}/get_file", method = RequestMethod.GET,
             produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
-    public void getBuildDirFile(@PathVariable String wfid,
-                                @RequestParam("path") String inputPath,
-                                final HttpServletResponse response) throws Exception {
+    @ResponseBody
+    public FileSystemResource getBuildDirFile(@PathVariable String wfid,
+                                              @RequestParam("path") String inputPath) throws Exception {
 
-        final UserI user = getSessionUser();
-        PersistentWorkflowI wrk = getWorkflowById(wfid, user);
-
-        Path path = Paths.get(preferences.getBuildPath()).resolve(inputPath);
-        File file = path.toFile();
-        if (!file.exists() || !file.isFile()) {
-            throw new NotFoundException(inputPath + " not found or not a file");
-        }
-
-        if (!Features.checkRestrictedFeature(user, wrk.getExternalid(), Features.DATA_DOWNLOAD_FEATURE)) {
-            throw new InsufficientPrivilegesException("Access denied. User does not have access to data downloads.");
-        }
-
-        // Get container, may be null if not a container wf
-        Container container = getContainerForWorkflow(wrk);
-
-        if (!checkAccess("read", user, wrk, path.toString(), container)) {
-            throw new InsufficientPrivilegesException(user.getUsername());
-        }
-
-        response.setStatus(HttpStatus.OK.value());
-        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, getAttachmentDisposition(file.getName()));
-        response.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
-        response.setHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(file.length()));
-
-        Files.copy(path, response.getOutputStream());
+        PersistentWorkflowI wrk = getWorkflowAndCheckReadAndDownloadAccess(wfid);
+        Path path = getBuildDirPathFromUserInput(inputPath, wrk, getContainerForWorkflow(wrk));
+        return new FileSystemResource(path.toFile());
     }
 
     @ApiOperation(value = "Returns requested files.")
     @XapiRequestMapping(value = "/{wfid}/get_zip", method = RequestMethod.POST,
             consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.APPLICATION_JSON_VALUE},
             produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
-    public void getBuildDirZip(@PathVariable String wfid,
-                               @RequestParam("inputPaths") List<String> inputPaths,
-                               final HttpServletResponse response) throws Exception {
+    public ResponseEntity<StreamingResponseBody> getBuildDirZip(@PathVariable String wfid,
+                                                                @RequestParam("inputPaths") List<String> inputPaths)
+            throws Exception {
 
-        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, getAttachmentDisposition("WorkflowBuildDir" + wfid, "zip"));
-        response.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
-
-        final UserI user = getSessionUser();
-        final PersistentWorkflowI wrk = getWorkflowById(wfid, user);
-
-        if (!Features.checkRestrictedFeature(user, wrk.getExternalid(), Features.DATA_DOWNLOAD_FEATURE)) {
-            throw new InsufficientPrivilegesException("Access denied. User does not have access to data downloads.");
-        }
+        final PersistentWorkflowI wrk = getWorkflowAndCheckReadAndDownloadAccess(wfid);
 
         // Get container, may be null if not a container workflow, do this outside of checkAccess so we don't repeatedly run it
         final Container container = getContainerForWorkflow(wrk);
         final Path buildPath = Paths.get(preferences.getBuildPath());
 
-        try (final ZipOutputStream zipStream = new ZipOutputStream(response.getOutputStream())) {
-            for (final String inputPath : inputPaths) {
-                // Check that file exists & is relative to container build dir
-                final Path path = buildPath.resolve(inputPath);
-                final File file = path.toFile();
-                if (!file.exists()) {
-                    throw new NotFoundException(inputPath + " not found");
-                }
-                if (!checkAccess("read", user, wrk, path.toString(), container)) {
-                    throw new InsufficientPrivilegesException(user.getUsername());
-                }
-                // Add to zip
-                if (file.isDirectory()) {
-                    addToZipRecursive(file, zipStream, buildPath);
-                } else {
-                    addToZip(buildPath.relativize(path).toString(), file, zipStream);
+        // Pre-check access so we can handle exceptions (once we're streaming the response body, we can't)
+        final List<Path> approvedPaths = new ArrayList<>();
+        for (final String inputPath : inputPaths) {
+            // Check that file exists & is relative to container build dir
+            approvedPaths.add(getBuildDirPathFromUserInput(inputPath, wrk, container));
+        }
+
+        return ResponseEntity
+                .ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, getAttachmentDisposition("WorkflowBuildDir" + wfid, "zip"))
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE)
+                .body(out -> {
+                    try (final ZipOutputStream zipStream = new ZipOutputStream(out)) {
+                        for (final Path path : approvedPaths) {
+                            // Add to zip
+                            File file = path.toFile();
+                            if (file.isDirectory()) {
+                                addToZipRecursive(file, zipStream, buildPath);
+                            } else {
+                                addToZip(buildPath.relativize(path).toString(), file, zipStream);
+                            }
+                        }
+                    }
+                });
+    }
+
+    private PersistentWorkflowI getWorkflowAndCheckReadAndDownloadAccess(@PathVariable String wfid)
+            throws NotFoundException, InsufficientPrivilegesException {
+        final UserI user = getSessionUser();
+        PersistentWorkflowI wrk = getWorkflowById(wfid, user);
+        if (!hasReadAccess(user, wrk)) {
+            throw new InsufficientPrivilegesException("Access denied");
+        }
+        if (!Features.checkRestrictedFeature(user, wrk.getExternalid(), Features.DATA_DOWNLOAD_FEATURE)) {
+            throw new InsufficientPrivilegesException("User does not have access to data downloads.");
+        }
+        return wrk;
+    }
+
+    private Path getBuildDirPathFromUserInput(String inputPath, PersistentWorkflowI wrk, @Nullable Container container) throws NotFoundException {
+        Path buildPath = Paths.get(preferences.getBuildPath());
+        Path path = buildPath.resolve(inputPath).toAbsolutePath().normalize();
+        if (!path.startsWith(buildPath) || !Files.exists(path)) {
+            throw new NotFoundException(inputPath + " not a build directory path");
+        }
+        if (container == null) {
+            String buildDir = workflowService.getBuildDir(wrk);
+            if (StringUtils.isNotBlank(buildDir) && path.startsWith(buildDir)) {
+                return path;
+            }
+        } else {
+            for (Container.ContainerMount mount : container.mounts()) {
+                if (path.startsWith(mount.xnatHostPath())) {
+                    return path;
                 }
             }
         }
-
-        response.setStatus(HttpStatus.OK.value());
+        throw new NotFoundException(inputPath + " not from referenced workflow");
     }
 
-    private void addToZipRecursive(File dir, ZipOutputStream zipStream, Path buildPath) {
-        for (File f : dir.listFiles()) {
+    private void addToZipRecursive(@Nonnull File dir, ZipOutputStream zipStream, Path buildPath) throws IOException {
+        for (File f : Objects.requireNonNull(dir.listFiles())) {
             if (f.isDirectory()) {
                 addToZipRecursive(f, zipStream, buildPath);
             } else {
@@ -550,8 +481,8 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
         }
     }
 
-    private void addToZip(String inputPath, File file, ZipOutputStream zipStream) {
-        // Add to zip file, log any errors but continue
+    private void addToZip(String inputPath, File file, ZipOutputStream zipStream) throws IOException {
+        // Add to zip file, log any errors
         try {
             final ZipEntry entry = new ZipEntry(inputPath);
             zipStream.putNextEntry(entry);
@@ -565,6 +496,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             zipStream.closeEntry();
         } catch (IOException e) {
             log.error("There was a problem writing %s to the zip. " + e.getMessage(), inputPath);
+            throw e;
         }
     }
 
@@ -638,8 +570,8 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.APPLICATION_JSON_VALUE},
             produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    public ResponseEntity<String> killActive(@PathVariable final String containerName,
-                                             @RequestParam("elements[]") List<String> elements)
+    public String killActive(@PathVariable final String containerName,
+                             @RequestParam("elements[]") List<String> elements)
             throws ClientException, ServerException {
 
         if (elements.isEmpty()) {
@@ -656,7 +588,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             if (isFirst) {
                 isFirst = false;
                 ResourceData resourceData = catalogService.getResourceDataFromUri(uri);
-                if (!checkAccess("read", user, resourceData.getItem())) {
+                if (!hasReadAccess(user, resourceData.getItem())) {
                     failureMessages.add("Insufficient permissions to terminate " + containerName + " workflows for " +
                             uri + ". It's likely that attempts to terminate other elements will also fail.");
                     errMsg = "; however, termination may fail due to permissions";
@@ -671,7 +603,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
                     try {
                         ResourceData resourceData = catalogService.getResourceDataFromUri(uri);
                         item = resourceData.getItem();
-                        if (!checkAccess("read", user, item)) {
+                        if (!hasReadAccess(user, item)) {
                             log.error("User {} doesn't have read permissions for {}", user.getLogin(), uri);
                             return;
                         }
@@ -684,7 +616,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
                         flag = true;
                         try {
                             killJob(wrk, user);
-                        } catch (ServerException|ClientException|InsufficientPrivilegesException e) {
+                        } catch (ServerException | ClientException | InsufficientPrivilegesException e) {
                             log.error("Unable to kill {} workflow {}", uri, wrk.getWorkflowId(), e);
                         }
                     }
@@ -712,8 +644,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             writeKillJsonReport(jGenerator, "successes", successMessages);
             jGenerator.writeEndObject();
             jGenerator.close();
-            String json = new String(stream.toByteArray(), StandardCharsets.UTF_8);
-            return new ResponseEntity<>(json, HttpStatus.OK);
+            return new String(stream.toByteArray(), StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new ServerException(e);
         }
@@ -721,8 +652,9 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
 
     /**
      * Kill running container, perform permissions check against item
-     * @param workflowId    id for corresponding workflow
-     * @param user          user
+     *
+     * @param workflowId id for corresponding workflow
+     * @param user       user
      * @return string status
      */
     private String killJob(String workflowId, UserI user) throws Exception {
@@ -732,9 +664,10 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
 
     /**
      * Kill running container, assume permissions have already been checked
-     * @param wrkFlow   the corresponding workflow
-     * @param user      the user
-     * @return  string status
+     *
+     * @param wrkFlow the corresponding workflow
+     * @param user    the user
+     * @return string status
      */
     private String killJob(PersistentWorkflowI wrkFlow, UserI user)
             throws ServerException, ClientException, InsufficientPrivilegesException {
@@ -782,6 +715,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
 
     /**
      * Prepend site URL to path if needed
+     *
      * @param path the path
      * @return the URL
      */
