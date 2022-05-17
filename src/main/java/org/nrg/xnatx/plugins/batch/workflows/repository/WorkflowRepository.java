@@ -332,7 +332,8 @@ public class WorkflowRepository implements PageableRepository {
                     "               OR " +
                     "              (permSubQ.data_type NOT IN (" + PROJECT_PLINE_DATATYPES + ") AND " +
                     "                   permSubQ.data_type = wrkSubQ.data_type AND permSubQ.shared AND " +
-                    "                   permSubQ.project = wrkSubQ.shared_project) " +
+                    "                   permSubQ.project = wrkSubQ.shared_project AND " +
+                    "                   wrkSubQ.shared_project != wrkSubQ.externalId) " +
                     "      WHERE wrk_workflowdata_id IS NOT NULL " + limitSuffix;
         }
         return query;
