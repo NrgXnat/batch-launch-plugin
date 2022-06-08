@@ -78,10 +78,6 @@ public class SearchXMLBuilder {
 			addSubjectColumn(sb, dataType, projects);
 			addScanColumns(sb, dataType, projects);
 			addUriField(sb, dataType);
-		} else if (se.instanceOf(XnatImageassessordata.SCHEMA_ELEMENT_NAME)) {
-			addProjectColumn(sb, dataType);
-			addExptColumn(sb, dataType, projects);
-			addUriField(sb, dataType);
 		} else {
 			addProjectColumn(sb, dataType);
 			addSubjectColumn(sb, dataType, projects);
