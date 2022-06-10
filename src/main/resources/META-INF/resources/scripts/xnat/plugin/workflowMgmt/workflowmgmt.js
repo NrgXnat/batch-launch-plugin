@@ -196,12 +196,6 @@ XNAT.plugin.containerService = getObject(XNAT.plugin.containerService || {});
         });
     };
 
-    XNAT.plugin.batchLaunch.viewWorkflowFile = function(workflowId, fileType) {
-        // FileType is stdout or stderr
-        var logFileUrl = XNAT.url.rootUrl('xapi/workflows/' + workflowId + '/logs/' + fileType);
-        XNAT.ui.dialog.iframe(logFileUrl, 'File: ' + fileType, 580, 600);
-    };
-
     XNAT.plugin.batchLaunch.getContainerInfo = function(containerId, callbackSuccess, callbackFailure) {
         var historyEntry  = XNAT.plugin.batchLaunch.containerInfo[containerId];
 

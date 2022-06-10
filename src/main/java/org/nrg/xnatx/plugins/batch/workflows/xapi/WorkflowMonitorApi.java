@@ -500,49 +500,6 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
         }
     }
 
-
-    @ApiOperation(value = "Gets the log file for a given workflow")
-    @ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
-    @XapiRequestMapping(value = "/{workflowid}/logs/{file}", method = RequestMethod.GET, produces = {MediaType.TEXT_PLAIN_VALUE})
-    public ResponseEntity<String> getFile(@PathVariable("workflowid") final String workflowId, final @PathVariable("file") @ApiParam(allowableValues = "stdout, stderr") String file) throws NoContentException, NotFoundException, ServerException, DockerServerException, NoDockerServerException {
-        //Get the workflow
-        final UserI user = getSessionUser();
-        PersistentWorkflowI wrkFlow = WorkflowUtils.getUniqueWorkflow(user, workflowId);
-        if (wrkFlow == null) {
-            throw new NoContentException("Workflow not found");
-        }
-        // Get the log
-        InputStream logStream = null;
-        if (workflowService.getWorkflowType(wrkFlow) == WorkflowService.WorkflowType.CONTAINER) {
-            //Is a container launch - could be service or containter id
-            final String _containerId = wrkFlow.getComments().trim();
-            try {
-                logStream = containerService.getLogStream(_containerId, file);
-            } catch (org.nrg.framework.exceptions.NotFoundException e) {
-                throw new NotFoundException(e.getMessage());
-            }
-        }
-        if (logStream == null) {
-            throw new NoContentException("Log file not found");
-        }
-
-        try {
-            final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int length;
-            while ((length = logStream.read(buffer)) != -1) {
-                byteArrayOutputStream.write(buffer, 0, length);
-            }
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, getAttachmentDisposition(wrkFlow.getId() + "-" + file, "log"))
-                    .header(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_PLAIN_VALUE)
-                    .body(byteArrayOutputStream.toString(StandardCharsets.UTF_8.name()));
-        } catch (IOException e) {
-            throw new ServerException(e);
-        }
-    }
-
-
     @XapiRequestMapping(value = "/{workflowId}/kill", method = POST)
     @ApiOperation(value = "Kill Process")
     @ResponseBody
