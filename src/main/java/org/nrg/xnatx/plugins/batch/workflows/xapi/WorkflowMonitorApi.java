@@ -8,9 +8,11 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import io.swagger.annotations.*;
 import org.nrg.action.ClientException;
 import org.nrg.action.ServerException;
-import org.nrg.containers.exceptions.DockerServerException;
-import org.nrg.containers.exceptions.NoDockerServerException;
+import org.nrg.containers.security.ContainerControlUserAuthorization;
+import org.nrg.containers.security.WorkflowId;
 import org.nrg.framework.ajax.sql.SortOrFilterException;
+import org.nrg.xapi.rest.AuthDelegate;
+import org.nrg.xdat.security.Authorizer;
 import org.nrg.xdat.security.helpers.Features;
 import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xnat.archive.ResourceData;
@@ -61,6 +63,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
+import static org.nrg.xdat.security.helpers.AccessLevel.Authorizer;
 
 @Slf4j
 @Api()
@@ -216,9 +219,10 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             @ApiResponse(code = 403, message = "User account does not have access to requested data."),
             @ApiResponse(code = 422, message = "Not a pipeline or container or no build directory."),
             @ApiResponse(code = 500, message = "Unexpected error")})
-    @XapiRequestMapping(value = "/{wfid}/build_dir", produces = {MediaType.APPLICATION_JSON_VALUE}, method = RequestMethod.GET)
+    @AuthDelegate(ContainerControlUserAuthorization.class)
+    @XapiRequestMapping(value = "/{wfid}/build_dir", produces = {MediaType.APPLICATION_JSON_VALUE}, method = RequestMethod.GET, restrictTo = Authorizer)
     @ResponseBody
-    public String getBuildDirJson(@PathVariable final String wfid) throws XapiException, ServerException {
+    public String getBuildDirJson(@PathVariable @WorkflowId final String wfid) throws XapiException, ServerException {
 
         PersistentWorkflowI wrk = getWorkflowAndCheckReadAndDownloadAccess(wfid);
 
@@ -355,9 +359,10 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
             @ApiResponse(code = 403, message = "User account does not have access to requested data."),
             @ApiResponse(code = 422, message = "Not a pipeline or container or no build directory."),
             @ApiResponse(code = 500, message = "Unexpected error")})
-    @XapiRequestMapping(value = "/{wfid}/build_dir_contd", produces = {MediaType.APPLICATION_JSON_VALUE}, method = RequestMethod.GET)
+    @AuthDelegate(ContainerControlUserAuthorization.class)
+    @XapiRequestMapping(value = "/{wfid}/build_dir_contd", produces = {MediaType.APPLICATION_JSON_VALUE}, method = RequestMethod.GET, restrictTo = Authorizer)
     @ResponseBody
-    public String getBuildDirJsonContinued(@PathVariable final String wfid,
+    public String getBuildDirJsonContinued(@PathVariable @WorkflowId final String wfid,
                                            @RequestParam final String inputPath)
             throws XapiException {
 
@@ -386,10 +391,11 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     }
 
     @ApiOperation(value = "Returns requested file.")
+    @AuthDelegate(ContainerControlUserAuthorization.class)
     @XapiRequestMapping(value = "/{wfid}/get_file", method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+            produces = MediaType.APPLICATION_OCTET_STREAM_VALUE, restrictTo = Authorizer)
     @ResponseBody
-    public FileSystemResource getBuildDirFile(@PathVariable String wfid,
+    public FileSystemResource getBuildDirFile(@PathVariable @WorkflowId String wfid,
                                               @RequestParam("path") String inputPath) throws Exception {
 
         PersistentWorkflowI wrk = getWorkflowAndCheckReadAndDownloadAccess(wfid);
@@ -398,10 +404,11 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     }
 
     @ApiOperation(value = "Returns requested files.")
+    @AuthDelegate(ContainerControlUserAuthorization.class)
     @XapiRequestMapping(value = "/{wfid}/get_zip", method = RequestMethod.POST,
             consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.APPLICATION_JSON_VALUE},
-            produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
-    public ResponseEntity<StreamingResponseBody> getBuildDirZip(@PathVariable String wfid,
+            produces = MediaType.APPLICATION_OCTET_STREAM_VALUE, restrictTo = Authorizer)
+    public ResponseEntity<StreamingResponseBody> getBuildDirZip(@PathVariable @WorkflowId String wfid,
                                                                 @RequestParam("inputPaths") List<String> inputPaths)
             throws Exception {
 
