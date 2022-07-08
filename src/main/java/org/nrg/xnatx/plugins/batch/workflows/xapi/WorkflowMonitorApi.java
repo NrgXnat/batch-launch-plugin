@@ -394,13 +394,17 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     @AuthDelegate(ContainerControlUserAuthorization.class)
     @XapiRequestMapping(value = "/{wfid}/get_file", method = RequestMethod.GET,
             produces = MediaType.APPLICATION_OCTET_STREAM_VALUE, restrictTo = Authorizer)
-    @ResponseBody
-    public FileSystemResource getBuildDirFile(@PathVariable @WorkflowId String wfid,
+    public ResponseEntity<FileSystemResource> getBuildDirFile(@PathVariable @WorkflowId String wfid,
                                               @RequestParam("path") String inputPath) throws Exception {
 
         PersistentWorkflowI wrk = getWorkflowAndCheckReadAndDownloadAccess(wfid);
-        Path path = getBuildDirPathFromUserInput(inputPath, wrk, getContainerForWorkflow(wrk));
-        return new FileSystemResource(path.toFile());
+        File file = getBuildDirPathFromUserInput(inputPath, wrk, getContainerForWorkflow(wrk)).toFile();
+        return ResponseEntity
+                .ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, getAttachmentDisposition(file.getName()))
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE)
+                .header(HttpHeaders.CONTENT_LENGTH, Long.toString(file.length()))
+                .body(new FileSystemResource(file));
     }
 
     @ApiOperation(value = "Returns requested files.")
