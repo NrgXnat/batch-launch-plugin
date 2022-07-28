@@ -53,7 +53,7 @@ dependencies {
     // Even though container-service plugin version is specified in the parent
     // BOM, it needs to be added here because the copyPlugins task in docker-compose
     // won't resolve it properly against the BOM.
-    implementation "org.nrg.xnatx.plugins:container-service:3.1.2-SNAPSHOT:fat"
+    implementation "org.nrg.xnatx.plugins:container-service:3.2.0-SNAPSHOT:fat"
 
     implementation "org.nrg.xnat:web"
     implementation "io.springfox:springfox-swagger2"
