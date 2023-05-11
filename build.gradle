@@ -149,11 +149,10 @@ task xnatPluginJar(type: Jar) {
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            from components.java
-
             artifacts {
                 artifact sourcesJar
                 artifact javadocJar
+                artifact xnatPluginJar
             }
 
             pom.withXml {
@@ -186,12 +185,7 @@ publishing {
     }
     repositories {
         maven {
-            credentials {
-                // These properties must be set in the ~/.gradle/gradle.properties file or passed on the Gradle command
-                // line in the form -PrepoUsername=foo -PrepoPassword=bar.
-                username propertyWithDefault("repoUsername", "username")
-                password propertyWithDefault("repoPassword", "password")
-            }
+            name = "XNAT_Artifactory"
             if (project.version.endsWith("-SNAPSHOT")) {
                 url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot-local"
             } else {
