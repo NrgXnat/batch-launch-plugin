@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = "1.8.5"
+        vXnat = "1.9.0-SNAPSHOT"
     }
 }
 
@@ -28,7 +28,7 @@ plugins {
 }
 
 group "org.nrg.xnatx.plugins"
-version "0.7.0-SNAPSHOT"
+version "0.8.0"
 description "XNAT Batch Launch Plugin"
 
 repositories {
