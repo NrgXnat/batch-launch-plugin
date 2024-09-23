@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = "1.8.5"
+        vXnat = "1.9.0-RC-SNAPSHOT"
     }
 }
 
@@ -24,7 +24,7 @@ plugins {
     id "io.franzbecker.gradle-lombok" version "4.0.0"
     id "io.spring.dependency-management" version "1.0.11.RELEASE"
     id "net.linguica.maven-settings" version "0.5"
-    id "org.nrg.xnat.build.xnat-data-builder" version "1.8.3"
+    id "org.nrg.xnat.build.xnat-data-builder" version "${vXnat}"
 }
 
 group "org.nrg.xnatx.plugins"
