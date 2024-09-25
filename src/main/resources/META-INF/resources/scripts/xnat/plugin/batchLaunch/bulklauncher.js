@@ -637,19 +637,7 @@ console.log('bulklauncher.js');
                 });
             },
             error: function (o) {
-                console.log("Error " + o);
-                XNAT.dialog.open({
-                    title: 'Error',
-                    content: 'Could not get pipelines for data type: ' + o,
-                    width: 400,
-                    buttons: [
-                        {
-                            label: 'OK',
-                            isDefault: true,
-                            close: true
-                        }
-                    ]
-                });
+                console.log("INFO: Pipeline Engine Plugin may not be deployed ");
             },
             complete: function() {
                 loadingDialog2.close();
