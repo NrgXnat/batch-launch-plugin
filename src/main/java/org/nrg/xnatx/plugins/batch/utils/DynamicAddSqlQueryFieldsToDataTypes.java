@@ -30,6 +30,12 @@ public class DynamicAddSqlQueryFieldsToDataTypes {
             try {
                 for (ElementSecurity es : ElementSecurity.GetSecureElements()) {
                     SchemaElement se = es.getSchemaElement();
+
+                    if(se == null){
+                        log.error("Registered data type is missing schema: "+ es.getElementName());
+                        continue;
+                    }
+
                     // We only care about experiments and scans
                     if (!(se.instanceOf(XnatExperimentdata.SCHEMA_ELEMENT_NAME) ||
                             se.instanceOf(XnatImagescandata.SCHEMA_ELEMENT_NAME))) {
@@ -37,16 +43,20 @@ public class DynamicAddSqlQueryFieldsToDataTypes {
                     }
                     // add display field queries to all configured experiments and scans
                     ElementDisplay ed = se.getDisplay();
-                    for (DisplayFieldInfo dfi : displayFieldQueries) {
-                        addQueryField(dfi, ed, se);
-                    }
-                    // only add scan type count to image sessions
-                    if (se.instanceOf(XnatImagesessiondata.SCHEMA_ELEMENT_NAME)) {
-                        addQueryField(scanTypeCountQuery, ed, se, false);
-                    }
-                    // if no URI field, add one
-                    if (ed.getDisplayField("URI") == null) {
-                        addUriField(ed, se);
+                    if(ed != null) {
+                        for (DisplayFieldInfo dfi : displayFieldQueries) {
+                            addQueryField(dfi, ed, se);
+                        }
+                        // only add scan type count to image sessions
+                        if (se.instanceOf(XnatImagesessiondata.SCHEMA_ELEMENT_NAME)) {
+                            addQueryField(scanTypeCountQuery, ed, se, false);
+                        }
+                        // if no URI field, add one
+                        if (ed.getDisplayField("URI") == null) {
+                            addUriField(ed, se);
+                        }
+                    }else{
+                        log.error("Registered data type is missing display document: "+ es.getElementName());
                     }
                 }
                 addedSQLQueryFieldToDataTypes = true;
