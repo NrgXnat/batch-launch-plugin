@@ -131,7 +131,8 @@ public class SearchXMLBuilder {
 			}
 
 	        for (String pipeline:configuredPipelinesOrContainers) {
-				String pipelineEscaped = pipeline.replace(".", "_").replaceAll("\\s+", "_");
+				//replacing with 2 _ or 3 _ decreases the odds of running into collisions, but doesn't eliminate it entirely.  We could probably do better.
+				String pipelineEscaped = pipeline.replace(".", "__").replaceAll("\\s+", "___");
 				sequence = addPipeline(pipelineEscaped, dataType, sb, sequence);
 			}
 		} else {
