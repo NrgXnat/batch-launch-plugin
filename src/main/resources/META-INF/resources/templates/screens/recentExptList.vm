@@ -1,0 +1,19 @@
+#* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
+#* @vtlvariable name="siteConfig" type="org.nrg.xdat.preferences.SiteConfigPreferences" *#
+#set ($useWorkflowBasedRecentExpts = $!siteConfig.getBooleanValue("uiUseWorkflowBasedRecentExpts"))
+#if ($useWorkflowBasedRecentExpts)
+<script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/recentExpts/recentExptList.js")"></script>
+<div id="recent_expt_list"></div>
+#else
+<script type="text/javascript" src="$content.getURI("scripts/experiments/recentExptList.js")"></script>
+<div id="min_expt_list"></div>
+#end
+<script type="text/javascript">
+    const opts = {};
+    opts.showExptDate = "$!siteConfig.getProperty('uiShowRecentExptListDate')" == "true"
+    opts.showExptScannerName = "$!siteConfig.getProperty('uiShowRecentExptListScannerName')" == "true"
+    opts.recent = true;
+
+    const exptList = #if ($useWorkflowBasedRecentExpts) new RecentExptList("recent_expt_list", opts); #else new MinExptList("min_expt_list", opts); #end
+    exptList.init();
+</script>

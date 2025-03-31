@@ -92,16 +92,14 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
         this.executorService = batchLaunchThreadPoolExecutorFactoryBean.getObject();
     }
 
-    @ApiOperation(value = "Returns a map of workflow models.", response = List.class, responseContainer = "List")
+    @ApiOperation(value = "Returns a map of workflow models.", response = Workflow.class, responseContainer = "List")
     @ApiResponses({@ApiResponse(code = 200, message = "Workflows successfully retrieved."),
             @ApiResponse(code = 400, message = "Invalid request."),
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST)
-    @ResponseBody
     public List<Workflow> getWorkflows(@RequestBody WorkflowPaginatedRequest workflowPaginatedRequest)
             throws ClientException, ServerException, InsufficientPrivilegesException {
-
         final UserI user = getSessionUser();
         if (!hasReadAccess(user, workflowPaginatedRequest.getId(),
                 workflowPaginatedRequest.getDataType())) {
@@ -149,6 +147,7 @@ public class WorkflowMonitorApi extends AbstractXapiProjectRestController {
     private boolean hasReadAccess(UserI user, String id, String dataType) {
         ArchivableItem item;
         switch (dataType) {
+            case "recent":
             case "xdat:user":
                 return true;
             case XnatProjectdata.SCHEMA_ELEMENT_NAME:
