@@ -542,6 +542,13 @@ console.log('bulklauncher.js');
 
     function renderActionOptions() {
         var $actionsDropdown = $('#actionsDropdown');
+        var OptionFactory = function(availableCommand) {
+            this['root-element-name'] = availableCommand['root-element-name'];
+            this['wrapper-id'] = availableCommand['wrapper-id'];
+            this['command-id'] = availableCommand['command-id'];
+            this['wrapper-name'] = availableCommand['wrapper-name'];
+            this['attr'] = availableCommand['attr'];
+        }
         $actionsDropdown
             .find('option')
             .remove()
@@ -561,20 +568,14 @@ console.log('bulklauncher.js');
             url: XNAT.url.rootUrl(availUrl),
             data: data,
             success: function (responseData) {
+                var optionsArray = [];
                 responseData.forEach(function (availableCommand) {
                     var pipelineName = availableCommand['wrapper-name'];
                     var selected = pipelineName === currentJob;
                     var attr = selected ? {selected: 'selected'} : {};
                     if (availableCommand.enabled || selected) {
-                        $('#actionsDropdown').append(spawn('option', {
-                            attr: attr,
-                            value: JSON.stringify({
-                                'root-element-name': availableCommand['root-element-name'],
-                                'wrapper-id': availableCommand['wrapper-id'],
-                                'command-id': availableCommand['command-id'],
-                                'wrapper-name': availableCommand['wrapper-name']
-                            })
-                        }, pipelineName).html);
+                      availableCommand['attr'] = attr;
+                      optionsArray.push(new OptionFactory(availableCommand));
                     } else {
                         var info = columnsToShow[pipelineName];
                         if (info && info['show'] === 1 && !currentJob) {
@@ -584,7 +585,24 @@ console.log('bulklauncher.js');
                             $('.show-hide-columns-list input#show-' + info['labelClean']).click();
                         }
                     }
-                });
+                 });
+                 optionsArray.sort(function(a, b) {
+                     var textA = a['wrapper-name'].toUpperCase();
+                     var textB = b['wrapper-name'].toUpperCase();
+                     return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
+                 });
+                 optionsArray.forEach(availableCommand => {
+                        var pipelineName = availableCommand['wrapper-name'];
+                        $('#actionsDropdown').append(spawn('option', {
+                            attr: availableCommand['attr'],
+                            value: JSON.stringify({
+                                'root-element-name': availableCommand['root-element-name'],
+                                'wrapper-id': availableCommand['wrapper-id'],
+                                'command-id': availableCommand['command-id'],
+                                'wrapper-name': availableCommand['wrapper-name']
+                            })
+                        }, pipelineName).html);
+                 });
                 $actionsDropdown.removeClass('disabled');
                 $actionsDropdown.prop("disabled", false);
             },
@@ -926,4 +944,3 @@ console.log('bulklauncher.js');
         $form.appendTo('body').submit();
     }
 }));
-
