@@ -128,6 +128,7 @@ console.log('bulklauncher.js');
         $container = $('#selectable-table-bulk');
 
         XNAT.plugin.batchLaunch.projectId = $('#projectId').text();
+        XNAT.plugin.batchLaunch.projects = $('#projects').text();
         var xml = $('#xss').val();
         var projectLabelKey = "id";
         var subjectLabelKey = "";
@@ -560,6 +561,9 @@ console.log('bulklauncher.js');
             data['project'] = XNAT.plugin.batchLaunch.projectId;
         } else {
             availUrl += '/site';
+            if (XNAT.plugin.batchLaunch.projects) {
+                data['projects'] = XNAT.plugin.batchLaunch.projects;
+            }
         }
         var currentJob = $('span#currentJob').text();
         var loadingDialog = XNAT.ui.dialog.loading;
@@ -644,7 +648,6 @@ console.log('bulklauncher.js');
                     var pipelineStepId = configuredPipeline['StepId'];
                     var attr = configuredPipeline.Path.replace(/\./g, '_') === currentJob ?
                         {selected: 'selected'} : {};
-                    console.log("Adding " + pipelineName);
                     $('#actionsDropdown').append(spawn('option', {
                         attr: attr,
                         value: JSON.stringify({
@@ -676,7 +679,6 @@ console.log('bulklauncher.js');
 
     function getSelectedJob() {
         var commandDetails = $('#actionsDropdown').find(":selected").val();
-        console.log("CommandDetails: " + commandDetails);
         if (commandDetails === "Select") {
             XNAT.dialog.open({
                 title: 'Please select a job',

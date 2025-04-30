@@ -96,6 +96,12 @@ public class BulkLaunchAction extends DisplaySearchAction {
             }
         }
 
+        if (distinctProjectsInSearch.size() == 1) {
+            data.getParameters().add("project", distinctProjectsInSearch.get(0));
+        } else {
+            data.getParameters().add("projects", String.join(",", distinctProjectsInSearch));
+        }
+
         return (new SearchXMLBuilder()).execute(distinctProjectsInSearch, rootElementName, user, whereClause,
                 getCheckedParameter(data, "job"),
                 getItemList(data, "resources"),
