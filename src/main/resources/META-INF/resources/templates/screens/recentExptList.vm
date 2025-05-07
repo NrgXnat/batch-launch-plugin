@@ -2,6 +2,7 @@
 #* @vtlvariable name="siteConfig" type="org.nrg.xdat.preferences.SiteConfigPreferences" *#
 #set ($useWorkflowBasedRecentExpts = $!siteConfig.getBooleanValue("uiUseWorkflowBasedRecentExpts"))
 #if ($useWorkflowBasedRecentExpts)
+<link rel="stylesheet" type="text/css" href="$content.getURI("style/blp.css")">
 <script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/recentExpts/recentExptList.js")"></script>
 <div id="recent_expt_list"></div>
 #else

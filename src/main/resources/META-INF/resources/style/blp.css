@@ -1,0 +1,11 @@
+#recent_expt_list {
+    min-height: 320px;
+    max-height: 700px;
+    overflow-y: scroll;
+}
+#recent_expt_list .fa {
+    color: #848484;
+}
+div.containerBody #recent_expt_list td {
+    padding: 3px 6px;
+}
