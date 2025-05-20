@@ -13,18 +13,22 @@ import org.nrg.containers.model.command.auto.CommandSummaryForContext;
 import org.nrg.containers.model.orchestration.auto.Orchestration;
 import org.nrg.containers.services.CommandService;
 import org.nrg.containers.services.OrchestrationService;
+import org.nrg.containers.services.impl.ContainerServiceImpl;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.ArcProjectDescendantI;
 import org.nrg.xdat.model.ArcProjectDescendantPipelineI;
 import org.nrg.xdat.om.*;
 import org.nrg.xdat.schema.SchemaElement;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
+import org.nrg.xft.XFTTable;
 import org.nrg.xft.db.PoolDBUtils;
 import org.nrg.xft.exception.ElementNotFoundException;
 import org.nrg.xft.exception.XFTInitException;
+import org.nrg.xft.search.SQLClause;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.turbine.utils.ArcSpecManager;
 import org.restlet.data.Status;
+
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -103,7 +107,7 @@ public class SearchXMLBuilder {
 
 		if(StringUtils.isBlank(specificJob)){
 	        //Get a list of all pipelines/containers which have been configured for the project.
-	        List<String> configuredPipelinesOrContainers = new ArrayList<>();
+	        List<String> executedPipelinesOrContainers = new ArrayList<>();
 	        for(String project: projects){
 				ArcProject aProject = ArcSpecManager.GetFreshInstance().getProjectArc(project);
 				if (aProject != null) {
@@ -116,7 +120,7 @@ public class SearchXMLBuilder {
 								ArcProjectDescendantPipeline descPipeline = (ArcProjectDescendantPipeline) pipeline1;
 								ArcPipelinedata pipeline = descPipeline.getPipelinedata();
 								String path = pipeline.getLocation();
-								configuredPipelinesOrContainers.add(path);
+								executedPipelinesOrContainers.add(path);
 							}
 						}
 					}
@@ -125,12 +129,12 @@ public class SearchXMLBuilder {
 
 	    	//Get configured containers
 			try {
-	    		configuredPipelinesOrContainers.addAll(containerWrappersForDataType(projects,dataType,user));
+	    		executedPipelinesOrContainers.addAll(getContainersExecuted(projects,dataType,user));
 			} catch (Exception e) {
 				log.error("Unable to determine available containers for {}", projects, e);
 			}
 
-	        for (String pipeline:configuredPipelinesOrContainers) {
+	        for (String pipeline:executedPipelinesOrContainers) {
 				//replacing with 2 _ or 3 _ decreases the odds of running into collisions, but doesn't eliminate it entirely.  We could probably do better.
 				String pipelineEscaped = pipeline.replace(".", "__").replaceAll("\\s+", "___");
 				sequence = addPipeline(pipelineEscaped, dataType, sb, sequence);
@@ -225,39 +229,39 @@ public class SearchXMLBuilder {
 		return resources;
 	}
 
-	private Set<String> containerWrappersForDataType(List<String> projects, String xsiType, UserI user)
-			throws ElementNotFoundException {
-		CommandService cmdService = XDAT.getContextService().getBean(CommandService.class);
+	private Set<String> getContainersExecuted(final List<String> projects,
+											 @Nonnull final String dataType,
+											 final UserI user) throws Exception {
 		Set<String> wrapperNames = new LinkedHashSet<>();
-		if (projects.size() == 1) {
-			// List wrappers in orchestration order if we have one
-			OrchestrationService orchestrationService = XDAT.getContextService().getBean(OrchestrationService.class);
-			String project = projects.get(0);
-			Map<Long, String> unordered = new HashMap<>();
-			List<CommandSummaryForContext> cmdSummary = cmdService.available(project, xsiType, user);
-			for (CommandSummaryForContext c : cmdSummary) {
-				unordered.put(c.wrapperId(), c.wrapperName());
+		if (projects.isEmpty()) {
+			return wrapperNames;
+		}
+		SQLClause.ParamValue[] sqlValues = new SQLClause.ParamValue[projects.size() + 1];
+		StringBuffer project_ids_holder = new StringBuffer("(");
+		int counter = 0;
+		for (String projectId : projects) {
+			sqlValues[counter] = new SQLClause.ParamValue(projectId, -1);
+			if (counter++>0) {
+				project_ids_holder.append(",");
 			}
-			Orchestration orchestration = orchestrationService.findForProject(project);
-			if (orchestration != null) {
-				for (Long id : orchestration.getWrapperIds()) {
-					if (!unordered.containsKey(id)) {
-						// orchestration context isn't this xsiType, revert to default
-						break;
-					}
-					wrapperNames.add(unordered.get(id));
-					unordered.remove(id);
-				}
+			project_ids_holder.append("?");
+		}
+		project_ids_holder.append(")");
+		sqlValues[projects.size()] = new SQLClause.ParamValue(dataType, -1);
+		PoolDBUtils con = new PoolDBUtils();
+		try {
+			final String colName = "pipeline_name";
+			String query = "SELECT distinct " + colName +  "  FROM wrk_workflowdata where externalid in " + project_ids_holder +  " and data_type = ? and justification='" + ContainerServiceImpl.containerLaunchJustification + "';";
+
+			XFTTable t = con.executeSelectPS(query, sqlValues);
+			while (t.hasMoreRows()) {
+				t.nextRow();
+				wrapperNames.add(t.getCellValue(colName).toString());
 			}
-			// Add any wrappers that aren't orchestrated
-			wrapperNames.addAll(unordered.values());
-		} else {
-			for (String project : projects) {
-				List<CommandSummaryForContext> cmdSummary = cmdService.available(project, xsiType, user);
-				for (CommandSummaryForContext c : cmdSummary) {
-					wrapperNames.add(c.wrapperName());
-				}
-			}
+		} catch (Exception e) {
+			log.error("Could not get container names", e);
+		} finally {
+			con.closeConnection();
 		}
 		return wrapperNames;
 	}
