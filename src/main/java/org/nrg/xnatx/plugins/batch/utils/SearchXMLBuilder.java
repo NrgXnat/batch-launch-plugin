@@ -340,7 +340,7 @@ public class SearchXMLBuilder {
 			projIdField = "MR_PROJECT_IDENTIFIER";
 		}
 
-		if (projects.size()>1) {
+		if (projects.size()>1 || projects.size()==0) {
 			//if more then 1 project is in scope, then show default label
 			sb.append("<xdat:search_field>");
 			sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
