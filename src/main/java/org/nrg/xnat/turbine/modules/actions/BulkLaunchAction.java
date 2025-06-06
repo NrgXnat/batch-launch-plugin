@@ -11,11 +11,17 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
 import org.nrg.xdat.exceptions.InvalidSearchException;
+import org.nrg.xdat.om.XdatCriteria;
+import org.nrg.xdat.om.XdatCriteriaSet;
+import org.nrg.xdat.om.XdatSearchField;
 import org.nrg.xdat.om.XdatStoredSearch;
 import org.nrg.xdat.search.DisplaySearch;
 import org.nrg.xdat.turbine.modules.actions.DisplaySearchAction;
 import org.nrg.xft.XFTTable;
 import org.nrg.xft.schema.Wrappers.XMLWrapper.SAXReader;
+import org.nrg.xft.search.CriteriaCollection;
+import org.nrg.xft.search.SQLClause;
+import org.nrg.xft.search.SearchCriteria;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.plugins.batch.utils.SearchXMLBuilder;
 import org.xml.sax.InputSource;
@@ -23,8 +29,11 @@ import org.xml.sax.InputSource;
 import java.io.StringReader;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Set;
 
 @SuppressWarnings("unused")
 @Slf4j
@@ -69,7 +78,8 @@ public class BulkLaunchAction extends DisplaySearchAction {
     }
 
     private String buildNewSearchXML(final String searchXml, final UserI user, final String whereClause, final RunData data) throws Exception {
-        final DisplaySearch displaySearch = new XdatStoredSearch(new SAXReader(user).parse(new InputSource(new StringReader(searchXml)))).getCSVDisplaySearch(user);
+        final XdatStoredSearch search = new XdatStoredSearch(new SAXReader(user).parse(new InputSource(new StringReader(searchXml))));
+        final DisplaySearch displaySearch = search.getCSVDisplaySearch(user);
 
         if (displaySearch == null) {
             throw new SearchTimeoutException("BulkLaunchAction Session Expired: The previously performed search has timed out.");
@@ -87,18 +97,23 @@ public class BulkLaunchAction extends DisplaySearchAction {
         //This value should match the value at the header of the session id column in the previous ExampleListingActionScreen implementation.
         //Distinct projects
         final List<String> distinctProjectsInSearch = new ArrayList<>();
-        table.resetRowCursor();
-        while (table.hasMoreRows()) {
-            final Hashtable<?, ?> row     = table.nextRowHash();
-            final String          project = StringUtils.defaultIfBlank((String) row.get(PROJECT_HEADER), (String) row.get(PROJECT_HEADER_LOWER));
-            if (!distinctProjectsInSearch.contains(project)) {
-                distinctProjectsInSearch.add(project);
+        //Detect  the project(s) in the search
+        if (tableHasProjectColumn(table.getColumns())) {
+            table.resetRowCursor();
+            while (table.hasMoreRows()) {
+                final Hashtable<?, ?> row     = table.nextRowHash();
+                final String          project = StringUtils.defaultIfBlank((String) row.get(PROJECT_HEADER), (String) row.get(PROJECT_HEADER_LOWER));
+                if (!distinctProjectsInSearch.contains(project)) {
+                    distinctProjectsInSearch.add(project);
+                }
             }
+        } else {
+            distinctProjectsInSearch.addAll(extractProjectsFromCriteria(rootElementName, search.getSearchWhere()));
         }
 
         if (distinctProjectsInSearch.size() == 1) {
             data.getParameters().add("project", distinctProjectsInSearch.get(0));
-        } else {
+        } else if (distinctProjectsInSearch.size() > 1)  {
             data.getParameters().add("projects", String.join(",", distinctProjectsInSearch));
         }
 
@@ -106,6 +121,31 @@ public class BulkLaunchAction extends DisplaySearchAction {
                 getCheckedParameter(data, "job"),
                 getItemList(data, "resources"),
                 getItemList(data, "scan_types"));
+    }
+
+    private Set<String> extractProjectsFromCriteria(final String rootElementName, final ArrayList<XdatCriteriaSet> searchCriterion) {
+        Set<String> projects = new HashSet();
+        for (XdatCriteriaSet scSet : searchCriterion) {
+            addProjectValue(rootElementName, scSet.getCriteria(), projects);
+            for (XdatCriteriaSet scChildSet : scSet.getChildSet()) {
+                addProjectValue(rootElementName, scChildSet.getCriteria(), projects);
+            }
+        }
+        return projects;
+    }
+
+    private void addProjectValue(final String rootElementName, final ArrayList<XdatCriteria> scChildCriterion, final Set<String> projects) {
+        final String xmlPathToProject = rootElementName + "/" + PROJECT_HEADER_LOWER;
+        final String xmlPathToShareProject = rootElementName + "/sharing/share/" + PROJECT_HEADER_LOWER;
+        for (XdatCriteria sc: scChildCriterion) {
+            if (sc.getComparisonType().equals("=") && (sc.getSchemaField().equals(xmlPathToProject) || sc.getSchemaField().equals(xmlPathToShareProject))) {
+                projects.add(sc.getValue());
+            }
+        }
+    }
+
+    private boolean tableHasProjectColumn(final String[] columnHeaders) {
+        return Arrays.stream(columnHeaders).anyMatch(PROJECT_HEADER::equalsIgnoreCase);
     }
 
     private static String getWhereClause(final String searchXml) {

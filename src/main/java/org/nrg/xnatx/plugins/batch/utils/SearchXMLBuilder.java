@@ -233,30 +233,37 @@ public class SearchXMLBuilder {
 											 @Nonnull final String dataType,
 											 final UserI user) throws Exception {
 		Set<String> wrapperNames = new LinkedHashSet<>();
-		if (projects.isEmpty()) {
-			return wrapperNames;
-		}
-		SQLClause.ParamValue[] sqlValues = new SQLClause.ParamValue[projects.size() + 1];
-		StringBuffer project_ids_holder = new StringBuffer("(");
-		int counter = 0;
-		for (String projectId : projects) {
-			sqlValues[counter] = new SQLClause.ParamValue(projectId, -1);
-			if (counter++>0) {
-				project_ids_holder.append(",");
-			}
-			project_ids_holder.append("?");
-		}
-		project_ids_holder.append(")");
-		sqlValues[projects.size()] = new SQLClause.ParamValue(dataType, -1);
+
 		PoolDBUtils con = new PoolDBUtils();
 		try {
 			final String colName = "pipeline_name";
-			String query = "SELECT distinct " + colName +  "  FROM wrk_workflowdata where externalid in " + project_ids_holder +  " and data_type = ? and justification='" + ContainerServiceImpl.containerLaunchJustification + "';";
+			XFTTable table = null;
 
-			XFTTable t = con.executeSelectPS(query, sqlValues);
-			while (t.hasMoreRows()) {
-				t.nextRow();
-				wrapperNames.add(t.getCellValue(colName).toString());
+			if (projects.isEmpty()) {
+				SQLClause.ParamValue[] sqlValues = {new SQLClause.ParamValue(dataType, -1)};
+				String query = "SELECT distinct " + colName +  "  FROM wrk_workflowdata where externalid is not null and data_type = ? and justification='" + ContainerServiceImpl.containerLaunchJustification + "';";
+				table = con.executeSelectPS(query, sqlValues);
+			} else {
+				SQLClause.ParamValue[] sqlValues = new SQLClause.ParamValue[projects.size() + 1];
+				StringBuffer project_ids_holder = new StringBuffer("(");
+				int counter = 0;
+				for (String projectId : projects) {
+					sqlValues[counter] = new SQLClause.ParamValue(projectId, -1);
+					if (counter++>0) {
+						project_ids_holder.append(",");
+					}
+					project_ids_holder.append("?");
+				}
+				project_ids_holder.append(")");
+				sqlValues[projects.size()] = new SQLClause.ParamValue(dataType, -1);
+				String query = "SELECT distinct " + colName +  "  FROM wrk_workflowdata where externalid in " + project_ids_holder +  " and data_type = ? and justification='" + ContainerServiceImpl.containerLaunchJustification + "';";
+				table = con.executeSelectPS(query, sqlValues);
+			}
+			if (table != null) {
+				while (table.hasMoreRows()) {
+					table.nextRow();
+					wrapperNames.add(table.getCellValue(colName).toString());
+				}
 			}
 		} catch (Exception e) {
 			log.error("Could not get container names", e);
@@ -339,31 +346,17 @@ public class SearchXMLBuilder {
 		} else if (XnatMrsessiondata.SCHEMA_ELEMENT_NAME.equals(dataType)) {
 			projIdField = "MR_PROJECT_IDENTIFIER";
 		}
-
-		if (projects.size()>1 || projects.get(0) == null) {
-			//if more then 1 project is in scope, then show default label
-			sb.append("<xdat:search_field>");
-			sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
-			if (baseDataTypeMatches) {
-				sb.append("<xdat:field_ID>LABEL</xdat:field_ID>");
-			} else {
-				sb.append("<xdat:field_ID>SUBJECT_LABEL</xdat:field_ID>");
-			}
-			sb.append("<xdat:sequence>").append(seq).append("</xdat:sequence>");
-			sb.append("<xdat:type>string</xdat:type>");
-			sb.append("<xdat:header>").append(header).append("</xdat:header>");
-			sb.append("</xdat:search_field>");
+		sb.append("<xdat:search_field>");
+		sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
+		if (baseDataTypeMatches) {
+			sb.append("<xdat:field_ID>LABEL</xdat:field_ID>");
 		} else {
-			//if only 1 project is in scope, show that project's label
-			sb.append("<xdat:search_field>");
-			sb.append("<xdat:element_name>").append(dataType).append("</xdat:element_name>");
-			sb.append("<xdat:field_ID>").append(projIdField).append("=").append(projects.get(0)).append("</xdat:field_ID>");
-			sb.append("<xdat:sequence>").append(seq).append("</xdat:sequence>");
-			sb.append("<xdat:type>string</xdat:type>");
-			sb.append("<xdat:header>").append(header).append("</xdat:header>");
-			sb.append("<xdat:value>").append(projects.get(0)).append("</xdat:value>");
-			sb.append("</xdat:search_field>");
+			sb.append("<xdat:field_ID>SUBJECT_LABEL</xdat:field_ID>");
 		}
+		sb.append("<xdat:sequence>").append(seq).append("</xdat:sequence>");
+		sb.append("<xdat:type>string</xdat:type>");
+		sb.append("<xdat:header>").append(header).append("</xdat:header>");
+		sb.append("</xdat:search_field>");
 	}
 
 	private void addUriField(StringBuilder sb, String dataType) {

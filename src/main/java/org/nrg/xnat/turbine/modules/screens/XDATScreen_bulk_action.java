@@ -45,7 +45,7 @@ public class XDATScreen_bulk_action extends SecureScreen {
         }
 
         // The below section is skipped if a search is passed in, ensure that everything else you need is in-context
-        if ( null != project && TurbineUtils.HasPassedParameter("dataType", data)) {
+        if ( null != project && TurbineUtils.HasPassedParameter("dataType", data) && !TurbineUtils.HasPassedParameter("xss", data)) {
             final String       dataType  = (String) TurbineUtils.GetPassedParameter("dataType", data);
             final List<String> resources = SearchXMLBuilder.getItemList(data, "resources");
             final List<String> scanTypes = SearchXMLBuilder.getItemList(data, "scan_types");

@@ -394,7 +394,7 @@ console.log('bulklauncher.js');
                     $.map(filterCssList, function (e) {
                         return "tr." + e + "{display:none;}"
                     })));
-
+                let projectIdsFromSearch = new Set();
                 // AddDataTableRows:
                 $.each(rows, function (i, d) {
                     var project, label, project_url, subject_url, expt_url;
@@ -421,7 +421,7 @@ console.log('bulklauncher.js');
                             }
                         }
                     }
-
+                    projectIdsFromSearch.add(project);
                     var itemid = uri.replace(/\/archive\/[^\/]*\//, '').replace(/\/scans\//, '-');
                     var single_select_checkbox_id = "select-" + itemid;
                     var id_json = JSON.stringify({
@@ -499,7 +499,7 @@ console.log('bulklauncher.js');
                 }
                 XNAT.ui.ajaxTable.resizeTableCols($container.find("table#" + tableId));
                 // Now get the actions associated with the datatype
-                renderActionOptions();
+                renderActionOptions(projectIdsFromSearch);
             },
             error: function (o) {
                 XNAT.dialog.open({
@@ -541,7 +541,7 @@ console.log('bulklauncher.js');
         XNAT.plugin.batchLaunch.addClickActions($container);
     }
 
-    function renderActionOptions() {
+    function renderActionOptions(projectIdsFromSearch) {
         var $actionsDropdown = $('#actionsDropdown');
         var OptionFactory = function(availableCommand) {
             this['root-element-name'] = availableCommand['root-element-name'];
@@ -561,8 +561,10 @@ console.log('bulklauncher.js');
             data['project'] = XNAT.plugin.batchLaunch.projectId;
         } else {
             availUrl += '/site';
-            if (XNAT.plugin.batchLaunch.projects) {
+            if (XNAT.plugin.batchLaunch.projects !== "") {
                 data['projects'] = XNAT.plugin.batchLaunch.projects;
+            } else if (projectIdsFromSearch) {
+                data['projects'] = Array.from(projectIdsFromSearch).join(", ");
             }
         }
         var currentJob = $('span#currentJob').text();
