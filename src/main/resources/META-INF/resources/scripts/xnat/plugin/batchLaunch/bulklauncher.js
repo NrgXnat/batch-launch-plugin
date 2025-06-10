@@ -566,6 +566,12 @@ console.log('bulklauncher.js');
             } else if (projectIdsFromSearch) {
                 data['projects'] = Array.from(projectIdsFromSearch).join(", ");
             }
+            $actionsDropdown.parents('span.data-table-action').append(
+                spawn('i.fa.fa-info-circle.available-jobs-help',{
+                    style: { 'padding-left': '4px', 'cursor':'pointer'},
+                    onclick: function(){ XNAT.dialog.message('Available Jobs in Processing Dashboard','When accessing the Processing Dashboard via search, only commands that are enabled in every project with data in these search results will be available to be run. <a href=\'https://wiki.xnat.org/xnat-tools/using-the-batch-launch-plugin-with-the-container-s\' target=\'_blank\'>See XNAT Documentation</a> for details') }
+                })
+            );
         }
         var currentJob = $('span#currentJob').text();
         var loadingDialog = XNAT.ui.dialog.loading;
