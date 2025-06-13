@@ -1,0 +1,30 @@
+siteSettings:
+  kind: tabs
+  label: Batch Launch Settings
+  meta:
+    tabGroups:
+      batchLaunchPlugin: Batch Launch
+  contents:
+    batchLaunchConfig:
+      kind: tab
+      group: batchLaunchPlugin
+      label: Configuration
+      active: true
+      contents:
+        ${batchLaunchConfigPanel}
+batchLaunchConfigPanel:
+  kind: panel.form
+  name: batchLaunchConfigPanel
+  label: Batch Launch Configuration
+  method: POST
+  contentType: json
+  url: /xapi/siteConfig
+  contents:
+    uiUseWorkflowBasedRecentExpts:
+      kind: panel.input.switchbox
+      name: uiUseWorkflowBasedRecentExpts
+      label: Use Workflow-Based Recent Data Activity
+      description: >
+        Uses a workflow-based query when displaying the Recent Data Activity panel on the XNAT front page.
+        This workflow-based implementation provides a quicker response, but results may vary slightly from
+        the standard XNAT Recent Data Activity results.

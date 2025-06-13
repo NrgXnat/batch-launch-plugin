@@ -128,6 +128,7 @@ console.log('bulklauncher.js');
         $container = $('#selectable-table-bulk');
 
         XNAT.plugin.batchLaunch.projectId = $('#projectId').text();
+        XNAT.plugin.batchLaunch.projects = $('#projects').text();
         var xml = $('#xss').val();
         var projectLabelKey = "id";
         var subjectLabelKey = "";
@@ -393,7 +394,7 @@ console.log('bulklauncher.js');
                     $.map(filterCssList, function (e) {
                         return "tr." + e + "{display:none;}"
                     })));
-
+                let projectIdsFromSearch = new Set();
                 // AddDataTableRows:
                 $.each(rows, function (i, d) {
                     var project, label, project_url, subject_url, expt_url;
@@ -420,7 +421,7 @@ console.log('bulklauncher.js');
                             }
                         }
                     }
-
+                    projectIdsFromSearch.add(project);
                     var itemid = uri.replace(/\/archive\/[^\/]*\//, '').replace(/\/scans\//, '-');
                     var single_select_checkbox_id = "select-" + itemid;
                     var id_json = JSON.stringify({
@@ -498,7 +499,7 @@ console.log('bulklauncher.js');
                 }
                 XNAT.ui.ajaxTable.resizeTableCols($container.find("table#" + tableId));
                 // Now get the actions associated with the datatype
-                renderActionOptions();
+                renderActionOptions(projectIdsFromSearch);
             },
             error: function (o) {
                 XNAT.dialog.open({
@@ -540,8 +541,15 @@ console.log('bulklauncher.js');
         XNAT.plugin.batchLaunch.addClickActions($container);
     }
 
-    function renderActionOptions() {
+    function renderActionOptions(projectIdsFromSearch) {
         var $actionsDropdown = $('#actionsDropdown');
+        var OptionFactory = function(availableCommand) {
+            this['root-element-name'] = availableCommand['root-element-name'];
+            this['wrapper-id'] = availableCommand['wrapper-id'];
+            this['command-id'] = availableCommand['command-id'];
+            this['wrapper-name'] = availableCommand['wrapper-name'];
+            this['attr'] = availableCommand['attr'];
+        }
         $actionsDropdown
             .find('option')
             .remove()
@@ -553,6 +561,17 @@ console.log('bulklauncher.js');
             data['project'] = XNAT.plugin.batchLaunch.projectId;
         } else {
             availUrl += '/site';
+            if (XNAT.plugin.batchLaunch.projects !== "") {
+                data['projects'] = XNAT.plugin.batchLaunch.projects;
+            } else if (projectIdsFromSearch) {
+                data['projects'] = Array.from(projectIdsFromSearch).join(", ");
+            }
+            $actionsDropdown.parents('span.data-table-action').append(
+                spawn('i.fa.fa-info-circle.available-jobs-help',{
+                    style: { 'padding-left': '4px', 'cursor':'pointer'},
+                    onclick: function(){ XNAT.dialog.message('Available Jobs in Processing Dashboard','When accessing the Processing Dashboard via search, only commands that are enabled in every project with data in these search results will be available to be run. <a href=\'https://wiki.xnat.org/xnat-tools/using-the-batch-launch-plugin-with-the-container-s\' target=\'_blank\'>See XNAT Documentation</a> for details') }
+                })
+            );
         }
         var currentJob = $('span#currentJob').text();
         var loadingDialog = XNAT.ui.dialog.loading;
@@ -561,20 +580,14 @@ console.log('bulklauncher.js');
             url: XNAT.url.rootUrl(availUrl),
             data: data,
             success: function (responseData) {
+                var optionsArray = [];
                 responseData.forEach(function (availableCommand) {
                     var pipelineName = availableCommand['wrapper-name'];
                     var selected = pipelineName === currentJob;
                     var attr = selected ? {selected: 'selected'} : {};
                     if (availableCommand.enabled || selected) {
-                        $('#actionsDropdown').append(spawn('option', {
-                            attr: attr,
-                            value: JSON.stringify({
-                                'root-element-name': availableCommand['root-element-name'],
-                                'wrapper-id': availableCommand['wrapper-id'],
-                                'command-id': availableCommand['command-id'],
-                                'wrapper-name': availableCommand['wrapper-name']
-                            })
-                        }, pipelineName).html);
+                      availableCommand['attr'] = attr;
+                      optionsArray.push(new OptionFactory(availableCommand));
                     } else {
                         var info = columnsToShow[pipelineName];
                         if (info && info['show'] === 1 && !currentJob) {
@@ -584,7 +597,24 @@ console.log('bulklauncher.js');
                             $('.show-hide-columns-list input#show-' + info['labelClean']).click();
                         }
                     }
-                });
+                 });
+                 optionsArray.sort(function(a, b) {
+                     var textA = a['wrapper-name'].toUpperCase();
+                     var textB = b['wrapper-name'].toUpperCase();
+                     return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
+                 });
+                 optionsArray.forEach(availableCommand => {
+                        var pipelineName = availableCommand['wrapper-name'];
+                        $('#actionsDropdown').append(spawn('option', {
+                            attr: availableCommand['attr'],
+                            value: JSON.stringify({
+                                'root-element-name': availableCommand['root-element-name'],
+                                'wrapper-id': availableCommand['wrapper-id'],
+                                'command-id': availableCommand['command-id'],
+                                'wrapper-name': availableCommand['wrapper-name']
+                            })
+                        }, pipelineName).html);
+                 });
                 $actionsDropdown.removeClass('disabled');
                 $actionsDropdown.prop("disabled", false);
             },
@@ -626,7 +656,6 @@ console.log('bulklauncher.js');
                     var pipelineStepId = configuredPipeline['StepId'];
                     var attr = configuredPipeline.Path.replace(/\./g, '_') === currentJob ?
                         {selected: 'selected'} : {};
-                    console.log("Adding " + pipelineName);
                     $('#actionsDropdown').append(spawn('option', {
                         attr: attr,
                         value: JSON.stringify({
@@ -658,7 +687,6 @@ console.log('bulklauncher.js');
 
     function getSelectedJob() {
         var commandDetails = $('#actionsDropdown').find(":selected").val();
-        console.log("CommandDetails: " + commandDetails);
         if (commandDetails === "Select") {
             XNAT.dialog.open({
                 title: 'Please select a job',
@@ -926,4 +954,3 @@ console.log('bulklauncher.js');
         $form.appendTo('body').submit();
     }
 }));
-

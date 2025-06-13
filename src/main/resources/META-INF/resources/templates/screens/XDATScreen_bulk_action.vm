@@ -20,8 +20,9 @@
 #end
 #if($!projectId)
     <span id="projectId" style="display:none">$!projectId</span>
+#elseif ($!projects)
+    <span id="projects" style="display:none">$!projects</span>
 #end
-
 
 #set($hide=true)
 #parse("/screens/workflow_table.vm")

@@ -26,4 +26,7 @@
   <logger name="org.nrg.xnatx.plugins.batch" additivity="false" level="INFO">
     <appender-ref ref="batch_launch"/>
   </logger>
+  <logger name="org.nrg.xnatx.plugins.batch.workflows.repository.WorkflowRepository" additivity="false" level="DEBUG">
+    <appender-ref ref="batch_launch"/>
+  </logger>
 </configuration>

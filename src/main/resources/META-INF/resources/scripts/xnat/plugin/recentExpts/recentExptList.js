@@ -1,0 +1,215 @@
+/*
+ * batch-launch: recentExptList.js
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2025, XNAT Works, Inc.
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ */
+function RecentExptList(_div, _options) {
+
+    var exptList = this, // keep proper scope in callbacks
+        xhr = XNAT.xhr,
+        undefined;
+
+    exptList.options = _options;
+    exptList.div = _div;
+
+    if (exptList.options == undefined) {
+        exptList.options = {};
+        exptList.options.recent = true;
+    }
+
+    exptList.init = function () {
+        exptList.initLoader = prependLoader(exptList.div, "Loading recent data");
+        exptList.initLoader.render();
+        //load from search xml from server
+        var params = JSON.stringify({
+            "page": 1,
+            "id": window.username || XNAT.data.username || '',
+            "data_type": "recent",
+            "sortable": true,
+            "days": -1
+        });
+        console.log('Posting to /xapi/workflows: ' + params);
+
+        XNAT.xhr.postJSON({
+            url: XNAT.url.restUrl('/xapi/workflows'),
+            data: params,
+            success: exptList.completeInit,
+            failure: exptList.initFailure
+        });
+    };
+
+    exptList.initFailure = function (o) {
+        if (!window.leaving) {
+            exptList.displayError("ERROR " + o.status + ": Failed to load experiment list.");
+        }
+        exptList.initLoader.close();
+    };
+
+    exptList.completeInit = function (json, status, jqXHR) {
+        try {
+            exptList.exptResultSet = json;
+        } catch (e) {
+            exptList.displayError("ERROR " + status + ": Failed to parse experiment list.");
+        }
+        exptList.initLoader.close();
+        try {
+            exptList.render();
+        } catch (e) {
+            exptList.displayError("ERROR : Failed to render experiment list: " + e.message);
+        }
+    };
+
+    exptList.displayError = function (errorMsg) {
+        xmodal.message('Experiment List Error', errorMsg);
+    };
+
+    exptList.render = function () {
+
+        var display = document.getElementById(exptList.div);
+        var t = document.createElement("table");
+        t.width = "100%";
+        t.cellSpacing = "0px";
+        var tb = document.createElement("tbody");
+
+        for (var eC = 0; eC < exptList.exptResultSet.length; eC++) {
+
+            var expt = exptList.exptResultSet[eC];
+
+            var tr = document.createElement("tr");
+
+            if (eC % 2 == 0) {
+                tr.className = "even";
+            } else {
+                tr.className = "odd";
+            }
+
+            var td = document.createElement("td");
+            td.align = "left";
+
+            var projName = expt.project = expt.externalId; // externalId is stand-in for project name
+
+            if (expt.project.length > 10) {
+                projName = projName.substring(0, 9) + '&hellip;';
+            }
+
+            td.innerHTML = '<a title="' + expt.project + '" href="' + XNAT.url.dataUrl(['projects', expt.project, '?format=html']) + '">' + projName + '</a>';
+            tr.appendChild(td);
+
+            td = document.createElement("td");
+            td.align = "left";
+            td.innerHTML = expt.justification; // justification is stand-in for type_desc
+            tr.appendChild(td);
+
+            if (exptList.options.showExptScannerName) {
+                scannerName = expt.comments ? expt.comments : ''; // comments is stand-in for scanner name
+                if (scannerName.length > 10) {
+                    scannerName = scannerName.substring(0, 9) + '&hellip;';
+                }
+                td = document.createElement("td");
+                td.title = expt.comments;
+                td.align = "left";
+                td.innerHTML = scannerName;
+                tr.appendChild(td);
+            }
+
+            td = document.createElement("td");
+            td.align = "left";
+
+            if (expt.label == "") {
+                var tempLabel = expt.id;
+            } else {
+                var tempLabel = expt.label;
+            }
+
+            var labelLink = "<a";
+            labelLink += " href='" + serverRoot + "/app/action/DisplayItemAction/search_element/" + expt.dataType + "/search_field/" + expt.dataType + ".ID/search_value/" + expt.id + "/project/" + expt.project + "'";
+
+            if (tempLabel.length > 18) {
+                labelLink += " title='" + tempLabel + "'>" + tempLabel.substring(0, 15) + "...";
+            } else {
+                labelLink += ">" + tempLabel;
+            }
+            labelLink += "</a>";
+
+            td.innerHTML = labelLink;
+
+            tr.appendChild(td);
+
+            td = document.createElement("TD");
+            if (expt.launchTime != "" && expt.pipelineName != "") {
+                if (expt.status == "Complete") {
+                    td.innerHTML = "";
+                } else if (expt.status.startsWith("Failed") && expt.status != "Failed (Dismissed)") {
+                    td.innerHTML = "<i class='fa fa-warning' title='Failed'/>";
+                } else if (expt.status == "Queued") {
+                    td.innerHTML = "<i class='fa fa-clock-o' title='Queued'></i>";
+                } else {
+                    td.innerHTML = "<i class='fa fa-cogs' title='" + expt.status + "'></i>";
+                }
+            } else {
+                td.innerHTML = "";
+            }
+            tr.appendChild(td);
+
+            td = document.createElement("td");
+            td.align = "right";
+
+            if (expt.launchTime != "" && expt.pipelineName != "") {
+                var tdTmp = '<A class="recentDataActivity" title="' + expt.pipelineName;
+                if (expt.status != "Complete") {
+                    tdTmp += ' "' + expt.status + '"';
+                }
+                tdTmp += " at " + expt.launchTime + "'>" + expt.pipelineName.replace('_', ' ') + "<a>";
+                td.innerHTML = tdTmp;
+            } else if (expt.modTime != "") {
+                td.innerHTML = "<A class='recentDataActivity' title='Modified at " + expt.modTime + "'>Modified<a>";
+            } else {
+                td.innerHTML = "<span class='recentDataActivity'>Created</span>";
+            }
+
+            tr.appendChild(td);
+            tb.appendChild(tr);
+
+//			tr.extension=eC+"_rExpt_tr";
+//			tr.onclick=function(){
+//				var extension=document.getElementById(exptList.extension);
+//				extension.style.display=(extension.style.display=="none")?"":"none";
+//			}
+//			tr.style.cursor="pointer";
+
+            tr = document.createElement("tr");
+            tr.id = eC + "_rExpt_tr";
+            tr.style.display = "none";
+            if (eC % 2 == 0) {
+                tr.className = "even";
+            } else {
+                tr.className = "odd";
+            }
+            td = document.createElement("td");
+            td.colSpan = "4";
+            td.innerHTML = "&nbsp;";
+
+            tr.appendChild(td);
+            tb.appendChild(tr);
+        }
+        t.appendChild(tb);
+        display.appendChild(t);
+
+    }
+}
+
+function prependLoader(div_id, msg) {
+    var div;
+    if (div_id.id == undefined) {
+        div = document.getElementById(div_id);
+    } else {
+        div = div_id;
+    }
+    var loader_div = document.createElement("div");
+    loader_div.innerHTML = msg;
+    div.parentNode.insertBefore(loader_div, div);
+    return new XNATLoadingGIF(loader_div);
+}

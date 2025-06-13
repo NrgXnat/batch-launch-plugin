@@ -35,15 +35,22 @@ public class XDATScreen_bulk_action extends SecureScreen {
             context.put("job", job);
         }
 
+        String project = null;
+
+        if (TurbineUtils.HasPassedParameter("project", data)) {
+            project   = (String) TurbineUtils.GetPassedParameter("project", data);
+            context.put("projectId", project);
+        } else if (TurbineUtils.HasPassedParameter("projects", data)) {
+            context.put("projects", TurbineUtils.GetPassedParameter("projects", data));
+        }
+
         // The below section is skipped if a search is passed in, ensure that everything else you need is in-context
-        if (TurbineUtils.HasPassedParameter("project", data) && TurbineUtils.HasPassedParameter("dataType", data)) {
-            final String       project   = (String) TurbineUtils.GetPassedParameter("project", data);
+        if ( null != project && TurbineUtils.HasPassedParameter("dataType", data) && !TurbineUtils.HasPassedParameter("xss", data)) {
             final String       dataType  = (String) TurbineUtils.GetPassedParameter("dataType", data);
             final List<String> resources = SearchXMLBuilder.getItemList(data, "resources");
             final List<String> scanTypes = SearchXMLBuilder.getItemList(data, "scan_types");
             try {
                 context.put("xss", (new SearchXMLBuilder()).execute(Collections.singletonList(project), dataType, user, String.format(SEARCH_TEMPLATE, dataType, project), job, resources, scanTypes));
-                context.put("projectId", project);
             } catch (XFTInitException | ElementNotFoundException e) {
                 throw new ClientException("Issue generating search xml", e);
             }
