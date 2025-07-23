@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = "1.9.2-RC-SNAPSHOT"
+        vXnat = "1.10.0-RC-SNAPSHOT"
     }
 }
 
@@ -28,7 +28,7 @@ plugins {
 }
 
 group "org.nrg.xnatx.plugins"
-version "0.8.0"
+version "0.8.0-java21-RC-SNAPSHOT"
 description "XNAT Batch Launch Plugin"
 
 repositories {
@@ -47,13 +47,23 @@ configurations {
     implementation.extendsFrom(implementAndInclude)
 }
 
+
+dependencyManagement {
+    imports {
+        mavenBom "org.nrg:parent:${vXnat}"
+    }
+    generatedPomCustomization {
+        enabled = false
+    }
+}
+
 dependencies {
     implementation platform("org.nrg:parent:${vXnat}")
 
     // Even though container-service plugin version is specified in the parent
     // BOM, it needs to be added here because the copyPlugins task in docker-compose
     // won't resolve it properly against the BOM.
-    implementation "org.nrg.xnatx.plugins:container-service:3.2.0:fat"
+    implementation "org.nrg.xnatx.plugins:container-service:3.8.0-SNAPSHOT:fat"
 
     implementation "org.nrg.xnat:web"
     implementation "io.springfox:springfox-swagger2"
@@ -63,6 +73,11 @@ dependencies {
 def buildDate = new Date()
 def buildNumber = System.getenv().BUILD_NUMBER?.toInteger() ?: "Manual"
 def isDirty, branchName, gitHash, gitHashFull, commitDistance, lastTag, isCleanTag
+
+lombok {
+    version = dependencyManagement.importedProperties["lombok.version"] as String
+    sha256 = dependencyManagement.importedProperties["lombok.checksum"] as String
+}
 
 try {
     def gitDetails = versionDetails()
@@ -114,8 +129,8 @@ Building artifacts with manifest attributes:
 """
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 
     manifest {
         from gitManifest
