@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = "1.10.0-RC-SNAPSHOT"
+        vXnat = "1.10.0-SNAPSHOT"
     }
 }
 
@@ -20,21 +20,21 @@ plugins {
     id "java-library"
     id "maven-publish"
     id "com.dorongold.task-tree" version "1.5"
-    id "com.palantir.git-version" version "0.12.1"
-    id "io.franzbecker.gradle-lombok" version "4.0.0"
-    id "io.spring.dependency-management" version "1.0.11.RELEASE"
+    id "com.palantir.git-version" version "4.0.0"
+    id "io.franzbecker.gradle-lombok" version "5.0.0"
+    id "io.spring.dependency-management" version "1.1.7"
     id "net.linguica.maven-settings" version "0.5"
     id "org.nrg.xnat.build.xnat-data-builder" version "${vXnat}"
 }
 
-group "org.nrg.xnatx.plugins"
-version "0.8.0-java21-RC-SNAPSHOT"
-description "XNAT Batch Launch Plugin"
+group = "org.nrg.xnatx.plugins"
+version = "0.8.0-java21-RC-SNAPSHOT"
+description = "XNAT Batch Launch Plugin"
 
 repositories {
     mavenLocal()
-    maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
-    maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
+    maven { url = "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
+    maven { url = "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
     mavenCentral()
 }
 
@@ -58,26 +58,44 @@ dependencyManagement {
 }
 
 dependencies {
-    implementation platform("org.nrg:parent:${vXnat}")
-
     // Even though container-service plugin version is specified in the parent
     // BOM, it needs to be added here because the copyPlugins task in docker-compose
     // won't resolve it properly against the BOM.
-    implementation "org.nrg.xnatx.plugins:container-service:3.7.1-java21-RC-SNAPSHOT:fat"
+    implementation "org.nrg.xnatx.plugins:container-service:3.8.0-SNAPSHOT:fat"
 
     implementation "org.nrg.xnat:web"
     implementation "io.springfox:springfox-swagger2"
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+compileJava {
+    options.fork = false
+}
+
+idea {
+    module {
+        inheritOutputDirs = false
+        outputDir = compileJava.destinationDirectory.asFile.get()
+        testOutputDir = compileTestJava.destinationDirectory.asFile.get()
+    }
+}
+
+lombok {
+    version = dependencyManagement.importedProperties["lombok.version"] as String
+    sha256 = dependencyManagement.importedProperties["lombok.checksum"] as String
 }
 
 // Pulls in the Jenkins BUILD_NUMBER environment variable if available.
 def buildDate = new Date()
 def buildNumber = System.getenv().BUILD_NUMBER?.toInteger() ?: "Manual"
 def isDirty, branchName, gitHash, gitHashFull, commitDistance, lastTag, isCleanTag
-
-lombok {
-    version = dependencyManagement.importedProperties["lombok.version"] as String
-    sha256 = dependencyManagement.importedProperties["lombok.checksum"] as String
-}
 
 try {
     def gitDetails = versionDetails()
@@ -99,20 +117,6 @@ try {
     isCleanTag = false
 }
 
-ext.gitManifest = manifest {
-    attributes "Application-Name": project.description,
-            "Build-Date": buildDate,
-            "Build-Number": buildNumber,
-            "Implementation-Version": project.version,
-            "Implementation-Sha": gitHash,
-            "Implementation-Sha-Full": gitHashFull,
-            "Implementation-Commit": commitDistance,
-            "Implementation-LastTag": lastTag,
-            "Implementation-Branch": branchName,
-            "Implementation-CleanTag": isCleanTag,
-            "Implementation-Dirty": isDirty
-}
-
 logger.info """
 Building artifacts with manifest attributes:
 
@@ -128,29 +132,31 @@ Building artifacts with manifest attributes:
  * Implementation-Dirty:    ${isDirty}
 """
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-
+tasks.withType(Jar).configureEach {
     manifest {
-        from gitManifest
+        attributes "Application-Name": project.description,
+                "Build-Date": buildDate,
+                "Build-Number": buildNumber,
+                "Implementation-Version": project.version,
+                "Implementation-Sha": gitHash,
+                "Implementation-Sha-Full": gitHashFull,
+                "Implementation-Commit": commitDistance,
+                "Implementation-LastTag": lastTag,
+                "Implementation-Branch": branchName,
+                "Implementation-CleanTag": isCleanTag,
+                "Implementation-Dirty": isDirty
     }
-
-    withSourcesJar()
-    withJavadocJar()
 }
 
-task xnatPluginJar(type: Jar) {
-    dependsOn sourcesJar, javadocJar
-    zip64 true
-    archiveClassifier.set "xpl"
-    manifest {
-        from gitManifest
-    }
+tasks.register("xnatPluginJar", Jar) {
+    zip64 = true
+    archiveClassifier = "xpl"
+
     // files and folders with "-dev" or "--xx" in their name
     // will not be in the compiled jar
     exclude "**/resources/**/*-dev**"
     exclude "**/resources/**/*--xx**"
+
     from {
         configurations.implementAndInclude.collect { it.isDirectory() ? it : zipTree(it) }
     } {
@@ -166,7 +172,6 @@ publishing {
         mavenJava(MavenPublication) {
             artifacts {
                 artifact sourcesJar
-                artifact javadocJar
                 artifact xnatPluginJar
             }
 
@@ -201,15 +206,8 @@ publishing {
     repositories {
         maven {
             name = "XNAT_Artifactory"
-            if (project.version.endsWith("-SNAPSHOT")) {
-                url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot-local"
-            } else {
-                url "https://nrgxnat.jfrog.io/nrgxnat/libs-release-local"
-            }
+            url = "https://nrgxnat.jfog.io/nrgxnat/libs-/${version.endsWith("SNAPSHOT") ? "snapshots" : "release"}-local"
         }
     }
 }
 
-def propertyWithDefault(String name, Object value) {
-    hasProperty(name) ? property(name) : value
-}
