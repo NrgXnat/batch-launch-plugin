@@ -171,19 +171,21 @@ public class DynamicAddSqlQueryFieldsToDataTypes {
         }
     }
 
+    private static final String VIEW_SQL = "select distinct on (itemId) %s as itemId, w.externalid, w.wrk_workflowdata_id, w.pipeline_name, w.status, w.status || '#' || w.wrk_workflowdata_id AS widstatus, to_char(w.launch_time,'YYYY-MM-DD HH24:MI:SS') AS launch_time, CASE WHEN w.justification='Container launch' THEN w.comments ELSE NULL END AS container_id from wrk_workflowdata w where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' order by itemId, launch_time desc";
+
     private static boolean addedSQLQueryFieldToDataTypes = false;
     private static final DisplayFieldInfo scanTypeCountQuery = new DisplayFieldInfo("SCAN_TYPE_COUNT", "integer", "cnt", "image_session_id", "SELECT image_session_id, COUNT(*) AS file_count FROM xnat_imageScanData scan WHERE TYPE='@WHERE' GROUP BY image_session_id");
     private static final List<DisplayFieldInfo> displayFieldQueries = Arrays.asList(
             new DisplayFieldInfo("WRK_STATUS", "string", "widstatus", "itemId",
-                    "select distinct on (itemId) %s as itemId, w.externalid, w.wrk_workflowdata_id, w.pipeline_name, w.status, w.status || '#' || w.wrk_workflowdata_id AS widstatus from wrk_workflowdata w where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' order by itemId, launch_time desc"),
+                    VIEW_SQL),
             new DisplayFieldInfo("WRK_STATUS_LAUNCH", "date", "launch_time", "itemId",
-                    "select distinct on (itemId) %s as itemId, w.externalid, w.wrk_workflowdata_id, w.pipeline_name, to_char(w.launch_time,'YYYY-MM-DD HH24:MI:SS') AS launch_time from wrk_workflowdata w where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' order by itemId, launch_time desc"),
+                    VIEW_SQL),
             new DisplayFieldInfo("WRK_STATUS_LASTMOD", "date", "last_modified", "itemId",
                     "select distinct on (itemId) %s as itemId, w.externalid, w.wrk_workflowdata_id, w.pipeline_name, to_char(meta.last_modified,'YYYY-MM-DD HH24:MI:SS') AS last_modified FROM wrk_workflowdata w LEFT JOIN wrk_workflowdata_meta_data meta ON w.workflowData_info=meta.meta_data_id where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' order by itemId, launch_time desc"),
             new DisplayFieldInfo("WRK_STATUS_NUMRUNS", "integer", "NUM_WRKS", "itemId",
                     "select distinct on (itemId) %s as itemId, COUNT(*) AS NUM_WRKS from wrk_workflowdata w where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' GROUP BY itemId"),
             new DisplayFieldInfo("WRK_STATUS_CID", "string", "container_id", "itemId",
-                    "select distinct on (itemId) %s as itemId, w.externalid, w.wrk_workflowdata_id, w.pipeline_name ,  w.status, w.comments AS container_id from wrk_workflowdata w where replace(replace(w.pipeline_name, '.', '_'),' ','_')='@WHERE' AND w.justification='Container launch' order by itemId, launch_time desc"),
+                    VIEW_SQL),
             new DisplayFieldInfo("RES_FILE_SIZE", "integer", "file_size"),
             new DisplayFieldInfo("RES_FILE_COUNT", "integer", "file_count")
     );
