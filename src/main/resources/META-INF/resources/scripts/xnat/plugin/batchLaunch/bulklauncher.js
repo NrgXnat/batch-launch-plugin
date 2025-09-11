@@ -122,8 +122,50 @@ console.log('bulklauncher.js');
         }
     }
 
+    function getTableScaffolding(tableId, currentJob) {
+        let divContent = `<div class="data-table-titlerow">
+            <h3 class="data-table-title">Select elements to launch processing</h3>
+            <div class="data-table-actionsrow clearfix">
+              <span class="textlink-sm data-table-action">
+                <select id="actionsDropdown" class="data-table-action disabled" disabled>
+                </select>
+              </span>
+              <button class="btn btn-sm data-table-action disabled" id="launch-job">Launch job</button>
+              <button class="btn btn-sm text-error data-table-action disabled" id="kill-job"><strong>Terminate job</strong></button>
+              <button class="btn btn-sm" type="submit" id="reload">Reload</button>
+              <button class="btn btn-sm" id="download">Download csv</button>
+             `
+
+        if (currentJob) {
+            divContent += `<a class="btn btn-sm" href="#" onclick="XNAT.plugin.batchLaunch.launchTable.showAllJobsBtnAction()">Show all jobs</a>`;
+        }
+
+        divContent += `</div>
+            <span class="clear clearfix"></span>
+          </div>
+          <div class="data-table-wrapper" id="div-${tableId}'-header">
+            <table id="${tableId}" class="clean fixed-header selectable scrollable-table data-table xnat-table" style="width: auto;">
+              <thead>
+                <tr id="xnat-table-header-row1">
+                  <th class="toggle-all" style="width: 45px;">
+                    <input type="checkbox" class="selectable-select-all" id="toggle-all-elements" title="Toggle All"/>
+                  </th>
+                </tr>
+                <tr id="xnat-table-header-row2">
+                  <td style="width: 45px;"></td>
+                </tr>
+              </thead>
+              <tbody id="xnat-table-datarows-tbody" style="height: 500px;">
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        return divContent;
+    }
+
     XNAT.plugin.batchLaunch.launchTable.init = (reload) => {
-        const waitDialog = XNAT.ui.dialog.static.wait('Loading processing data...');
+        const requestDialog = XNAT.ui.dialog.static.wait('Requesting processing data...');
 
         XNAT.plugin.batchLaunch.projectId = $('#projectId').text();
         XNAT.plugin.batchLaunch.projects = $('#projects').text();
@@ -168,56 +210,21 @@ console.log('bulklauncher.js');
                 if (!response.ok) {
                     throw new Error(await response.text());
                 }
-                responseData = await response.json();
+                requestDialog.close();
+                const retrieveDialog = XNAT.ui.dialog.static.wait('Retrieving processing data<br>(this could take a while)');
+                try {
+                    responseData = await response.json();
+                } finally {
+                    retrieveDialog.close();
+                }
             } catch (error) {
                 rejectProjectIds();
                 throw error;
             } finally {
-                waitDialog.close();
+                requestDialog.close();
             }
             var keyAndHeaderMap = {};
-
-            //Add table
-            var divContent = '<div class="data-table-titlerow">							';
-            divContent += '	    <h3 class="data-table-title">Select elements to launch processing</h3>		';
-            divContent += '	    <div class="data-table-actionsrow clearfix">							';
-            divContent += '	        <span  class="textlink-sm data-table-action">					';
-            divContent += '	          <select id="actionsDropdown" class="data-table-action disabled"  disabled>	';
-            divContent += '	          </select>									';
-            divContent += '	        </span>										';
-            divContent += ' 	    <button class="btn btn-sm data-table-action disabled" id="launch-job">' +
-                'Launch job</button>	';
-            divContent += '		    <button class="btn btn-sm text-error data-table-action disabled" id="kill-job">' +
-                '<strong>Terminate job</strong></button>				';
-            divContent += '		    <button class="btn btn-sm" type="submit" id="reload">Reload</button>';
-            divContent += '		    <button class="btn btn-sm" id="download">Download csv</button>				';
-
-            if (currentJob) {
-                divContent += '<a class="btn btn-sm" href="#" ' +
-                    'onclick="XNAT.plugin.batchLaunch.launchTable.showAllJobsBtnAction()">Show all jobs</a>';
-            }
-
-            divContent += '	    </div>													';
-            divContent += '    <span class="clear clearfix"></span>									';
-            divContent += '	</div>														';
-            divContent += '	<div class="data-table-wrapper" id="div-' + tableId + '-header">';
-            divContent += '	       <table id="' + tableId + '" class="clean fixed-header selectable scrollable-table data-table xnat-table" style="width: auto;">';
-            divContent += '	            <thead>												';
-            divContent += '		            <tr id="xnat-table-header-row1">								';
-            divContent += '		                <th class="toggle-all" style="width: 45px;">						';
-            divContent += '		                    <input type="checkbox" class="selectable-select-all" ' +
-                'id="toggle-all-elements" title="Toggle All" />	';
-            divContent += '		                </th>															';
-            divContent += '		            </tr>															';
-            divContent += '		            <tr id="xnat-table-header-row2">								';
-            divContent += '		                <td style="width: 45px;"></td>						        ';
-            divContent += '		            </tr>															';
-            divContent += '	            </thead>																';
-            divContent += '	            <tbody id="xnat-table-datarows-tbody" style="height: 500px;">									';
-            divContent += '             </tbody>																';
-            divContent += '	        </table>																';
-            divContent += '	</div>																		';
-            $container.append(divContent);
+            $container.append(getTableScaffolding(tableId, currentJob));
 
             let excluded = ["Scans", "Age", "Date", "Scanner", "Scans", "Type", "M/F", "Gender"];
             responseData.ResultSet.Columns.forEach((d) => {
@@ -533,7 +540,7 @@ console.log('bulklauncher.js');
             }
             XNAT.ui.ajaxTable.resizeTableCols($container.find("table#" + tableId));
 
-            loadingDialog = XNAT.ui.dialog.loading;
+            const loadingDialog = XNAT.ui.dialog.loading;
             try {
                 loadingDialog.open();
                 renderActionOptions(await availableCommandsPromise, await configuredPipelinesPromise);
