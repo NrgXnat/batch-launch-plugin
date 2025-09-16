@@ -28,7 +28,7 @@ plugins {
 }
 
 group "org.nrg.xnatx.plugins"
-version "0.8.1-RC-SNAPSHOT"
+version "0.8.1"
 description "XNAT Batch Launch Plugin"
 
 repositories {
