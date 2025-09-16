@@ -1,6 +1,17 @@
 # Changelog #
 **Note:** The Batch Launch Plugin has version requirements with both XNAT and the Container Service plugin. Only minimum version compatibility requirements are listed in this document. See [Batch Launch Plugin Compatibility Matrix](https://wiki.xnat.org/xnat-tools/batch-launch-plugin-version-compatibility-notes) for a full set of details.
 
+## 0.8.1 ##
+**[Released Sep 2025](https://bitbucket.org/xnatx/xnatx-batch-launch-plugin/src/0.8.1/)**
+
+Requires XNAT 1.9.2.2 and Container Service 3.7.0+
+
+* **Bugfix:** [BLP-81](https://radiologics.atlassian.net/browse/BLP-81) - Fix an issue causing undefined labels in the processing dashboard when working with non-MR sessions
+* **Improvement:** [BLP-89](https://radiologics.atlassian.net/browse/BLP-89) - Improve loading time of dashboard when many thousands of data rows are in context. Requires support for SQL subqueries as introduced in XNAT 1.9.2.2
+* **Improvement:** [BLP-91](https://radiologics.atlassian.net/browse/BLP-91) - Improve communication to user when loading many thousands of rows
+* **Improvement:** [BLP-92](https://radiologics.atlassian.net/browse/BLP-92) - Remove unnecessary project command check when loading a processing dashboard for a single project
+
+
 ## 0.8.0 ##
 **[Released June 2025](https://bitbucket.org/xnatx/xnatx-batch-launch-plugin/src/0.8.0/)**
 
