@@ -115,6 +115,22 @@ function RecentExptList(_div, _options) {
                 tr.appendChild(td);
             }
 
+            //MR XNAT-8540
+            if(exptList.options.showPetTracerName){
+                tracerName = expt.pet_tracer_name ? expt.pet_tracer_name : '';
+                if (tracerName === '') {
+                  tracerName = expt.pet_mr_tracer_name ? expt.pet_mr_tracer_name : '';
+                }
+                if (tracerName.length > 10) {
+                    tracerName = tracerName.substring(0,9) + '&hellip;';
+                }
+                td = document.createElement("td");
+                td.title = "Tracer";
+                td.align = "left";
+                td.innerHTML = tracerName;
+                tr.appendChild(td);
+            }
+
             td = document.createElement("td");
             td.align = "left";
 
