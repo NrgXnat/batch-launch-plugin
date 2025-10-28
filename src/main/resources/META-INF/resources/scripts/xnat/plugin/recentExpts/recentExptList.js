@@ -122,7 +122,7 @@ function RecentExptList(_div, _options) {
                   tracerName = expt.pet_mr_tracer_name ? expt.pet_mr_tracer_name : '';
                 }
                 if (tracerName.length > 10) {
-                    tracerName = tracerName.substring(0,9) + '&hellip;';
+                    tracerName = tracerName.substring(0,5) + '&hellip;';
                 }
                 td = document.createElement("td");
                 td.title = "Tracer";
