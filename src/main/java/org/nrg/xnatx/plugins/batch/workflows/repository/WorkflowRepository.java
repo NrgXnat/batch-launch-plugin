@@ -152,26 +152,40 @@ public class WorkflowRepository implements PageableRepository {
                                                    "         LEFT JOIN xdat_user u ON meta.insert_user_xdat_user_id = u.xdat_user_id ";
 
     // Pipelines on experiment
-    public static final String QUERY_EXPT_WFS = "SELECT " + WRK_FIELDS + ", " +
-                                                "       expt.label, " +
-                                                "       es.project AS shared_project " +
-                                                "FROM (SELECT * " +
-                                                "      FROM wrk_workflowData w " +
-                                                "      WHERE id = :id " +
-                                                "         OR id IN (SELECT DISTINCT id " +
-                                                "                   FROM (SELECT iad.id " +
-                                                "                         FROM xnat_imageassessordata iad " +
-                                                "                         WHERE iad.id IS NOT NULL " +
-                                                "                           AND iad.imagesession_id = :id " +
-                                                "                         UNION " +
-                                                "                         SELECT iad.id " +
-                                                "                         FROM xnat_imageassessordata_history iad " +
-                                                "                         WHERE iad.id IS NOT NULL " +
-                                                "                           AND iad.imagesession_id = :id) AS idq)) as wrk " +
-                                                "         INNER JOIN xnat_experimentdata expt ON wrk.id = expt.id " +
-                                                "         LEFT JOIN xnat_experimentdata_share es ON expt.id = es.sharing_share_xnat_experimentda_id" +
-                                                "         LEFT JOIN wrk_workflowdata_meta_data meta ON wrk.workflowData_info = meta.meta_data_id " +
-                                                "         LEFT JOIN xdat_user u ON meta.insert_user_xdat_user_id = u.xdat_user_id ";
+    public static final String QUERY_EXPT_WFS = "WITH wanted_ids AS ( " +
+            "  SELECT :id::varchar(255) AS id " +
+            "  UNION " +
+            "  SELECT iad.id " +
+            "  FROM xnat_imageassessordata iad" +
+            "  WHERE iad.id IS NOT NULL " +
+            "    AND iad.imagesession_id = :id::varchar(255) " +
+            "  UNION " +
+            "  SELECT iah.id " +
+            "  FROM xnat_imageassessordata_history iah " +
+            "  WHERE iah.id IS NOT NULL " +
+            "    AND iah.imagesession_id = :id::varchar(255) " +
+            "), " +
+            "top_wrk AS ( " +
+            "  SELECT w.* " +
+            "  FROM wrk_workflowdata w " +
+            "  JOIN wanted_ids i ON i.id = w.id " +
+            "  ORDER BY w.wrk_workflowdata_id DESC " +
+            "  LIMIT 50 " +
+            ") " +
+            "SELECT " +
+            "  " + WRK_FIELDS + ", " +
+            "  e.label, " +
+            "  s.project AS shared_project " +
+            "FROM top_wrk wrk " +
+            "JOIN xnat_experimentdata e " +
+            "  ON wrk.id = e.id " +
+            "LEFT JOIN xnat_experimentdata_share s " +
+            "  ON e.id = s.sharing_share_xnat_experimentda_id " +
+            "LEFT JOIN wrk_workflowdata_meta_data m " +
+            "  ON wrk.workflowdata_info = m.meta_data_id " +
+            "LEFT JOIN xdat_user u " +
+            "  ON m.insert_user_xdat_user_id = u.xdat_user_id " +
+            "ORDER BY wrk.wrk_workflowdata_id DESC ";
 
     private static final String QUERY_RECENT_EXPTS = "SELECT * " +
                                                      "FROM (WITH wrkSubQ AS (SELECT wrk.wrk_workflowdata_id, " +
