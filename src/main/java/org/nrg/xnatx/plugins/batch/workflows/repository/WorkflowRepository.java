@@ -170,7 +170,6 @@ public class WorkflowRepository implements PageableRepository {
             "  FROM wrk_workflowdata w " +
             "  JOIN wanted_ids i ON i.id = w.id " +
             "  ORDER BY w.wrk_workflowdata_id DESC " +
-            "  LIMIT 50 " +
             ") " +
             "SELECT " +
             "  " + WRK_FIELDS + ", " +
@@ -184,8 +183,7 @@ public class WorkflowRepository implements PageableRepository {
             "LEFT JOIN wrk_workflowdata_meta_data m " +
             "  ON wrk.workflowdata_info = m.meta_data_id " +
             "LEFT JOIN xdat_user u " +
-            "  ON m.insert_user_xdat_user_id = u.xdat_user_id " +
-            "ORDER BY wrk.wrk_workflowdata_id DESC ";
+            "  ON m.insert_user_xdat_user_id = u.xdat_user_id ";
 
     private static final String QUERY_RECENT_EXPTS = "SELECT * " +
                                                      "FROM (WITH wrkSubQ AS (SELECT wrk.wrk_workflowdata_id, " +
