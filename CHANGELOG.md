@@ -1,6 +1,14 @@
 # Changelog #
 **Note:** The Batch Launch Plugin has version requirements with both XNAT and the Container Service plugin. Only minimum version compatibility requirements are listed in this document. See [Batch Launch Plugin Compatibility Matrix](https://wiki.xnat.org/xnat-tools/batch-launch-plugin-version-compatibility-notes) for a full set of details.
 
+## 0.9.0 ##
+
+Requires XNAT 1.9.2.2 and Container Service 3.7.0
+
+* **Improvement:** [BLP-94](https://radiologics.atlassian.net/browse/BLP-94) - Mirror support for displaying PET tracers in the Recent Activity table (requires XNAT 1.9.3 to display)
+* **Bugfix:** [BLP-95](https://radiologics.atlassian.net/browse/BLP-95) - Refactor query that checks workflow history on image session report page to remedy slow load times on high-volume XNATs
+
+
 ## 0.8.1 ##
 **[Released Sep 2025](https://bitbucket.org/xnatx/xnatx-batch-launch-plugin/src/0.8.1/)**
 
