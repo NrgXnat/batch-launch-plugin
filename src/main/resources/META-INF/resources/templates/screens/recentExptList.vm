@@ -13,6 +13,7 @@
     const opts = {};
     opts.showExptDate = "$!siteConfig.getProperty('uiShowRecentExptListDate')" == "true"
     opts.showExptScannerName = "$!siteConfig.getProperty('uiShowRecentExptListScannerName')" == "true"
+    opts.showPetTracerName = "$!siteConfig.getProperty('uiShowRecentExptListTracerName')" == "true"
     opts.recent = true;
 
     const exptList = #if ($useWorkflowBasedRecentExpts) new RecentExptList("recent_expt_list", opts); #else new MinExptList("min_expt_list", opts); #end

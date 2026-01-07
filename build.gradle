@@ -27,9 +27,9 @@ plugins {
     id "org.nrg.xnat.build.xnat-data-builder" version "${vXnat}"
 }
 
-group = "org.nrg.xnatx.plugins"
-version = "0.8.0-java21-RC-SNAPSHOT"
-description = "XNAT Batch Launch Plugin"
+group "org.nrg.xnatx.plugins"
+version "0.9.0"
+description "XNAT Batch Launch Plugin"
 
 repositories {
     mavenLocal()
