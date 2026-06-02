@@ -10,8 +10,9 @@ Requires XNAT 1.9.2.2 and Container Service 3.7.0
 
 
 ## 0.8.1 ##
+**[Released Sep 2025](https://bitbucket.org/xnatx/xnatx-batch-launch-plugin/src/0.8.1/)**
 
-Requires XNAT 1.9.2.2 and Container Service 3.7.0
+Requires XNAT 1.9.2.2 and Container Service 3.7.0+
 
 * **Bugfix:** [BLP-81](https://radiologics.atlassian.net/browse/BLP-81) - Fix an issue causing undefined labels in the processing dashboard when working with non-MR sessions
 * **Improvement:** [BLP-89](https://radiologics.atlassian.net/browse/BLP-89) - Improve loading time of dashboard when many thousands of data rows are in context. Requires support for SQL subqueries as introduced in XNAT 1.9.2.2

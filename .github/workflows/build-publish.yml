@@ -30,11 +30,10 @@ jobs:
   build-publish:
     uses: NrgXnat/xnat-ci-workflows/.github/workflows/gradle-build-publish.yml@v1
     with:
-      # build.gradle still pins sourceCompatibility = VERSION_1_8 on the
-      # develop / main branches (XNAT 1.9.2 line). The java-upgrade /
-      # *java21-rc branches will need their own caller with
-      # java-version: '21'.
-      java-version: '8'
+      # After merging releases/0.9.0-java21-rc into github-build, build.gradle
+      # uses Java 21 toolchain (vXnat=1.10.0-RC-SNAPSHOT, gradle 8.5,
+      # plugin version 0.9.0-java21-RC-SNAPSHOT).
+      java-version: '21'
       artifact-glob: 'build/libs/*.jar'
       # No Docker image for plugins yet (per project plan).
       publish-jfrog: ${{ github.event_name == 'push' || inputs.publish_jfrog }}
