@@ -1,0 +1,41 @@
+name: Build and Publish
+
+# Thin caller around the shared reusable workflow in
+# NrgXnat/xnat-ci-workflows. All build/publish orchestration lives there;
+# this file only defines our triggers and the project-specific inputs
+# (java version, jar layout — plugin doesn't ship a Docker image yet).
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'releases/*'
+      - github-build   # for pipeline testing; remove once verified
+  workflow_dispatch:
+    inputs:
+      publish_jfrog:
+        description: 'Publish jar to JFrog Artifactory (nrgxnat)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-publish:
+    uses: NrgXnat/xnat-ci-workflows/.github/workflows/gradle-build-publish.yml@v1
+    with:
+      # build.gradle still pins sourceCompatibility = VERSION_1_8 on the
+      # develop / main branches (XNAT 1.9.2 line). The java-upgrade /
+      # *java21-rc branches will need their own caller with
+      # java-version: '21'.
+      java-version: '8'
+      artifact-glob: 'build/libs/*.jar'
+      # No Docker image for plugins yet (per project plan).
+      publish-jfrog: ${{ github.event_name == 'push' || inputs.publish_jfrog }}
+      publish-ghcr:  false
+
+    # secrets: inherit passes XNAT_ARTIFACTORY_USER/TOKEN (org-level)
+    # through to the reusable workflow.
+    secrets: inherit
