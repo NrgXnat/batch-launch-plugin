@@ -19,8 +19,12 @@ on:
         type: boolean
         default: false
 
+# packages: write is required because the reusable workflow's publish-ghcr
+# job declares it, and GitHub validates caller permissions cover all
+# called-job permissions even when the job is skipped via `if:`.
 permissions:
   contents: read
+  packages: write
 
 jobs:
   build-publish:
