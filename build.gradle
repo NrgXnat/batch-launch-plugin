@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = "1.9.2"
+        vXnat = "1.10.1-SNAPSHOT"
     }
 }
 
@@ -20,9 +20,9 @@ plugins {
     id "java-library"
     id "maven-publish"
     id "com.dorongold.task-tree" version "1.5"
-    id "com.palantir.git-version" version "0.12.1"
-    id "io.franzbecker.gradle-lombok" version "4.0.0"
-    id "io.spring.dependency-management" version "1.0.11.RELEASE"
+    id "com.palantir.git-version" version "3.0.0"
+    id "io.franzbecker.gradle-lombok" version "5.0.0"
+    id "io.spring.dependency-management" version "1.1.7"
     id "net.linguica.maven-settings" version "0.5"
     id "org.nrg.xnat.build.xnat-data-builder" version "${vXnat}"
 }
@@ -57,6 +57,32 @@ dependencies {
 
     implementation "org.nrg.xnat:web"
     implementation "io.springfox:springfox-swagger2"
+
+    implementation("turbine:turbine") {
+        exclude group: "commons-dbcp"
+        exclude group: "commons-email"
+        exclude group: "commons-pool"
+        exclude group: "fulcrum"
+        exclude group: "javax.activation", module: "activation"
+        exclude group: "javax.mail"
+        exclude group: "javax.servlet"
+        exclude group: "jython"
+        exclude group: "xalan"
+        exclude group: "xml-apis"
+        exclude group: "log4j", module: "log4j"
+        exclude group: "berkeleydb"
+        exclude group: "javax.sql"
+        exclude group: "jndi"
+        exclude group: "mysql"
+        exclude group: "tomcat"
+        exclude group: "xerces"
+        exclude group: "velocity", module: "texen"
+        exclude group: "jamon", module: "jamon"
+    }
+    compileOnly("org.apache.velocity:velocity") { transitive = false }
+    compileOnly "javax.servlet:javax.servlet-api"
+    compileOnly "commons-lang:commons-lang:2.6"
+    compileOnly "org.restlet:org.restlet"
 }
 
 // Pulls in the Jenkins BUILD_NUMBER environment variable if available.
@@ -84,19 +110,19 @@ try {
     isCleanTag = false
 }
 
-ext.gitManifest = manifest {
-    attributes "Application-Name": project.description,
-            "Build-Date": buildDate,
-            "Build-Number": buildNumber,
-            "Implementation-Version": project.version,
-            "Implementation-Sha": gitHash,
-            "Implementation-Sha-Full": gitHashFull,
-            "Implementation-Commit": commitDistance,
-            "Implementation-LastTag": lastTag,
-            "Implementation-Branch": branchName,
-            "Implementation-CleanTag": isCleanTag,
-            "Implementation-Dirty": isDirty
-}
+ext.gitManifestAttrs = [
+        "Application-Name"        : project.description,
+        "Build-Date"              : buildDate,
+        "Build-Number"            : buildNumber,
+        "Implementation-Version"  : project.version,
+        "Implementation-Sha"      : gitHash,
+        "Implementation-Sha-Full" : gitHashFull,
+        "Implementation-Commit"   : commitDistance,
+        "Implementation-LastTag"  : lastTag,
+        "Implementation-Branch"   : branchName,
+        "Implementation-CleanTag" : isCleanTag,
+        "Implementation-Dirty"    : isDirty
+]
 
 logger.info """
 Building artifacts with manifest attributes:
@@ -114,15 +140,20 @@ Building artifacts with manifest attributes:
 """
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 
     manifest {
-        from gitManifest
+        attributes gitManifestAttrs
     }
 
     withSourcesJar()
     withJavadocJar()
+}
+
+lombok {
+    version = "1.18.34"
+    sha256 = "1ea5ad6c6afcff902d75072b2aaa6695585aebee9f12127e15c0036ba95d2918"
 }
 
 task xnatPluginJar(type: Jar) {
@@ -130,7 +161,7 @@ task xnatPluginJar(type: Jar) {
     zip64 true
     archiveClassifier.set "xpl"
     manifest {
-        from gitManifest
+        attributes gitManifestAttrs
     }
     // files and folders with "-dev" or "--xx" in their name
     // will not be in the compiled jar
