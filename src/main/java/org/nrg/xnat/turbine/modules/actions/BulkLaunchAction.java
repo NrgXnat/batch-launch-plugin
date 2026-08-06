@@ -8,6 +8,7 @@ import static org.nrg.xnatx.plugins.batch.utils.SearchXMLBuilder.getItemList;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.turbine.pipeline.PipelineData;
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
 import org.nrg.xdat.exceptions.InvalidSearchException;
@@ -39,7 +40,8 @@ import java.util.Set;
 @Slf4j
 public class BulkLaunchAction extends DisplaySearchAction {
     @Override
-    public void doPerform(final RunData data, final Context context) {
+    public void doPerform(final PipelineData pipelineData, final Context context) {
+        final RunData data = pipelineData.getRunData();
         final UserI user = getUser();
         try {
             final String rawSearchXml = data.getParameters().getString("search_xml");

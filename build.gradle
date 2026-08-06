@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = "1.10.1-SNAPSHOT"
+        vXnat = "1.11.0-SNAPSHOT"   // jakarta / Tomcat 10 line
     }
 }
 
@@ -31,57 +31,62 @@ version "0.9.0-SNAPSHOT"
 description "XNAT Batch Launch Plugin"
 
 repositories {
-    mavenLocal()
+    // Scope mavenLocal to org.nrg.* so a locally-published SNAPSHOT of core is consumed without shadowing
+    // partial third-party artifacts (e.g. ehcache-*-jakarta classifiers). See migration guide.
+    mavenLocal { content { includeGroupByRegex 'org\\.nrg.*' } }
     maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
     maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
     mavenCentral()
 }
 
 configurations {
-    all {
+    // Gradle 9 forbids mutating a configuration's excludes after it has been resolved (the old
+    // `all { exclude }` form triggers this). Apply excludes lazily per-configuration instead.
+    configureEach {
         exclude group: "javax.sql"
         exclude group: "javax.transaction"
         exclude group: "javax.jms"
     }
+    implementAndInclude
     implementation.extendsFrom(implementAndInclude)
 }
 
+dependencyManagement.imports {
+    mavenBom "org.nrg:parent:${vXnat}"
+}
+
 dependencies {
-    implementation platform("org.nrg:parent:${vXnat}")
+    // XNAT host API + Turbine 7 / Velocity 2 (provided by XNAT at runtime).
+    compileOnly "org.nrg.xnat:web"
+    compileOnly "org.nrg.xdat:core"
+    compileOnly "org.nrg:framework"
+    // 1.11.0 coordinate renames: turbine:turbine -> org.apache.turbine:turbine (7.0),
+    // org.apache.velocity:velocity -> org.apache.velocity:velocity-engine-core (2.4.1)
+    compileOnly "org.apache.turbine:turbine"
+    compileOnly "org.apache.velocity:velocity-engine-core"
 
-    // Even though container-service plugin version is specified in the parent
-    // BOM, it needs to be added here because the copyPlugins task in docker-compose
-    // won't resolve it properly against the BOM.
-    implementation "org.nrg.xnatx.plugins:container-service:3.2.0:fat"
-
-    implementation "org.nrg.xnat:web"
-    implementation "io.springfox:springfox-swagger2"
-
-    implementation("turbine:turbine") {
-        exclude group: "commons-dbcp"
-        exclude group: "commons-email"
-        exclude group: "commons-pool"
-        exclude group: "fulcrum"
-        exclude group: "javax.activation", module: "activation"
-        exclude group: "javax.mail"
-        exclude group: "javax.servlet"
-        exclude group: "jython"
-        exclude group: "xalan"
-        exclude group: "xml-apis"
-        exclude group: "log4j", module: "log4j"
-        exclude group: "berkeleydb"
-        exclude group: "javax.sql"
-        exclude group: "jndi"
-        exclude group: "mysql"
-        exclude group: "tomcat"
-        exclude group: "xerces"
-        exclude group: "velocity", module: "texen"
-        exclude group: "jamon", module: "jamon"
-    }
-    compileOnly("org.apache.velocity:velocity") { transitive = false }
-    compileOnly "javax.servlet:javax.servlet-api"
-    compileOnly "commons-lang:commons-lang:2.6"
+    // org.nrg.action.ClientException exposes org.restlet.data.Status in its API (Status.CLIENT_ERROR_*),
+    // so restlet must be on the compile classpath. 2.6 keeps the standard HTTP statuses used here.
     compileOnly "org.restlet:org.restlet"
+
+    // springfox is dead on Spring 6; the xapi controller only uses io.swagger.annotations.* -> provide those directly.
+    compileOnly "io.swagger:swagger-annotations:1.5.20"
+
+    // batch-launch drives container-service (WorkflowService/Workflow reference its API). Provided at runtime.
+    compileOnly "org.nrg.xnatx.plugins:container-service:3.9.0-SNAPSHOT:fat"
+
+    compileOnly "org.springframework:spring-web"
+    compileOnly "org.springframework:spring-webmvc"
+    compileOnly "org.springframework:spring-context"
+    compileOnly "org.springframework:spring-beans"
+
+    compileOnly "jakarta.servlet:jakarta.servlet-api"
+    compileOnly "com.google.code.findbugs:jsr305"        // javax.annotation.Nonnull/Nullable (JSR-305, stays javax)
+    compileOnly "org.apache.commons:commons-lang3"
+    compileOnly "com.google.guava:guava"
+    compileOnly "com.fasterxml.jackson.core:jackson-annotations"
+    compileOnly "com.fasterxml.jackson.core:jackson-databind"
+    compileOnly "org.slf4j:slf4j-api"
 }
 
 // Pulls in the Jenkins BUILD_NUMBER environment variable if available.
@@ -139,8 +144,9 @@ Building artifacts with manifest attributes:
 """
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    // toolchain (not sourceCompatibility) so compile runs on JDK 21 regardless of the daemon JDK —
+    // matches container-service/mfa and keeps Lombok 1.18.34's javac hooks working. See migration guide.
+    toolchain { languageVersion = JavaLanguageVersion.of(21) }
 
     manifest {
         attributes gitManifestAttrs
@@ -148,6 +154,11 @@ java {
 
     withSourcesJar()
     withJavadocJar()
+}
+
+compileJava {
+    dependsOn xnatDataBuilder
+    options.fork = true   // a cross-JDK toolchain (21) must fork; also lets Lombok 1.18.34 run on JDK 21
 }
 
 lombok {

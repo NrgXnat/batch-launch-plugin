@@ -4,6 +4,7 @@ package org.nrg.xnat.turbine.modules.screens;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.turbine.pipeline.PipelineData;
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
 import org.nrg.action.ClientException;
@@ -25,7 +26,8 @@ import java.util.List;
 public class XDATScreen_bulk_action extends SecureScreen {
 
     @Override
-    protected void doBuildTemplate(final RunData data, final Context context) throws ClientException {
+    protected void doBuildTemplate(final PipelineData pipelineData, final Context context) throws ClientException {
+        final RunData data = pipelineData.getRunData();
         final UserI user = XDAT.getUserDetails();
 
         context.put("timezoneOffset", Calendar.getInstance().getTimeZone().getOffset(Calendar.getInstance().getTimeInMillis()));
